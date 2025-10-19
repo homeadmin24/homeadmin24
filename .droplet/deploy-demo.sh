@@ -52,24 +52,41 @@ cd /opt/homeadmin24-demo
 echo "[1/11] Pulling latest code from GitHub..."
 git pull origin main
 
-# Check if .env exists
+# Configure .env file
+echo "[2/11] Configuring .env file..."
+if [ ! -f .env.example ]; then
+    echo "❌ Error: .env.example not found"
+    exit 1
+fi
+
 if [ ! -f .env ]; then
-    echo "[2/11] Creating .env file..."
-    if [ -f .env.example ]; then
-        cp .env.example .env
-        # Auto-configure for demo environment
-        sed -i 's/APP_ENV=.*/APP_ENV=dev/' .env
-        sed -i 's/APP_SECRET=.*/APP_SECRET=9d7239a8d9bbf2c779f561151fcb2e10/' .env
-        sed -i 's|DATABASE_URL=.*|DATABASE_URL="mysql://root:rootpassword@mysql:3306/homeadmin24?serverVersion=8.0\&charset=utf8mb4\&collation=utf8mb4_unicode_ci"|' .env
-        sed -i 's/# MAILER_DSN=.*/MAILER_DSN=null:\/\/null/' .env
-        sed -i 's/^MAILER_DSN=null/MAILER_DSN=null:\/\/null/' .env 2>/dev/null || true
-        echo "✅ .env created and auto-configured for DEMO (APP_ENV=dev, DATABASE_URL, APP_SECRET)"
-    else
-        echo "Error: .env.example not found"
-        exit 1
-    fi
+    echo "Creating .env from .env.example..."
+    cp .env.example .env
+    ENV_ACTION="created"
 else
-    echo "[2/11] .env already exists"
+    echo ".env already exists, checking configuration..."
+    # Check if DATABASE_URL uses 127.0.0.1 (wrong for Docker)
+    if grep -q "127.0.0.1" .env; then
+        echo "⚠️  WARNING: .env uses 127.0.0.1 (local) instead of 'mysql' (Docker)"
+        echo "Updating .env for Docker deployment..."
+        ENV_ACTION="updated"
+    else
+        echo "✅ .env looks good for Docker deployment"
+        ENV_ACTION="validated"
+    fi
+fi
+
+if [ "$ENV_ACTION" != "validated" ]; then
+    # Auto-configure for demo environment
+    sed -i 's/APP_ENV=.*/APP_ENV=dev/' .env
+    sed -i 's/APP_SECRET=.*/APP_SECRET=9d7239a8d9bbf2c779f561151fcb2e10/' .env
+    sed -i 's|DATABASE_URL=.*|DATABASE_URL="mysql://root:rootpassword@mysql:3306/homeadmin24?serverVersion=8.0\&charset=utf8mb4\&collation=utf8mb4_unicode_ci"|' .env
+    sed -i 's/# MAILER_DSN=.*/MAILER_DSN=null:\/\/null/' .env
+    sed -i 's/^MAILER_DSN=.*/MAILER_DSN=null:\/\/null/' .env 2>/dev/null || true
+    echo "✅ .env ${ENV_ACTION} and configured for DEMO:"
+    echo "   • APP_ENV=dev (development mode)"
+    echo "   • DATABASE_URL=mysql://root:***@mysql:3306/homeadmin24 (Docker)"
+    echo "   • APP_SECRET=*** (demo secret)"
 fi
 
 # Create demo docker-compose override

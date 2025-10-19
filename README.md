@@ -178,7 +178,12 @@ Klicken Sie auf den Button oben, um homeadmin24 mit einem Klick auf DigitalOcean
 
 ### Option 3: DigitalOcean Droplet (VPS - $6/Monat)
 
-Günstigste Option für Production-Deployment mit voller Kontrolle:
+Günstigste Option für Production-Deployment mit voller Kontrolle.
+
+📖 **Detaillierte Deployment-Dokumentation:** [.droplet/DEPLOYMENT.md](.droplet/DEPLOYMENT.md)
+- Erklärung aller `.env` Dateien
+- GitHub Actions Workflow
+- Automatisierte Demo- und Production-Deployments
 
 **Schritt 1: Droplet erstellen**
 1. DigitalOcean Droplet erstellen (Ubuntu 22.04/24.04, $6/Monat Basic Droplet)
