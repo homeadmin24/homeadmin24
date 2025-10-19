@@ -1,0 +1,56 @@
+{% form_theme form 'form/default.html.twig' %}
+
+{{ form_start(form, {'action': path('app_dokument_edit', {'id': dokument.id}), 'attr': {'data-action': 'submit->dokument#submitForm'}}) }}
+    <div class="grid gap-4 mb-4 sm:grid-cols-2">
+        <div>
+            {{ form_row(form.kategorie) }}
+        </div>
+        <div>
+            <!-- Empty for layout -->
+        </div>
+        <div class="sm:col-span-2">
+            {{ form_row(form.beschreibung) }}
+        </div>
+        <div>
+            {{ form_row(form.rechnung) }}
+        </div>
+        <div>
+            {{ form_row(form.dienstleister) }}
+        </div>
+    </div>
+    
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="{{ path('app_dokument_download', {'id': dokument.id}) }}"
+               target="_blank"
+               class="text-white bg-purple-700 hover:bg-purple-800 focus:ring-4 focus:outline-none focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-800">
+                <i class="fas fa-download mr-2"></i>Herunterladen
+            </a>
+            
+        </div>
+        <div class="flex items-center space-x-4">
+            <button type="button" 
+                    data-action="click->dokument#closeModal"
+                    class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+                Abbrechen
+            </button>
+            <button type="submit" 
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                <i class="fas fa-save mr-2"></i>Speichern
+            </button>
+        </div>
+    </div>
+{{ form_end(form) }}
+
+{% if dokument.kategorie == 'rechnungen' and dokument.dienstleister and dokument.dienstleister.parserEnabled and not dokument.rechnung %}
+<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+    <form method="post" action="{{ path('app_dokument_parse', {'id': dokument.id}) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('parse') }}">
+        <button type="submit" 
+                onclick="return confirm('Möchten Sie diese Rechnung automatisch parsen?')"
+                class="w-full text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800">
+            <i class="fas fa-magic mr-2"></i>Als Rechnung parsen
+        </button>
+    </form>
+</div>
+{% endif %}

@@ -1,0 +1,96 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dokument hochladen{% endblock %}
+
+{% block body %}
+    <div class="antialiased bg-gray-50 dark:bg-gray-900" 
+         data-controller="dokument">
+
+        {% include 'components/sidebar.html.twig' %}
+
+        <main class="p-4 md:ml-64 h-auto pt-6">
+            <div class="container mx-auto">
+                <!-- Header with back button -->
+                <div class="flex items-center mb-6">
+                    <a href="{{ path('app_dokument_index') }}" 
+                       class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mr-4">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                        <i class="fas fa-upload mr-2"></i>
+                        {% if app.request.query.get('kategorie') == 'bank-statements' %}
+                            Kontoauszug hochladen
+                        {% else %}
+                            Dokument hochladen
+                        {% endif %}
+                    </h1>
+                </div>
+
+                <!-- Upload form card -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 max-w-2xl">
+                    {% if app.request.query.get('kategorie') == 'bank-statements' %}
+                        <!-- CSV specific instructions -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 dark:bg-blue-900 dark:border-blue-700">
+                            <div class="flex items-start">
+                                <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
+                                <div>
+                                    <h3 class="text-blue-800 dark:text-blue-200 font-medium mb-2">CSV-Kontoauszug Import</h3>
+                                    <ul class="text-blue-700 dark:text-blue-300 text-sm space-y-1">
+                                        <li>• Unterstützt KSK/Sparkasse CSV-Format mit 17 Spalten</li>
+                                        <li>• Automatische Erkennung von Duplikaten</li>
+                                        <li>• Neue Dienstleister werden automatisch angelegt</li>
+                                        <li>• Nach Upload: Vorschau vor dem Import</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% form_theme form 'form/default.html.twig' %}
+
+                    {{ form_start(form, {'action': path('app_dokument_new'), 'attr': {'enctype': 'multipart/form-data'}}) }}
+                        <div class="grid gap-4 mb-4 sm:grid-cols-2">
+                            <div class="sm:col-span-2">
+                                {{ form_row(form.datei) }}
+                            </div>
+                            <div>
+                                {{ form_row(form.kategorie) }}
+                            </div>
+                            <div>
+                                <!-- Empty for layout -->
+                            </div>
+                            <div class="sm:col-span-2">
+                                {{ form_row(form.beschreibung) }}
+                            </div>
+                            {% if app.request.query.get('kategorie') != 'bank-statements' %}
+                                <div>
+                                    {{ form_row(form.rechnung) }}
+                                </div>
+                                <div>
+                                    {{ form_row(form.dienstleister) }}
+                                </div>
+                            {% else %}
+                                {# Hide rechnung and dienstleister fields for CSV uploads but still render them hidden #}
+                                <div style="display: none;">
+                                    {{ form_row(form.rechnung) }}
+                                    {{ form_row(form.dienstleister) }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex items-center space-x-4">
+                            <a href="{{ path('app_dokument_index') }}"
+                               class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+                                Abbrechen
+                            </a>
+                            <button type="submit" 
+                                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                                <i class="fas fa-upload mr-2"></i>Hochladen
+                            </button>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </main>
+    </div>
+{% endblock %}

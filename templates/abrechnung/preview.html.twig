@@ -1,0 +1,120 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}HGA Preview {{ year }} - Unit {{ unitNumber }}{% endblock %}
+
+{% block body %}
+    <div class="antialiased bg-gray-50 dark:bg-gray-900">
+        {% include 'components/sidebar.html.twig' %}
+
+        <main class="p-4 md:ml-64 h-auto pt-6">
+            <div class="container mx-auto">
+                <!-- Header -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2 flex items-center">
+                                <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-6a1 1 0 00-1-1H9a1 1 0 00-1 1v6a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"></path>
+                                </svg>
+                                HGA Preview {{ year }}
+                            </h1>
+                            <p class="text-gray-600 dark:text-gray-400">
+                                Unit {{ unitNumber }} - {{ einheit.bezeichnung }} - {{ einheit.miteigentuemer }}
+                            </p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                Generated: {{ generatedAt|date('d.m.Y H:i:s') }} | WEG: {{ weg.bezeichnung }}
+                            </p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <a href="{{ path('app_abrechnung_index') }}" 
+                               class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                                ← Back to Generator
+                            </a>
+                            <button onclick="window.print()" 
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                🖨️ Print
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Content -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="p-6">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                                Hausgeldabrechnung {{ year }} - TXT Format
+                            </h3>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">
+                                Generated using new HGA calculation services
+                            </div>
+                        </div>
+                        
+                        <!-- Report Output -->
+                        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border">
+                            <pre class="text-sm font-mono text-gray-900 dark:text-gray-100 whitespace-pre-wrap overflow-x-auto">{{ reportContent }}</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Navigation -->
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <a href="{{ path('app_abrechnung_preview', {'year': year, 'unitNumber': '0001'}) }}" 
+                       class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {% if unitNumber == '0001' %}ring-2 ring-blue-500{% endif %}">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">Unit 0001</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">EG links</div>
+                    </a>
+                    <a href="{{ path('app_abrechnung_preview', {'year': year, 'unitNumber': '0002'}) }}" 
+                       class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {% if unitNumber == '0002' %}ring-2 ring-blue-500{% endif %}">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">Unit 0002</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">EG rechts</div>
+                    </a>
+                    <a href="{{ path('app_abrechnung_preview', {'year': year, 'unitNumber': '0003'}) }}" 
+                       class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {% if unitNumber == '0003' %}ring-2 ring-blue-500{% endif %}">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">Unit 0003</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">1. OG links</div>
+                    </a>
+                    <a href="{{ path('app_abrechnung_preview', {'year': year, 'unitNumber': '0004'}) }}" 
+                       class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {% if unitNumber == '0004' %}ring-2 ring-blue-500{% endif %}">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">Unit 0004</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">1. OG rechts</div>
+                    </a>
+                </div>
+
+                <!-- Development Info -->
+                <div class="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                    <h4 class="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">🔧 Development Preview</h4>
+                    <p class="text-sm text-blue-800 dark:text-blue-200">
+                        This page shows the current output of the new HGA calculation services. 
+                        Use this for testing and comparison with reference values.
+                    </p>
+                    <div class="mt-2 text-xs text-blue-700 dark:text-blue-300">
+                        <strong>Direct URLs:</strong>
+                        <ul class="list-disc list-inside mt-1 space-y-1">
+                            <li>/abrechnung/2024/preview/0001 - Unit 0001 (EG links)</li>
+                            <li>/abrechnung/2024/preview/0002 - Unit 0002 (EG rechts)</li>
+                            <li>/abrechnung/2024/preview/0003 - Unit 0003 (1. OG links)</li>
+                            <li>/abrechnung/2024/preview/0004 - Unit 0004 (1. OG rechts)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <style>
+        @media print {
+            .sidebar, .print\\:hidden, nav, .quick-nav, .development-info {
+                display: none !important;
+            }
+            main {
+                margin-left: 0 !important;
+                padding: 0 !important;
+            }
+            pre {
+                font-size: 10px !important;
+                line-height: 1.2 !important;
+            }
+        }
+    </style>
+{% endblock %}

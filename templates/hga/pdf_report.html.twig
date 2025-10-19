@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }}</title>
+    <style>
+        @page {
+            margin: 80px 25px 40px 25px;
+        }
+        
+        .page-header {
+            font-size: 8pt;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            color: #666;
+        }
+        
+        .footer {
+            position: fixed;
+            bottom: -30px;
+            left: 0px;
+            right: 0px;
+            height: 30px;
+            font-size: 7pt;
+            text-align: center;
+            border-top: 1px solid #ddd;
+            padding-top: 5px;
+        }
+        
+        .footer:before {
+            content: "Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }} - Seite " counter(page);
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9pt;
+            line-height: 1.3;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .page-content {
+            max-width: calc(100% - 50px); /* Subtract 25px from each side */
+            margin: 0 auto;
+            padding: 0 25px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        
+        .header h1 {
+            font-size: 16pt;
+            font-weight: bold;
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
+        }
+        
+        .meta-info {
+            font-size: 8pt;
+            color: #666;
+            margin-top: 8px;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+        
+        .section-title {
+            font-size: 11pt;
+            font-weight: bold;
+            background-color: #f5f5f5;
+            padding: 5px 8px;
+            border-left: 4px solid #333;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        
+        .info-grid {
+            display: table;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .info-row {
+            display: table-row;
+        }
+        
+        .info-label {
+            display: table-cell;
+            font-weight: bold;
+            width: 30%;
+            padding: 2px 10px 2px 0;
+        }
+        
+        .info-value {
+            display: table-cell;
+            padding: 2px 0;
+        }
+        
+        .result-box {
+            background-color: #e8f4f8;
+            border: 2px solid #2196F3;
+            padding: 10px;
+            text-align: center;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        
+        .result-box .result-text {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #1976D2;
+        }
+        
+        .calculation-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 8pt;
+        }
+        
+        .calculation-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            padding: 6px;
+            text-align: center;
+            border: 1px solid #ccc;
+        }
+        
+        .calculation-table td {
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+            text-align: right;
+        }
+        
+        .calculation-table td.label {
+            text-align: left;
+            font-weight: normal;
+        }
+        
+        .cost-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            font-size: 8pt;
+        }
+        
+        .cost-table th {
+            background-color: #f8f8f8;
+            padding: 5px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+        }
+        
+        .cost-table td {
+            padding: 3px 5px;
+            border-bottom: 1px solid #eee;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .cost-table td.amount {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .cost-table .subtotal {
+            font-weight: bold;
+            background-color: #f5f5f5;
+            border-top: 1px solid #999;
+        }
+        
+        .cost-table .total {
+            font-weight: bold;
+            background-color: #e8e8e8;
+            border-top: 2px solid #333;
+            font-size: 9pt;
+        }
+        
+        .payments-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            font-size: 8pt;
+        }
+        
+        .payments-table th {
+            background-color: #f8f8f8;
+            padding: 4px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+        }
+        
+        .payments-table td {
+            padding: 2px 4px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .payments-table td.date {
+            width: 80px;
+            text-align: center;
+        }
+        
+        .payments-table td.amount {
+            width: 80px;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .tax-section {
+            background-color: #fffbf0;
+            border: 1px solid #ffa000;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        
+        .tax-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7pt;
+            margin: 5px 0;
+        }
+        
+        .tax-table th {
+            background-color: #fff3e0;
+            padding: 4px;
+            text-align: center;
+            border: 1px solid #ffb74d;
+            font-weight: bold;
+        }
+        
+        .tax-table td {
+            padding: 2px 4px;
+            border: 1px solid #ffccbc;
+            text-align: right;
+        }
+        
+        .tax-table td.label {
+            text-align: left;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+            font-size: 7pt;
+            color: #666;
+            text-align: center;
+        }
+        
+        .amount {
+            font-family: 'Courier New', monospace;
+        }
+        
+        .positive {
+            color: #d32f2f;
+        }
+        
+        .negative {
+            color: #388e3c;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        .umlageschluessel-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            font-size: 7pt;
+        }
+        
+        .umlageschluessel-table th {
+            background-color: #f8f8f8;
+            padding: 4px;
+            text-align: center;
+            border: 1px solid #333;
+            font-weight: bold;
+        }
+        
+        .umlageschluessel-table td {
+            padding: 3px 4px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        
+        .umlageschluessel-table td.label {
+            text-align: left;
+        }
+        
+        h3, h4 {
+            margin-top: 5px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Page Footer (appears on all pages) -->
+    <div class="footer"></div>
+
+    <div class="page-content">
+    <div class="header">
+        <h1>Hausgeldabrechnung {{ data.year }} - Einzelabrechnung</h1>
+        <div class="meta-info">
+            Erstellung: {{ generatedAt|date('d.m.Y') }}<br>
+            Objekt: {{ data.weg.name }}, {{ data.weg.adresse }}<br>
+            Abrechnungszeitraum: 01.01.{{ data.year }} - 31.12.{{ data.year }}
+        </div>
+    </div>
+
+    <!-- PAGE 1: EIGENTÜMER INFORMATION, ABRECHNUNGSÜBERSICHT, UMLAGESCHLÜSSEL -->
+    <div class="section">
+        <div class="section-title">Eigentümer Information</div>
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-label">Eigentümer:</div>
+                <div class="info-value">{{ data.einheit.nummer }} {{ data.einheit.beschreibung }} {{ data.einheit.eigentuemer }}</div>
+            </div>
+            {% if data.einheit.address %}
+            <div class="info-row">
+                <div class="info-label">Empfänger-Adresse:</div>
+                <div class="info-value">{{ data.einheit.address }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if data.payments %}
+    <div class="section">
+        <div class="section-title">Abrechnungsübersicht</div>
+        
+        {% set totalCosts = (data.external_costs.heating.unit_share|default(0) + data.external_costs.water.unit_share|default(0)) %}
+        {% for item in data.costs.umlagefaehig.items|default([]) %}
+            {% set totalCosts = totalCosts + item.anteil %}
+        {% endfor %}
+        {% for item in data.costs.nicht_umlagefaehig.items|default([]) %}
+            {% set totalCosts = totalCosts + item.anteil %}
+        {% endfor %}
+        {% for item in data.costs.ruecklagen.items|default([]) %}
+            {% set totalCosts = totalCosts - item.anteil|abs %}
+        {% endfor %}
+        
+        {% set saldo = totalCosts - (data.payments.ist|default(0)) %}
+        
+        <div class="result-box">
+            <div class="result-text">
+                {% if saldo > 0 %}
+                    Ergebnis: Nachzahlung in Höhe von {{ saldo|number_format(2, ',', '.') }} €
+                {% else %}
+                    Ergebnis: Guthaben in Höhe von {{ (saldo * -1)|number_format(2, ',', '.') }} €
+                {% endif %}
+            </div>
+        </div>
+
+        <table class="calculation-table">
+            <thead>
+                <tr>
+                    <th style="text-align: left;">Position</th>
+                    <th>Objekt gesamt</th>
+                    <th>Ihr Anteil</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="label">Gesamtkosten</td>
+                    <td class="amount">{{ (data.weg_totals.gesamtkosten + (data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0)) - (data.costs.ruecklagen.items[0].total|default(0)|abs))|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ totalCosts|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr>
+                    <td class="label">- Hausgeld-Vorschuss Soll</td>
+                    <td class="amount">{{ (data.weg_totals.soll|default(0))|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ (data.payments.soll|default(0))|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr class="subtotal">
+                    <td class="label">= Abrechnungsspitze</td>
+                    <td class="amount">{{ ((data.weg_totals.gesamtkosten + (data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0)) - (data.costs.ruecklagen.items[0].total|default(0)|abs)) - (data.weg_totals.soll|default(0)))|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ (totalCosts - (data.payments.soll|default(0)))|number_format(2, ',', '.') }} € ({{ (totalCosts - (data.payments.soll|default(0))) > 0 ? 'Unterdeckung' : 'Überdeckung' }})</td>
+                </tr>
+                <tr>
+                    <td class="label">Hausgeld-Vorschuss Soll</td>
+                    <td class="amount">{{ (data.weg_totals.soll|default(0))|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ (data.payments.soll|default(0))|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr>
+                    <td class="label">- Hausgeld-Vorschuss Ist</td>
+                    <td class="amount">{{ (data.weg_totals.ist|default(0))|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ (data.payments.ist|default(0))|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr class="subtotal">
+                    <td class="label">= Zahlungsdifferenz</td>
+                    <td class="amount">{{ ((data.weg_totals.ist|default(0)) - (data.weg_totals.soll|default(0)))|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ ((data.payments.ist|default(0)) - (data.payments.soll|default(0)))|number_format(2, ',', '.') }} € ({{ ((data.payments.ist|default(0)) - (data.payments.soll|default(0))) >= 0 ? 'Überdeckung' : 'Unterdeckung' }})</td>
+                </tr>
+                <tr class="total">
+                    <td class="label">= ABRECHNUNGS-SALDO</td>
+                    <td class="amount"></td>
+                    <td class="amount">{{ saldo|abs|number_format(2, ',', '.') }} € ({{ saldo > 0 ? 'Nachzahlung' : 'Guthaben' }})</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="section">
+        <div class="section-title">Umlageschlüssel</div>
+        {% if '/' in data.einheit.mea %}
+            {% set meaParts = data.einheit.mea|split('/') %}
+            {% set mea = (meaParts[0] + 0) / (meaParts[1] + 0) %}
+        {% else %}
+            {% set mea = (data.einheit.mea + 0) / 1000 %}
+        {% endif %}
+        {% set unitCount = 4.0 %}
+        {% set hebeanlageShare = (data.einheit.hebeanlage|default(false)) ? 1.0 : 0.0 %}
+        
+        <table class="umlageschluessel-table">
+            <thead>
+                <tr>
+                    <th>Nr.</th>
+                    <th>Umlageschlüssel</th>
+                    <th>Umlage</th>
+                    <th>Zeitraum</th>
+                    <th>Tage</th>
+                    <th>Gesamtumlage</th>
+                    <th>Ihr Anteil</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>01*</strong></td>
+                    <td class="label">ext. berechn. Heizkosten</td>
+                    <td>€ Festbetrag</td>
+                    <td>{{ data.year }}</td>
+                    <td>365</td>
+                    <td>Beträge siehe Ergebnisliste</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td><strong>02*</strong></td>
+                    <td class="label">ext. berechn. Wasser-/sonst. Kosten</td>
+                    <td>€ Festbetrag</td>
+                    <td>{{ data.year }}</td>
+                    <td>365</td>
+                    <td>Beträge siehe Ergebnisliste</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td><strong>03*</strong></td>
+                    <td class="label">Anzahl Einheit</td>
+                    <td>Einheiten-anteilig</td>
+                    <td>{{ data.year }}</td>
+                    <td>365</td>
+                    <td>{{ unitCount|number_format(2, ',', '.') }}</td>
+                    <td>1,00</td>
+                </tr>
+                <tr>
+                    <td><strong>04*</strong></td>
+                    <td class="label">Festumlage</td>
+                    <td>€ Festbetrag</td>
+                    <td>{{ data.year }}</td>
+                    <td>365</td>
+                    <td>Beträge siehe Ergebnisliste</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td><strong>05*</strong></td>
+                    <td class="label">Miteigentumsanteil</td>
+                    <td>Anzahl anteilig</td>
+                    <td>{{ data.year }}</td>
+                    <td>365</td>
+                    <td>1.000,000</td>
+                    <td>{{ (mea * 1000)|number_format(4, ',', '.') }}</td>
+                </tr>
+                <tr>
+                    <td><strong>06*</strong></td>
+                    <td class="label">Hebeanlage</td>
+                    <td>Spezial</td>
+                    <td>{{ data.year }}</td>
+                    <td>365</td>
+                    <td>6,00</td>
+                    <td>{{ hebeanlageShare|number_format(2, ',', '.') }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- PAGE 2: KOSTENÜBERSICHT -->
+    <div class="section page-break">
+        <div class="page-header">
+            Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
+        </div>
+        <div class="section-title">Kostenübersicht</div>
+        
+        <div style="margin-bottom: 20px;">
+            <h3>1. Umlagefähige Kosten (Mieter)</h3>
+        <table class="cost-table">
+            <thead>
+                <tr>
+                    <th>Kostenart</th>
+                    <th style="text-align: center;">Umlageschlüssel</th>
+                    <th style="text-align: right;">Gesamtkosten</th>
+                    <th style="text-align: right;">Ihr Anteil</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if data.external_costs %}
+                <tr class="subtotal">
+                    <td colspan="4"><strong>HEIZUNG/WASSER/ABRECHNUNG:</strong></td>
+                </tr>
+                {% if data.external_costs.heating %}
+                <tr>
+                    <td>ext. berechn. Heizkosten</td>
+                    <td style="text-align: center;">01*</td>
+                    <td class="amount">{{ data.external_costs.heating.total|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ data.external_costs.heating.unit_share|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% endif %}
+                {% if data.external_costs.water %}
+                <tr>
+                    <td>ext. berechn. Wasser-/sonst. Kosten</td>
+                    <td style="text-align: center;">02*</td>
+                    <td class="amount">{{ data.external_costs.water.total|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ data.external_costs.water.unit_share|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% endif %}
+                <tr class="subtotal">
+                    <td colspan="2">Zwischensumme: Heizung/Wasser/Abrechnung</td>
+                    <td class="amount">{{ ((data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0)))|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ ((data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0)))|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr class="subtotal">
+                    <td colspan="4"><strong>SONSTIGE UMLAGEFÄHIGE KOSTEN:</strong></td>
+                </tr>
+                {% endif %}
+                
+                {% for item in data.costs.umlagefaehig.items|default([]) %}
+                <tr>
+                    <td>{{ item.kostenkonto }} - {{ item.beschreibung }}</td>
+                    <td style="text-align: center;">{{ item.verteilungsschluessel|default('05*') }}</td>
+                    <td class="amount">{{ item.total|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ item.anteil|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% endfor %}
+                
+                {% set sonstigeTotal = 0 %}
+                {% set sonstigeAnteil = 0 %}
+                {% for item in data.costs.umlagefaehig.items|default([]) %}
+                    {% set sonstigeTotal = sonstigeTotal + item.total %}
+                    {% set sonstigeAnteil = sonstigeAnteil + item.anteil %}
+                {% endfor %}
+                
+                <tr class="subtotal">
+                    <td colspan="2">Zwischensumme: Sonstige</td>
+                    <td class="amount">{{ sonstigeTotal|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ sonstigeAnteil|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr class="total">
+                    <td colspan="2">SUMME: umlagefähig (Mieter)</td>
+                    <td class="amount">{{ (((data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0))) + sonstigeTotal)|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ (((data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0))) + sonstigeAnteil)|number_format(2, ',', '.') }} €</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+        <div style="margin-top: 15px; margin-bottom: 20px;">
+            <h3>2. Nicht umlagefähige Kosten (Mieter)</h3>
+        <table class="cost-table">
+            <thead>
+                <tr>
+                    <th>Kostenart</th>
+                    <th style="text-align: center;">Umlageschlüssel</th>
+                    <th style="text-align: right;">Gesamtkosten</th>
+                    <th style="text-align: right;">Ihr Anteil</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set nichtUmlagefaehigTotal = 0 %}
+                {% set nichtUmlagefaehigAnteil = 0 %}
+                {% for item in data.costs.nicht_umlagefaehig.items|default([]) %}
+                <tr>
+                    <td>{{ item.kostenkonto }} - {{ item.beschreibung }}</td>
+                    <td style="text-align: center;">{{ item.verteilungsschluessel|default('05*') }}</td>
+                    <td class="amount">{{ item.total|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ item.anteil|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set nichtUmlagefaehigTotal = nichtUmlagefaehigTotal + item.total %}
+                {% set nichtUmlagefaehigAnteil = nichtUmlagefaehigAnteil + item.anteil %}
+                {% endfor %}
+                <tr class="total">
+                    <td colspan="2">SUMME: nicht umlagefähig (Mieter)</td>
+                    <td class="amount">{{ nichtUmlagefaehigTotal|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ nichtUmlagefaehigAnteil|number_format(2, ',', '.') }} €</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+        {% if data.costs.ruecklagen.items|default([]) %}
+        <div style="margin-top: 15px; margin-bottom: 20px;">
+            <h3>3. Rücklagenzuführung</h3>
+        <table class="cost-table">
+            <thead>
+                <tr>
+                    <th>Art der Rücklagenzuführung</th>
+                    <th style="text-align: center;">Umlageschlüssel</th>
+                    <th style="text-align: right;">Gesamtbetrag</th>
+                    <th style="text-align: right;">Ihr Anteil</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set ruecklagenTotal = 0 %}
+                {% set ruecklagenAnteil = 0 %}
+                {% for item in data.costs.ruecklagen.items %}
+                <tr>
+                    <td>{{ item.kostenkonto }} - {{ item.beschreibung }}</td>
+                    <td style="text-align: center;">{{ item.verteilungsschluessel|default('05*') }}</td>
+                    <td class="amount negative">{{ (item.total * -1)|number_format(2, ',', '.') }} €</td>
+                    <td class="amount negative">{{ (item.anteil * -1)|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set ruecklagenTotal = ruecklagenTotal + (item.total * -1) %}
+                {% set ruecklagenAnteil = ruecklagenAnteil + (item.anteil * -1) %}
+                {% endfor %}
+                <tr class="total">
+                    <td colspan="2">SUMME: Rücklagenzuführung</td>
+                    <td class="amount negative">{{ ruecklagenTotal|number_format(2, ',', '.') }} €</td>
+                    <td class="amount negative">{{ ruecklagenAnteil|number_format(2, ',', '.') }} €</td>
+                </tr>
+            </tbody>
+        </table>
+        </div>
+        {% endif %}
+        
+        <!-- Final cost summary -->
+        {% set finalWegUmlagefaehig = ((data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0))) + 0 %}
+        {% for item in data.costs.umlagefaehig.items|default([]) %}
+            {% set finalWegUmlagefaehig = finalWegUmlagefaehig + item.total %}
+        {% endfor %}
+        
+        {% set finalUnitUmlagefaehig = ((data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0))) + 0 %}
+        {% for item in data.costs.umlagefaehig.items|default([]) %}
+            {% set finalUnitUmlagefaehig = finalUnitUmlagefaehig + item.anteil %}
+        {% endfor %}
+        
+        {% set finalWegNichtUmlagefaehig = 0 %}
+        {% for item in data.costs.nicht_umlagefaehig.items|default([]) %}
+            {% set finalWegNichtUmlagefaehig = finalWegNichtUmlagefaehig + item.total %}
+        {% endfor %}
+        
+        {% set finalUnitNichtUmlagefaehig = 0 %}
+        {% for item in data.costs.nicht_umlagefaehig.items|default([]) %}
+            {% set finalUnitNichtUmlagefaehig = finalUnitNichtUmlagefaehig + item.anteil %}
+        {% endfor %}
+        
+        {% set finalWegRuecklagen = 0 %}
+        {% for item in data.costs.ruecklagen.items|default([]) %}
+            {% set finalWegRuecklagen = finalWegRuecklagen - item.total|abs %}
+        {% endfor %}
+        
+        {% set finalUnitRuecklagen = 0 %}
+        {% for item in data.costs.ruecklagen.items|default([]) %}
+            {% set finalUnitRuecklagen = finalUnitRuecklagen - item.anteil|abs %}
+        {% endfor %}
+        
+        <div style="margin-top: 20px; border-top: 3px solid #333; padding-top: 10px;">
+            <table class="cost-table">
+                <tbody>
+                    <tr class="total" style="font-size: 11pt;">
+                        <td colspan="2" style="font-weight: bold; background-color: #f0f0f0;">GESAMTSUMME ALLER KOSTEN</td>
+                        <td class="amount" style="font-weight: bold; background-color: #f0f0f0;">{{ (finalWegUmlagefaehig + finalWegNichtUmlagefaehig + finalWegRuecklagen)|number_format(2, ',', '.') }} €</td>
+                        <td class="amount" style="font-weight: bold; background-color: #f0f0f0;">{{ (finalUnitUmlagefaehig + finalUnitNichtUmlagefaehig + finalUnitRuecklagen)|number_format(2, ',', '.') }} €</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if data.payments.payment_details|default([]) %}
+    <div class="section page-break">
+        <div class="page-header">
+            Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
+        </div>
+        <div class="section-title">Zahlungsübersicht {{ data.year }}</div>
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-label">Debitor:</div>
+                <div class="info-value">{{ data.einheit.nummer }} {{ data.einheit.beschreibung }} {{ data.einheit.eigentuemer }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Zeitraum:</div>
+                <div class="info-value">01.01.{{ data.year }} - 31.12.{{ data.year }}</div>
+            </div>
+        </div>
+        
+        <table class="payments-table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Beschreibung</th>
+                    <th style="text-align: right;">Betrag</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set totalPayments = 0 %}
+                {% for payment in data.payments.payment_details %}
+                <tr>
+                    <td class="date">{{ payment.datum|date('d.m.Y') }}</td>
+                    <td>{{ payment.beschreibung|replace({'WOHNGELD MUSTERMANN/BEISPIEL': 'Wohngeld', 'SONDERUMLAGE HEBEANLAGE BEISPIEL': 'Sonderumlage', 'Nachzahlung 2023': 'Zahlung'}) }}</td>
+                    <td class="amount">{{ payment.betrag|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set totalPayments = totalPayments + payment.betrag %}
+                {% endfor %}
+                <tr class="total">
+                    <td colspan="2"><strong>JAHRESSUMME:</strong></td>
+                    <td class="amount"><strong>{{ totalPayments|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if data.balance.hasData|default(false) %}
+    <div class="section">
+        <div class="section-title">Kontostandsentwicklung {{ data.year }}</div>
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-label">Kontostand 31.12.{{ data.balance.year - 1 }}:</div>
+                <div class="info-value">{{ data.balance.startAmount|number_format(2, ',', '.') }} €</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Kontostand 31.12.{{ data.balance.year }}:</div>
+                <div class="info-value">{{ data.balance.endAmount|number_format(2, ',', '.') }} €</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Veränderung:</div>
+                <div class="info-value {{ data.balance.change >= 0 ? 'positive' : 'negative' }}">{{ data.balance.change >= 0 ? '+' : '' }}{{ data.balance.change|number_format(2, ',', '.') }} €</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if data.wirtschaftsplan %}
+    <div class="section page-break">
+        <div class="page-header">
+            Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
+        </div>
+        <div class="section-title">Vermögensübersicht und Wirtschaftsplan 2025</div>
+        
+        <h3>Vermögensstand:</h3>
+        <div class="info-grid" style="margin-bottom: 20px;">
+            <div class="info-row">
+                <div class="info-label">Kontostand WEG-Hausgeldkonto ({{ data.wirtschaftsplan.bank_balances.balance_date|default('16.07.2025') }}):</div>
+                <div class="info-value">{{ data.wirtschaftsplan.bank_balances.hausgeld_konto|default(0)|number_format(2, ',', '.') }} €</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Kontostand Rücklagenkonto ({{ data.wirtschaftsplan.bank_balances.balance_date|default('16.07.2025') }}):</div>
+                <div class="info-value">{{ data.wirtschaftsplan.bank_balances.ruecklagen_konto|default(0)|number_format(2, ',', '.') }} €</div>
+            </div>
+            <div class="info-row" style="border-top: 2px solid #333; padding-top: 5px; margin-top: 5px;">
+                <div class="info-label"><strong>GESAMTVERMÖGEN WEG:</strong></div>
+                <div class="info-value"><strong>{{ ((data.wirtschaftsplan.bank_balances.hausgeld_konto|default(0)) + (data.wirtschaftsplan.bank_balances.ruecklagen_konto|default(0)))|number_format(2, ',', '.') }} €</strong></div>
+            </div>
+        </div>
+        
+        <h3 style="margin-top: 20px;">Wirtschaftsplan 2025 - Geplante Ausgaben:</h3>
+        
+        <h4>1. Umlagefähige Kosten (auf Mieter umlegbar):</h4>
+        <table class="cost-table" style="width: 100%;">
+            <colgroup>
+                <col style="width: auto;">
+                <col style="width: 120px;">
+            </colgroup>
+            <tbody>
+                {% set umlagefaehigTotal = 0 %}
+                {% for kategorie, betrag in data.wirtschaftsplan.planned_expenses.umlagefaehig|default({}) %}
+                <tr>
+                    <td>{{ kategorie }}</td>
+                    <td class="amount">{{ betrag|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set umlagefaehigTotal = umlagefaehigTotal + betrag %}
+                {% endfor %}
+                <tr class="subtotal">
+                    <td>Zwischensumme umlagefähig:</td>
+                    <td class="amount">{{ umlagefaehigTotal|number_format(2, ',', '.') }} €</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h4>2. Nicht umlagefähige Kosten:</h4>
+        <table class="cost-table" style="width: 100%;">
+            <colgroup>
+                <col style="width: auto;">
+                <col style="width: 120px;">
+            </colgroup>
+            <tbody>
+                {% set nichtUmlagefaehigTotal = 0 %}
+                {% for kategorie, betrag in data.wirtschaftsplan.planned_expenses.nicht_umlagefaehig|default({}) %}
+                <tr>
+                    <td>{{ kategorie }}</td>
+                    <td class="amount">{{ betrag|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set nichtUmlagefaehigTotal = nichtUmlagefaehigTotal + betrag %}
+                {% endfor %}
+                <tr class="subtotal">
+                    <td>Zwischensumme nicht umlagefähig:</td>
+                    <td class="amount">{{ nichtUmlagefaehigTotal|number_format(2, ',', '.') }} €</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <table class="cost-table" style="margin-top: 15px; width: 100%;">
+            <colgroup>
+                <col style="width: auto;">
+                <col style="width: 120px;">
+            </colgroup>
+            <tbody>
+                <tr class="total" style="font-size: 10pt;">
+                    <td><strong>GESAMTAUSGABEN 2025:</strong></td>
+                    <td class="amount"><strong>{{ (umlagefaehigTotal + nichtUmlagefaehigTotal)|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h3 style="margin-top: 20px;">Geplante Einnahmen 2025:</h3>
+        <table class="cost-table" style="width: 100%;">
+            <colgroup>
+                <col style="width: auto;">
+                <col style="width: 120px;">
+            </colgroup>
+            <tbody>
+                {% set monthlyTotal = data.wirtschaftsplan.planned_income.monthly_total|default(1500) %}
+                {% set nachzahlungen = data.wirtschaftsplan.planned_income.nachzahlungen_2024|default(0) %}
+                {% set yearlyVorschuesse = monthlyTotal * 12 %}
+                <tr>
+                    <td>Hausgeld-Vorschüsse (12 × {{ monthlyTotal|number_format(2, ',', '.') }} €)</td>
+                    <td class="amount">{{ yearlyVorschuesse|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr>
+                    <td>Nachzahlungen aus HGA 2024</td>
+                    <td class="amount">{{ nachzahlungen|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr class="subtotal">
+                    <td><strong>GESAMTEINNAHMEN 2025:</strong></td>
+                    <td class="amount"><strong>{{ (yearlyVorschuesse + nachzahlungen)|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+                <tr class="total" style="font-size: 10pt;">
+                    <td><strong>SALDO (Einnahmen - Ausgaben):</strong></td>
+                    <td class="amount"><strong>{{ ((yearlyVorschuesse + nachzahlungen) - (umlagefaehigTotal + nichtUmlagefaehigTotal))|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h3 style="margin-top: 20px;">Hausgeld-Vorschuss 2025 - Ihr Anteil:</h3>
+        {% if '/' in data.einheit.mea %}
+            {% set meaParts = data.einheit.mea|split('/') %}
+            {% set mea = (meaParts[0] + 0) / (meaParts[1] + 0) %}
+        {% else %}
+            {% set mea = (data.einheit.mea + 0) / 1000 %}
+        {% endif %}
+        {% set meaPercent = (mea * 100)|round %}
+        {% set monthlyOwnerShare = monthlyTotal * mea %}
+        
+        <table class="cost-table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th style="width: 60%;"></th>
+                    <th style="text-align: center;">Gesamt WEG</th>
+                    <th style="text-align: center;">Ihr Anteil ({{ meaPercent }}%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Monatlicher Vorschuss WEG gesamt:</td>
+                    <td class="amount">{{ monthlyTotal|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ monthlyOwnerShare|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr class="subtotal">
+                    <td><strong>Ihr NEUER monatlicher Vorschuss:</strong></td>
+                    <td class="amount"></td>
+                    <td class="amount"><strong>{{ monthlyOwnerShare|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+                <tr>
+                    <td>Änderung pro Monat:</td>
+                    <td class="amount"></td>
+                    <td class="amount">0,00 €</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        {% if data.configuration.standard_texts.balance_notice|default(false) %}
+        <div style="margin-top: 15px; padding: 10px; background-color: #f5f5f5; border-left: 4px solid #888;">
+            <p style="margin: 0;">{{ data.configuration.standard_texts.balance_notice }}</p>
+            {% if data.configuration.standard_texts.balance_notice_2|default(false) %}
+            <p style="margin: 5px 0 0 0;">{{ data.configuration.standard_texts.balance_notice_2 }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if data.tax_deductible.items|default([]) %}
+    <div class="section page-break">
+        <div class="page-header">
+            Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
+        </div>
+        <div class="tax-section">
+            <div class="section-title">Steuerbegünstigte Leistungen nach §35a EStG</div>
+            <table class="tax-table">
+            <thead>
+                <tr>
+                    <th>Handwerkerleistungen</th>
+                    <th>Gesamtkosten</th>
+                    <th>anrechenbar</th>
+                    <th>Ihr Anteil (Kosten)</th>
+                    <th>Ihr Anteil (anrechenbar)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data.tax_deductible.items %}
+                <tr>
+                    <td class="label">{{ item.kostenkonto }} - {{ item.beschreibung }} {{ item.verteilungsschluessel }}</td>
+                    <td class="amount">{{ item.gesamtkosten|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ item.anrechenbar|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ item.anteil_kosten|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ item.anteil_anrechenbar|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% endfor %}
+                <tr class="total">
+                    <td class="label"><strong>SUMME Handwerkerleistungen</strong></td>
+                    {% set totalGesamtkosten = data.tax_deductible.items|reduce((sum, item) => sum + item.gesamtkosten, 0) %}
+                    {% set totalAnrechenbar = data.tax_deductible.items|reduce((sum, item) => sum + item.anrechenbar, 0) %}
+                    {% set totalAnteilKosten = data.tax_deductible.items|reduce((sum, item) => sum + item.anteil_kosten, 0) %}
+                    <td class="amount"><strong>{{ totalGesamtkosten|number_format(2, ',', '.') }} €</strong></td>
+                    <td class="amount"><strong>{{ totalAnrechenbar|number_format(2, ',', '.') }} €</strong></td>
+                    <td class="amount"><strong>{{ totalAnteilKosten|number_format(2, ',', '.') }} €</strong></td>
+                    <td class="amount"><strong>{{ data.tax_deductible.total_anrechenbar|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 15px; padding: 10px; background-color: #e3f2fd; border-left: 4px solid #2196F3;">
+            <strong>Ihr steuerlich absetzbarer Betrag (100% der Arbeits-/Fahrtkosten inkl. MwSt.): {{ data.tax_deductible.total_anrechenbar|number_format(2, ',', '.') }} EUR</strong>
+        </div>
+        
+        <div style="margin-top: 10px; font-size: 8pt; color: #666;">
+            <strong>HINWEIS:</strong> Diese Beträge können Sie in Ihrer Steuererklärung als haushaltsnahe
+            Dienstleistungen geltend machen (20% davon, max. 1.200 EUR Steuerermäßigung pro Jahr).
+        </div>
+        </div>
+    </div>
+    {% endif %}
+
+    </div> <!-- Close page-content -->
+</body>
+</html>

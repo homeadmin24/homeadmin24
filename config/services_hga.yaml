@@ -1,0 +1,73 @@
+# HGA Service Configuration
+# This file configures the new App\Service\Hga namespace
+
+services:
+    # Interface bindings
+    App\Service\Hga\CalculationInterface:
+        alias: App\Service\Hga\Calculation\DistributionService
+        
+    App\Service\Hga\ConfigurationInterface:
+        alias: App\Service\Hga\Configuration\HgaConfiguration
+        
+    App\Service\Hga\HgaServiceInterface:
+        alias: App\Service\Hga\HgaService
+        
+    App\Service\Hga\ReportGeneratorInterface:
+        alias: App\Service\Hga\Generator\TxtReportGenerator
+        
+    # Auto-wire all HGA services
+    App\Service\Hga\:
+        resource: '../src/Service/Hga/*'
+        exclude: '../src/Service/Hga/{README.md}'
+        
+    # Specific service configurations
+    App\Service\Hga\Calculation\DistributionService:
+        arguments:
+            $wegEinheitRepository: '@App\Repository\WegEinheitRepository'
+            
+    App\Service\Hga\Calculation\CostCalculationService:
+        arguments:
+            $zahlungRepository: '@App\Repository\ZahlungRepository'
+            $distributionService: '@App\Service\Hga\CalculationInterface'
+            
+    App\Service\Hga\Calculation\PaymentCalculationService:
+        arguments:
+            $zahlungRepository: '@App\Repository\ZahlungRepository'
+            $configurationService: '@App\Service\Hga\ConfigurationInterface'
+            
+    App\Service\Hga\Calculation\TaxCalculationService:
+        arguments:
+            $zahlungRepository: '@App\Repository\ZahlungRepository'
+            $rechnungRepository: '@App\Repository\RechnungRepository'
+            $configurationService: '@App\Service\Hga\ConfigurationInterface'
+            $distributionService: '@App\Service\Hga\CalculationInterface'
+            
+    App\Service\Hga\Calculation\ExternalCostService:
+        arguments:
+            $heizWasserkostenRepository: '@App\Repository\HeizWasserkostenRepository'
+            
+    App\Service\Hga\Configuration\HgaConfiguration:
+        arguments:
+            $vorauszahlungRepository: '@App\Repository\WegEinheitVorauszahlungRepository'
+            $configRepository: '@App\Repository\SystemConfigRepository'
+            $kostenkontoRepository: '@App\Repository\KostenkontoRepository'
+            $logger: '@logger'
+            
+    App\Service\Hga\HgaService:
+        arguments:
+            $costCalculationService: '@App\Service\Hga\Calculation\CostCalculationService'
+            $paymentCalculationService: '@App\Service\Hga\Calculation\PaymentCalculationService'
+            $taxCalculationService: '@App\Service\Hga\Calculation\TaxCalculationService'
+            $externalCostService: '@App\Service\Hga\Calculation\ExternalCostService'
+            $configurationService: '@App\Service\Hga\ConfigurationInterface'
+            $logger: '@logger'
+            
+    App\Service\Hga\Generator\TxtReportGenerator:
+        arguments:
+            $hgaService: '@App\Service\Hga\HgaServiceInterface'
+            
+    # PDF Report Generator
+    App\Service\Hga\Report\PdfReportGenerator:
+        arguments:
+            $hgaService: '@App\Service\Hga\HgaServiceInterface'
+            $twig: '@twig'

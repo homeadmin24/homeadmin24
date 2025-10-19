@@ -1,0 +1,102 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}HGA Preview Error{{ endblock %}
+
+{% block body %}
+    <div class="antialiased bg-gray-50 dark:bg-gray-900">
+        {% include 'components/sidebar.html.twig' %}
+
+        <main class="p-4 md:ml-64 h-auto pt-6">
+            <div class="container mx-auto">
+                <!-- Header -->
+                <div class="mb-6">
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        HGA Preview Error
+                    </h1>
+                    <p class="text-gray-600 dark:text-gray-400">
+                        Failed to generate preview for Unit {{ unitNumber }} (Year {{ year }})
+                    </p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Generated: {{ generatedAt|date('d.m.Y H:i:s') }}
+                    </p>
+                </div>
+
+                <!-- Error Display -->
+                <div class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 p-6 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+                                Error Details
+                            </h3>
+                            <div class="mt-2 text-sm text-red-700 dark:text-red-300">
+                                <pre class="whitespace-pre-wrap">{{ error }}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Options -->
+                <div class="flex space-x-4 mb-6">
+                    <a href="{{ path('app_abrechnung_index') }}" 
+                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        ← Back to Generator
+                    </a>
+                    <button onclick="location.reload()" 
+                            class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                        🔄 Retry
+                    </button>
+                </div>
+
+                <!-- Quick Navigation to Other Units -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <a href="{{ path('app_abrechnung_preview', {'year': year, 'unitNumber': '0001'}) }}" 
+                       class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">Try Unit 0001</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">EG links</div>
+                    </a>
+                    <a href="{{ path('app_abrechnung_preview', {'year': year, 'unitNumber': '0002'}) }}" 
+                       class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">Try Unit 0002</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">EG rechts</div>
+                    </a>
+                    <a href="{{ path('app_abrechnung_preview', {'year': year, 'unitNumber': '0003'}) }}" 
+                       class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">Try Unit 0003</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">1. OG links</div>
+                    </a>
+                    <a href="{{ path('app_abrechnung_preview', {'year': year, 'unitNumber': '0004'}) }}" 
+                       class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">Try Unit 0004</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">1. OG rechts</div>
+                    </a>
+                </div>
+
+                <!-- Troubleshooting Info -->
+                <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+                    <h4 class="text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-2">🔧 Troubleshooting</h4>
+                    <div class="text-sm text-yellow-800 dark:text-yellow-200">
+                        <p>Common issues that might cause this error:</p>
+                        <ul class="list-disc list-inside mt-2 space-y-1">
+                            <li>Unit {{ unitNumber }} doesn't exist in the database</li>
+                            <li>Missing external cost data for year {{ year }}</li>
+                            <li>Invalid MEA (Miteigentumsanteile) configuration</li>
+                            <li>Missing monthly advance payment configuration</li>
+                            <li>Database connection issues</li>
+                        </ul>
+                        <p class="mt-2">
+                            <strong>For developers:</strong> Check the application logs and verify database configuration.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+{% endblock %}

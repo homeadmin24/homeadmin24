@@ -1,0 +1,152 @@
+{% extends 'base.html.twig' %}
+{% form_theme form 'form/simplified.html.twig' %}
+
+{% block title %}Hausgeldabrechnung Generieren{% endblock %}
+
+{% block body %}
+    <div class="antialiased bg-gray-50 dark:bg-gray-900"
+         data-controller="abrechnung"
+         data-abrechnung-update-einheiten-url-value="{{ path('app_abrechnung_einheiten', {'wegId': 'WEG_ID'}) }}">
+        {% include 'components/sidebar.html.twig' %}
+
+        <main class="p-4 md:ml-64 h-auto pt-6">
+            <div class="container mx-auto">
+                <!-- Header -->
+                <div class="mb-8">
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2 flex items-center">
+                        <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v5a1 1 0 11-2 0v-5a1 1 0 011-1zm4-1a1 1 0 10-2 0v7a1 1 0 102 0V8z" clip-rule="evenodd"></path>
+                        </svg>
+                        Hausgeldabrechnung
+                    </h1>
+                    <p class="text-gray-600 dark:text-gray-400">
+                        Erstellen Sie automatisch Hausgeldabrechnungen für ausgewählte Einheiten in PDF- und/oder TXT-Format.
+                    </p>
+                </div>
+
+    <!-- Flash Messages -->
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="mb-4 p-4 rounded-lg {% if label == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-green-50 text-green-700 border border-green-200{% endif %}">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        {% if label == 'error' %}
+                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        {% else %}
+                            <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                        {% endif %}
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">{{ message }}</p>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Generation Form -->
+        <div class="lg:col-span-2">
+            <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+                    🔧 Konfiguration
+                </h2>
+
+                {{ form_start(form) }}
+                {{ form_errors(form) }}
+
+                <div class="space-y-4 mb-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            {{ form_row(form.weg, {
+                                'attr': {
+                                    'data-action': 'change->abrechnung#updateEinheiten',
+                                    'data-abrechnung-target': 'wegSelect'
+                                },
+                                'row_attr': {'class': 'mb-0'}
+                            }) }}
+                        </div>
+                        <div>
+                            {{ form_row(form.jahr, {'row_attr': {'class': 'mb-0'}}) }}
+                        </div>
+                    </div>
+
+                    <div>
+                        {{ form_row(form.format, {
+                            'help': 'PDF: Für Archivierung und Versand | TXT: Für Datenverarbeitung und Backup | Beide: Empfohlen',
+                            'row_attr': {'class': 'mb-1'}
+                        }) }}
+                    </div>
+
+                    
+                    <div data-abrechnung-target="einheitenContainer">
+                        <!-- Einheiten and submit button will be populated here dynamically -->
+                    </div>
+                </div>
+
+                {{ form_end(form) }}
+            </div>
+        </div>
+
+        <!-- Info Panel -->
+        <div class="space-y-6">
+            <!-- Help Card -->
+            <div class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3">
+                    💡 Hilfe
+                </h3>
+                <div class="text-sm text-blue-800 dark:text-blue-200 space-y-2">
+                    <p><strong>1. WEG auswählen:</strong> Bestimmt welche Einheiten verfügbar sind</p>
+                    <p><strong>2. Jahr festlegen:</strong> Abrechnungszeitraum (üblicherweise Vorjahr)</p>
+                    <p><strong>3. Format wählen:</strong> PDF für Versand, TXT für Archiv</p>
+                    <p><strong>4. Einheiten markieren:</strong> Nur für ausgewählte Einheiten</p>
+                    <p><strong>5. Generieren:</strong> Dateien werden automatisch gespeichert</p>
+                </div>
+            </div>
+
+            <!-- Statistics Card -->
+            <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    📊 Statistiken
+                </h3>
+                <div class="text-sm text-gray-700 dark:text-gray-300 space-y-2">
+                    <p>Zuletzt generierte Abrechnungen erscheinen im <a href="{{ path('app_dokument_index') }}" class="text-blue-600 hover:text-blue-800 underline">Dokument-System</a></p>
+                    <p>Dateien werden automatisch kategorisiert als: <span class="bg-gray-200 px-2 py-1 rounded text-xs font-mono">hausgeldabrechnung</span></p>
+                </div>
+            </div>
+
+            {% if generatedFiles|length > 0 %}
+            <!-- Generated Files -->
+            <div class="bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-green-900 dark:text-green-100 mb-3">
+                    ✅ Generierte Dateien
+                </h3>
+                <div class="space-y-2">
+                    {% for dokument in generatedFiles %}
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-green-800 dark:text-green-200">
+                            {{ dokument.einheitNummer }} ({{ dokument.format|upper }})
+                        </span>
+                        <a href="{{ path('app_dokument_show', {'id': dokument.id}) }}" 
+                           class="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 underline">
+                            Anzeigen
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="mt-3 pt-3 border-t border-green-200 dark:border-green-700">
+                    <a href="{{ path('app_dokument_index') }}" 
+                       class="inline-flex items-center text-sm text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100">
+                        📁 Alle Dokumente anzeigen →
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+            </div>
+        </main>
+    </div>
+{% endblock %}

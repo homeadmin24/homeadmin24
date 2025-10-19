@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Hausgeldabrechnung {{ year }} - {{ einheit.bezeichnung }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9pt;
+            line-height: 1.2;
+            margin: 15px;
+        }
+        h1 {
+            font-size: 14pt;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        h2 {
+            font-size: 11pt;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #666;
+            padding-bottom: 3px;
+        }
+        h3 {
+            font-size: 10pt;
+            margin-top: 15px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 2px;
+        }
+        h4 {
+            font-size: 9pt;
+            margin-top: 10px;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        table.details {
+            font-size: 8pt;
+        }
+        th, td {
+            padding: 3px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        td.number, th.number {
+            text-align: right;
+        }
+        @page {
+            margin: 80px 25px 40px 25px;
+        }
+        .header {
+            position: fixed;
+            top: -60px;
+            left: 0px;
+            right: 0px;
+            height: 60px;
+            font-size: 8pt;
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+        .footer {
+            position: fixed;
+            bottom: -30px;
+            left: 0px;
+            right: 0px;
+            height: 30px;
+            font-size: 7pt;
+            text-align: center;
+            border-top: 1px solid #ddd;
+            padding-top: 5px;
+        }
+        .footer:before {
+            content: "Hausgeldabrechnung 2024 - WEG Musterstraße 35 - Seite " counter(page);
+        }
+        .header-details {
+            margin-bottom: 20px;
+        }
+        .header-details p {
+            margin: 2px 0;
+        }
+        .summary-box {
+            border: 1px solid #000;
+            padding: 8px;
+            margin-bottom: 15px;
+            background-color: #f9f9f9;
+        }
+        .important {
+            font-weight: bold;
+        }
+        .underline {
+            text-decoration: underline;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+        .highlight {
+            background-color: #ffffcc;
+        }
+        .section {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="footer"></div>
+
+<div class="header">
+    <table width="100%">
+        <tr>
+            <td width="40%">
+                {{ weg.bezeichnung }}, {{ weg.adresse }}
+            </td>
+            <td width="35%" style="text-align: center;">
+                {{ einheit.nummer }} {{ einheit.bezeichnung }} {{ einheit.miteigentuemer }}
+            </td>
+            <td width="25%" style="text-align: right;">
+                Erstellung: {{ "now"|date("d.m.Y") }}
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div class="header-details">
+    <h1>HAUSGELDABRECHNUNG {{ year }} - EINZELABRECHNUNG</h1>
+    
+    <p style="text-align: center; margin-bottom: 20px;">
+        <strong>Abrechnungszeitraum: 01.01.{{ year }} - 31.12.{{ year }}</strong>
+    </p>
+    
+    <h2>Eigentümer Information</h2>
+    <table>
+        <tr>
+            <td width="50%">
+                <p><strong>Eigentümer:</strong> {{ einheit.nummer }} {{ einheit.bezeichnung }} {{ einheit.miteigentuemer }}</p>
+            </td>
+            <td width="50%">
+                <p><strong>Empfänger-Adresse:</strong> {{ einheit.miteigentuemer }}{% if einheit.adresse %}, {{ einheit.adresse|nl2br }}{% endif %}</p>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div style="margin-top: 30px;"></div>
+
+<div class="summary-box">
+    <table>
+        <tr>
+            <td width="50%"><strong>Position</strong></td>
+            <td width="25%" class="number"><strong>Objekt gesamt</strong></td>
+            <td width="25%" class="number"><strong>Ihr Anteil</strong></td>
+        </tr>
+        <tr>
+            <td>Gesamtkosten</td>
+            <td class="number">{{ reportData.grossTotalCosts|number_format(2, ',', '.') }} €</td>
+            <td class="number"><strong>{{ reportData.ownerShare|number_format(2, ',', '.') }} €</strong></td>
+        </tr>
+        <tr>
+            <td>- Hausgeld-Vorschuss Soll</td>
+            <td class="number">{{ reportData.hgVorschussSollWegTotal|number_format(2, ',', '.') }} €</td>
+            <td class="number">{{ reportData.hgVorschussSoll|number_format(2, ',', '.') }} €</td>
+        </tr>
+        <tr>
+            <td>= Abrechnungsspitze</td>
+            <td class="number">{{ reportData.abrechnungsspitzeWegTotal|number_format(2, ',', '.') }} €</td>
+            <td class="number">{{ reportData.abrechnungsspitze|number_format(2, ',', '.') }} € 
+                {% if reportData.abrechnungsspitze > 0 %}(Unterdeckung){% else %}(Überdeckung){% endif %}
+            </td>
+        </tr>
+        <tr><td colspan="3">&nbsp;</td></tr>
+        <tr>
+            <td>Hausgeld-Vorschuss Soll</td>
+            <td class="number">{{ reportData.hgVorschussSollWegTotal|number_format(2, ',', '.') }} €</td>
+            <td class="number">{{ reportData.hgVorschussSoll|number_format(2, ',', '.') }} €</td>
+        </tr>
+        <tr>
+            <td>- Hausgeld-Vorschuss Ist</td>
+            <td class="number">{{ reportData.hgVorschussIstWegTotal|number_format(2, ',', '.') }} €</td>
+            <td class="number"><strong>{{ reportData.hgVorschussIst|number_format(2, ',', '.') }} €</strong></td>
+        </tr>
+        <tr>
+            <td>= Zahlungsdifferenz</td>
+            <td class="number">{{ reportData.zahlungsdifferenzWegTotal|number_format(2, ',', '.') }} €</td>
+            <td class="number">{{ reportData.zahlungsdifferenz|number_format(2, ',', '.') }} €
+                {% if reportData.zahlungsdifferenz > 0 %}(Unterdeckung){% else %}(Überdeckung){% endif %}
+            </td>
+        </tr>
+        <tr><td colspan="3">&nbsp;</td></tr>
+        <tr>
+            <td class="important">= ABRECHNUNGS-SALDO</td>
+            <td class="number">&nbsp;</td>
+            <td class="number important highlight">
+                <strong>{{ reportData.abrechnungssaldo|number_format(2, ',', '.') }} € 
+                {% if reportData.abrechnungssaldo > 0 %}(Nachzahlung){% else %}(Guthaben){% endif %}</strong>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div style="margin-top: 40px;"></div>
+
+<h2>Umlageschlüssel</h2>
+<table>
+    <thead>
+    <tr>
+        <th>Nr.</th>
+        <th>Umlageschlüssel</th>
+        <th>Umlage</th>
+        <th>Zeitraum</th>
+        <th>Tage</th>
+        <th>Gesamtumlage</th>
+        <th>Ihr Anteil</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for item in reportData.umlageschluessel %}
+    <tr>
+        <td>{{ item.nr }}</td>
+        <td>{{ item.bezeichnung }}</td>
+        <td>{{ item.umlage }}</td>
+        <td>01.01.{{ item.zeitraum }} - 31.12.{{ item.zeitraum }}</td>
+        <td>{{ item.tage }}</td>
+        <td>{{ item.gesamtumlage }}</td>
+        <td>{{ item.anteil }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2>Kostenübersicht</h2>
+<div class="section">
+    <table>
+        <tr>
+            <td width="60%"><strong>Kostenart</strong></td>
+            <td width="20%" class="number"><strong>Gesamt</strong></td>
+            <td width="20%" class="number"><strong>Ihr Anteil</strong></td>
+        </tr>
+        <tr>
+            <td>1. Umlagefähige Kosten (Mieter)</td>
+            <td class="number">{{ reportData.umlagefaehigeGesamtkosten|number_format(2, ',', '.') }} €</td>
+            <td class="number">{{ reportData.umlagefaehigeGesamtanteil|number_format(2, ',', '.') }} €</td>
+        </tr>
+        <tr>
+            <td>2. Nicht umlagefähige Kosten (Mieter)</td>
+            <td class="number">{{ reportData.nichtUmlagefaehigeGesamtkosten|number_format(2, ',', '.') }} €</td>
+            <td class="number">{{ reportData.nichtUmlagefaehigeGesamtanteil|number_format(2, ',', '.') }} €</td>
+        </tr>
+        <tr>
+            <td>3. Rücklagenzuführung</td>
+            <td class="number">{{ reportData.ruecklagenzufuehrungGesamt|number_format(2, ',', '.') }} €</td>
+            <td class="number">{{ reportData.ruecklagenzufuehrungAnteil|number_format(2, ',', '.') }} €</td>
+        </tr>
+        <tr style="border-top: 2px solid #000;">
+            <td><strong>Gesamtsumme aller Kosten</strong></td>
+            <td class="number"><strong>{{ reportData.grossTotalCosts|number_format(2, ',', '.') }} €</strong></td>
+            <td class="number"><strong>{{ reportData.ownerShare|number_format(2, ',', '.') }} €</strong></td>
+        </tr>
+    </table>
+</div>
+
+<div class="section">
+    <h2>1. Umlagefähige Kosten (Mieter)</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Kostenart</th>
+            <th>Umlageschlüssel</th>
+            <th class="number">Betrag gesamt</th>
+            <th class="number">Ihr Anteil</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in reportData.umlagefaehigeKosten %}
+            <tr>
+                <td>{{ item.bezeichnung }} {{ item.verteilungsschluessel }}</td>
+                <td>{{ item.verteilungsschluessel }} {% if item.verteilungsschluessel == '05*' %}Miteigentumsanteil{% elseif item.verteilungsschluessel == '06*' %}Hebeanlage{% else %}Verteilung{% endif %}</td>
+                <td class="number">{{ item.gesamtkosten|number_format(2, ',', '.') }} €</td>
+                <td class="number">{{ item.anteil|number_format(2, ',', '.') }} €</td>
+            </tr>
+        {% endfor %}
+        <tr>
+            <td colspan="2"><strong>Summe umlagefähige Kosten</strong></td>
+            <td class="number"><strong>{{ reportData.umlagefaehigeGesamtkosten|number_format(2, ',', '.') }} €</strong></td>
+            <td class="number"><strong>{{ reportData.umlagefaehigeGesamtanteil|number_format(2, ',', '.') }} €</strong></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="section">
+    <h2>2. Nicht umlagefähige Kosten (Mieter)</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Kostenart</th>
+            <th>Umlageschlüssel</th>
+            <th class="number">Betrag gesamt</th>
+            <th class="number">Ihr Anteil</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in reportData.nichtUmlagefaehigeKosten %}
+            <tr>
+                <td>{{ item.bezeichnung }} {{ item.verteilungsschluessel }}</td>
+                <td>{{ item.verteilungsschluessel }} {% if item.verteilungsschluessel == '05*' %}Miteigentumsanteil{% elseif item.verteilungsschluessel == '06*' %}Hebeanlage{% else %}Verteilung{% endif %}</td>
+                <td class="number">{{ item.gesamtkosten|number_format(2, ',', '.') }} €</td>
+                <td class="number">{{ item.anteil|number_format(2, ',', '.') }} €</td>
+            </tr>
+        {% endfor %}
+        <tr>
+            <td colspan="2"><strong>Summe nicht umlagefähige Kosten</strong></td>
+            <td class="number"><strong>{{ reportData.nichtUmlagefaehigeGesamtkosten|number_format(2, ',', '.') }} €</strong></td>
+            <td class="number"><strong>{{ reportData.nichtUmlagefaehigeGesamtanteil|number_format(2, ',', '.') }} €</strong></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="section">
+    <h2>3. Rücklagenzuführung</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Art der Rücklagenzuführung</th>
+            <th>Umlageschlüssel</th>
+            <th class="number">Betrag gesamt</th>
+            <th class="number">Ihr Anteil</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% if reportData.ruecklagenzufuehrung is empty %}
+            <tr>
+                <td colspan="4">Keine Rücklagenzuführungen im Abrechnungszeitraum</td>
+            </tr>
+        {% else %}
+            {% for item in reportData.ruecklagenzufuehrung %}
+                <tr>
+                    <td>{{ item.bezeichnung }}</td>
+                    <td>05* Miteigentumsanteil</td>
+                    <td class="number">{{ item.gesamtkosten|number_format(2, ',', '.') }} €</td>
+                    <td class="number">{{ item.anteil|number_format(2, ',', '.') }} €</td>
+                </tr>
+            {% endfor %}
+        {% endif %}
+        <tr>
+            <td colspan="2"><strong>Summe Rücklagenzuführung</strong></td>
+            <td class="number"><strong>{{ reportData.ruecklagenzufuehrungGesamt|number_format(2, ',', '.') }} €</strong></td>
+            <td class="number"><strong>{{ reportData.ruecklagenzufuehrungAnteil|number_format(2, ',', '.') }} €</strong></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="page-break"></div>
+
+<h2>Zahlungsübersicht und Kontostand {{ year }}</h2>
+
+<div class="section">
+    <h3>Einzelabrechnung der Zahlungen {{ year }}</h3>
+    <table class="details">
+        <thead>
+        <tr>
+            <th>Datum</th>
+            <th>Bezeichnung</th>
+            <th class="number">Betrag</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for payment in reportData.formattedOwnerPayments %}
+            <tr>
+                <td>{{ payment.datum }}</td>
+                <td>{{ payment.bezeichnung }}</td>
+                <td class="number">{{ payment.betrag|number_format(2, ',', '.') }} €</td>
+            </tr>
+        {% endfor %}
+        <tr>
+            <td colspan="2"><strong>Summe</strong></td>
+            <td class="number"><strong>{{ reportData.hgVorschussIst|number_format(2, ',', '.') }} €</strong></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+{% if balanceData.hasData %}
+<div class="section">
+    <h3>Kontostand Entwicklung {{ year }}</h3>
+    <table>
+        <tbody>
+            <tr>
+                <td>Kontostand 31.12.{{ year - 1 }}:</td>
+                <td class="number">{{ balanceData.startAmount|number_format(2, ',', '.') }} €</td>
+            </tr>
+            <tr>
+                <td>Kontostand 31.12.{{ year }}:</td>
+                <td class="number">{{ balanceData.endAmount|number_format(2, ',', '.') }} €</td>
+            </tr>
+            <tr>
+                <td>Veränderung:</td>
+                <td class="number">{{ balanceData.change|number_format(2, ',', '.') }} €</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<div class="page-break"></div>
+
+<div class="section">
+    <h2>Vermögensübersicht und Wirtschaftsplan 2025</h2>
+    
+    <div class="section">
+        <h3>Vermögensstand</h3>
+        <table>
+            <tbody>
+                <tr>
+                    <td>Kontostand WEG-Hausgeldkonto (16.07.2025):</td>
+                    <td class="number">6.827,13 €</td>
+                </tr>
+                <tr>
+                    <td>Kontostand Rücklagenkonto (16.07.2025):</td>
+                    <td class="number">0,00 €</td>
+                </tr>
+                <tr style="border-top: 1px solid #000;">
+                    <td><strong>Gesamtvermögen WEG:</strong></td>
+                    <td class="number"><strong>6.827,13 €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="section">
+        <h3>Wirtschaftsplan 2025 - Geplante Ausgaben</h3>
+        
+        <h4>1. Umlagefähige Kosten (auf Mieter umlegbar)</h4>
+        <table>
+            <tbody>
+                <tr>
+                    <td>Heizung und Warmwasser (ext. Abrechnung)</td>
+                    <td class="number">7.200,00 €</td>
+                </tr>
+                <tr>
+                    <td>Versicherungen</td>
+                    <td class="number">1.300,00 €</td>
+                </tr>
+                <tr>
+                    <td>Müllentsorgung (AWM)</td>
+                    <td class="number">700,00 €</td>
+                </tr>
+                <tr>
+                    <td>Allgemeinstrom</td>
+                    <td class="number">600,00 €</td>
+                </tr>
+                <tr>
+                    <td>Hebeanlage - Wartung</td>
+                    <td class="number">230,00 €</td>
+                </tr>
+                <tr>
+                    <td>Hausmeisterkosten</td>
+                    <td class="number">3.900,00 €</td>
+                </tr>
+                <tr style="border-top: 1px solid #000;">
+                    <td><strong>Zwischensumme umlagefähig:</strong></td>
+                    <td class="number"><strong>13.930,00 €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h4>2. Nicht umlagefähige Kosten</h4>
+        <table>
+            <tbody>
+                <tr>
+                    <td>Heizungsreparatur und -wartung</td>
+                    <td class="number">850,00 €</td>
+                </tr>
+                <tr>
+                    <td>Reparatur Sonnenschutz</td>
+                    <td class="number">900,00 €</td>
+                </tr>
+                <tr>
+                    <td>Verwaltervergütung (Jan-Apr: 345€/Monat)</td>
+                    <td class="number">1.380,00 €</td>
+                </tr>
+                <tr>
+                    <td>Verwaltervergütung (Mai-Dez: 180€/Monat)</td>
+                    <td class="number">1.440,00 €</td>
+                </tr>
+                <tr>
+                    <td>Bankgebühren</td>
+                    <td class="number">100,00 €</td>
+                </tr>
+                <tr style="border-top: 1px solid #000;">
+                    <td><strong>Zwischensumme nicht umlagefähig:</strong></td>
+                    <td class="number"><strong>4.670,00 €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <table>
+            <tbody>
+                <tr style="border-top: 2px solid #000;">
+                    <td><strong>Gesamtausgaben 2025:</strong></td>
+                    <td class="number"><strong>18.600,00 €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="section">
+        <h3>Geplante Einnahmen 2025</h3>
+        <table>
+            <tbody>
+                <tr>
+                    <td>Hausgeld-Vorschüsse (12 × 1.500,00 €)</td>
+                    <td class="number">18.000,00 €</td>
+                </tr>
+                <tr>
+                    <td>Nachzahlungen aus HGA 2024</td>
+                    <td class="number">1.866,96 €</td>
+                </tr>
+                <tr style="border-top: 1px solid #000;">
+                    <td><strong>Gesamteinnahmen 2025:</strong></td>
+                    <td class="number"><strong>19.866,96 €</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>Saldo (Einnahmen - Ausgaben):</strong></td>
+                    <td class="number"><strong>1.266,96 €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="section">
+        <h3>Hausgeld-Vorschuss 2025 - Ihr Anteil</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th width="50%"></th>
+                    <th width="25%" class="number">Gesamt WEG</th>
+                    <th width="25%" class="number">Ihr Anteil ({{ (reportData.mea * 100)|round }}%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Monatlicher Vorschuss WEG gesamt:</td>
+                    <td class="number">1.500,00 €</td>
+                    <td class="number">{{ (1500 * reportData.mea)|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr>
+                    <td><strong>Ihr neuer monatlicher Vorschuss:</strong></td>
+                    <td class="number"></td>
+                    <td class="number"><strong>{{ (1500 * reportData.mea)|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+                <tr style="border-top: 1px solid #000;">
+                    <td><strong>Änderung pro Monat:</strong></td>
+                    <td class="number"></td>
+                    <td class="number"><strong>0,00 €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <p style="margin-top: 15px; font-size: 8pt; font-style: italic;">
+            Hinweis: Der aktuelle Kontostand deckt den Mehrbedarf vollständig, 
+            daher keine Erhöhung der Hausgeld-Vorschüsse.
+        </p>
+    </div>
+</div>
+
+<div class="section">
+    <h2>Steuerbegünstigte Leistungen nach §35a und §35c Einkommensteuergesetz</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Kostenart</th>
+            <th class="number">Gesamtkosten</th>
+            <th class="number">davon anrechenbar</th>
+            <th class="number">Ihr Anteil (Kosten)</th>
+            <th class="number">Ihr Anteil (anrechenbar)</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in reportData.steuerLeistungen %}
+            <tr>
+                <td>{{ item.bezeichnung }}</td>
+                <td class="number">{{ item.gesamtkosten|number_format(2, ',', '.') }} €</td>
+                <td class="number">{{ item.anrechenbar|number_format(2, ',', '.') }} €</td>
+                <td class="number">{{ item.anteil|number_format(2, ',', '.') }} €</td>
+                <td class="number">{{ item.anteilAnrechenbar|number_format(2, ',', '.') }} €</td>
+            </tr>
+        {% endfor %}
+        <tr>
+            <td><strong>Summe</strong></td>
+            <td class="number"><strong>{{ reportData.steuerLeistungenGesamt|number_format(2, ',', '.') }} €</strong></td>
+            <td class="number"><strong>{{ reportData.steuerLeistungenAnrechenbar|number_format(2, ',', '.') }} €</strong></td>
+            <td class="number"><strong>{{ reportData.steuerLeistungenAnteil|number_format(2, ',', '.') }} €</strong></td>
+            <td class="number"><strong>{{ reportData.steuerLeistungenAnteilAnrechenbar|number_format(2, ',', '.') }} €</strong></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+</body>
+
+
+</html>

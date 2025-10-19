@@ -1,0 +1,116 @@
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Left Column -->
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Bezeichnung
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {{ dienstleister.bezeichnung }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Art des Dienstleisters
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {{ dienstleister.artDienstleister|default('Nicht angegeben') }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Vertrag
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {{ dienstleister.vertrag|default('Nicht angegeben') }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Vertragsreferenz
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {{ dienstleister.vertragsreferenz|default('Nicht angegeben') }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Preis pro Jahr
+            </label>
+            <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                {% if dienstleister.preisProJahr %}
+                    <span class="text-lg font-semibold text-green-600 dark:text-green-400">
+                        {{ dienstleister.preisProJahr|number_format(2, ',', '.') }} €
+                    </span>
+                {% else %}
+                    <span class="text-gray-500">Nicht angegeben</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Datum Inkrafttreten
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {{ dienstleister.datumInkrafttreten ? dienstleister.datumInkrafttreten|date('d.m.Y') : 'Nicht angegeben' }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Datum Unterzeichnung
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {{ dienstleister.datumUnterzeichnung ? dienstleister.datumUnterzeichnung|date('d.m.Y') : 'Nicht angegeben' }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Vertragsende (Jahr)
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {{ dienstleister.vertragsende|default('Nicht angegeben') }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Kündigungsfrist (Monate)
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {% if dienstleister.kuendigungsfrist %}
+                    {{ dienstleister.kuendigungsfrist }} Monat{{ dienstleister.kuendigungsfrist > 1 ? 'e' : '' }}
+                {% else %}
+                    Nicht angegeben
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="flex space-x-4 pt-4 mt-6 border-t border-gray-200 dark:border-gray-600">
+    <button type="button" 
+            data-dienstleister-id="{{ dienstleister.id }}"
+            data-action="click->dienstleister#showEditForm" 
+            class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+        <i class="fas fa-edit"></i> Bearbeiten
+    </button>
+    <button type="button" 
+            data-dienstleister-id="{{ dienstleister.id }}"
+            data-action="click->dienstleister#setupDeleteModal" 
+            class="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800">
+        <i class="fas fa-trash"></i> Löschen
+    </button>
+    <button type="button" data-modal-hide="viewDienstleisterModal" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-600">
+        Schließen
+    </button>
+</div>

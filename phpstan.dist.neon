@@ -1,0 +1,30 @@
+parameters:
+    level: 6
+    paths:
+        - bin/
+        - config/
+        - public/
+        - src/
+        - tests/
+    
+    # Exclude problematic paths
+    excludePaths:
+        - var/
+        - vendor/
+        - migrations/
+    
+    # Ignore common false positives
+    ignoreErrors:
+        # Doctrine entity IDs are auto-generated, but PHPStan doesn't understand this
+        - 
+            message: '#Property .+::\$id \(int\|null\) is never assigned int so it can be removed from the property type\.#'
+            path: '**/Entity/*.php'
+        
+        # Complex fixture array checks that PHPStan over-analyzes
+        -
+            message: '#Call to function is_array\(\) .+ will always evaluate to true\.#'
+            path: '**/DataFixtures/ZahlungskategorieNewFixtures.php'
+            
+        -
+            message: '#Offset .+ in isset\(\) always exists and is not nullable\.#'
+            path: '**/DataFixtures/ZahlungskategorieNewFixtures.php'

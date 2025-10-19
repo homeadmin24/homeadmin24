@@ -1,0 +1,29 @@
+name: homeadmin24
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html
+    environment:
+      - APP_ENV=dev
+      - APP_SECRET=98b5f8b5c1f5a8f9a1b6c3d7e2f4g5h6i9j0k3l7m2n8o4p9q6r1s5t8u2v7w3x9
+      - DATABASE_URL=mysql://root:rootpassword@mysql:3306/homeadmin24?serverVersion=8.0&charset=utf8mb4&collation=utf8mb4_unicode_ci
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: homeadmin24
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:

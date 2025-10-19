@@ -1,0 +1,122 @@
+<div class="grid gap-6 mb-6">
+    <!-- Document Details -->
+    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Dateiname
+                </label>
+                <div class="flex items-center">
+                    <i class="fas fa-file-{{ dokument.dateierweiterung == 'pdf' ? 'pdf' : (dokument.dateierweiterung in ['jpg', 'jpeg', 'png'] ? 'image' : 'alt') }} text-gray-400 mr-2"></i>
+                    <span class="text-gray-900 dark:text-white">{{ dokument.dateiname }}</span>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Kategorie
+                </label>
+                <div>
+                    {% if dokument.kategorie %}
+                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
+                            {{ dokument.kategorie|title }}
+                        </span>
+                    {% else %}
+                        <span class="text-gray-400">Nicht angegeben</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Upload-Datum
+                </label>
+                <div class="text-gray-900 dark:text-white">
+                    {{ dokument.uploadDatum|date('d.m.Y H:i') }}
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Dateigröße
+                </label>
+                <div class="text-gray-900 dark:text-white">
+                    {{ dokument.dateigroesseFormatiert }}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Relationships -->
+    {% if dokument.rechnung or dokument.dienstleister %}
+    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Verknüpfungen</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% if dokument.rechnung %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Rechnung
+                </label>
+                <div class="text-blue-600 dark:text-blue-400">
+                    #{{ dokument.rechnung.id }} - {{ dokument.rechnung.information }}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if dokument.dienstleister %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Dienstleister
+                </label>
+                <div class="text-gray-900 dark:text-white">
+                    {{ dokument.dienstleister.bezeichnung }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Description -->
+    {% if dokument.beschreibung %}
+    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Beschreibung
+        </label>
+        <div class="text-gray-900 dark:text-white">
+            {{ dokument.beschreibung|nl2br }}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Actions -->
+<div class="flex items-center space-x-4">
+    <a href="{{ path('app_dokument_download', {'id': dokument.id}) }}"
+       class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800">
+        <i class="fas fa-download mr-2"></i>Herunterladen
+    </a>
+    
+    {% if dokument.kategorie == 'rechnungen' and dokument.dienstleister and dokument.dienstleister.parserEnabled and not dokument.rechnung %}
+    <form method="post" action="{{ path('app_dokument_parse', {'id': dokument.id}) }}" style="display: inline;">
+        <input type="hidden" name="_token" value="{{ csrf_token('parse') }}">
+        <button type="submit"
+                onclick="return confirm('Möchten Sie diese Rechnung automatisch parsen?')"
+                class="text-white bg-purple-700 hover:bg-purple-800 focus:ring-4 focus:outline-none focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-800">
+            <i class="fas fa-magic mr-2"></i>Als Rechnung parsen
+        </button>
+    </form>
+    {% endif %}
+
+    <button type="button" 
+            data-dokument-id="{{ dokument.id }}"
+            data-action="click->dokument#showEditForm"
+            class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+        <i class="fas fa-edit mr-2"></i>Bearbeiten
+    </button>
+    <button type="button"
+            data-action="click->dokument#closeModal"
+            class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+        Schließen
+    </button>
+</div>

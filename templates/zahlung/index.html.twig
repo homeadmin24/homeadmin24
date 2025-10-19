@@ -1,0 +1,229 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Zahlungen{% endblock %}
+
+{% block body %}
+    <div class="antialiased bg-gray-50 dark:bg-gray-900"
+         data-controller="zahlung rechnung"
+         data-zahlung-new-url-value="{{ path('app_zahlung_new') }}"
+         data-zahlung-edit-url-value="{{ path('app_zahlung_edit', {'id': 'ZAHLUNG_ID'}) }}"
+         data-zahlung-show-url-value="{{ path('app_zahlung_show', {'id': 'ZAHLUNG_ID'}) }}"
+         data-zahlung-delete-url-value="{{ path('app_zahlung_delete', {'id': 'ZAHLUNG_ID'}) }}"
+         data-zahlung-rechnung-by-dienstleister-url-value="{{ path('app_rechnung_by_dienstleister', {'id': 'DIENSTLEISTER_ID'}) }}"
+         data-rechnung-new-url-value="{{ path('app_rechnung_new') }}"
+         data-rechnung-edit-url-value="{{ path('app_rechnung_edit', {'id': 'RECHNUNG_ID'}) }}"
+         data-rechnung-show-url-value="{{ path('app_rechnung_show', {'id': 'RECHNUNG_ID'}) }}"
+         data-rechnung-delete-url-value="{{ path('app_rechnung_delete', {'id': 'RECHNUNG_ID'}) }}">
+
+        {% include 'components/sidebar.html.twig' %}
+
+        <main class="p-4 md:ml-64 h-auto pt-6">
+            <div class="container mx-auto">
+                <!-- Header with actions -->
+                <div class="flex justify-between items-center mb-4">
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                        <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path>
+                            <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        Zahlungen
+                    </h1>
+                    <div class="flex items-center gap-3">
+                        <a href="{{ path('app_csv_import') }}"
+                           class="text-white bg-orange-600 hover:bg-orange-700 focus:ring-4 focus:outline-none focus:ring-orange-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-orange-500 dark:hover:bg-orange-600"
+                           title="CSV-Kontoauszug hochladen und automatisch Zahlungen erstellen">
+                            <i class="fas fa-file-csv mr-2"></i>Kontoauszug importieren
+                        </a>
+                        <form method="POST" action="{{ path('app_zahlung_bulk_kategorisieren') }}" style="display: inline;">
+                            <input type="hidden" name="_token" value="{{ csrf_token('bulk_kategorisieren') }}">
+                            <button type="submit"
+                                    onclick="return confirm('Möchten Sie alle unkategorisierten Zahlungen automatisch kategorisieren?')"
+                                    class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-green-500 dark:hover:bg-green-600"
+                                    title="Automatisch Kategorie und Kostenkonto für unkategorisierte Zahlungen zuweisen">
+                                <i class="fas fa-magic mr-2"></i>Auto-Kategorisieren
+                            </button>
+                        </form>
+                        <button
+                                data-action="zahlung#showCreateForm"
+                                class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                            <i class="fas fa-plus"></i> Neue Zahlung
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter section -->
+                <div class="mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+                    <form method="GET">
+                        <!-- Form row with buttons -->
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center">
+                                <input type="checkbox" name="only_uncategorized" id="only_uncategorized" value="1"
+                                       {% if onlyUncategorized %}checked{% endif %}
+                                       class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                <label for="only_uncategorized" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 whitespace-nowrap">
+                                    Nur unkategorisiert
+                                </label>
+                            </div>
+                            <select name="zahlungskategorie" id="zahlungskategorie"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                <option value="">Alle Kategorien</option>
+                                {% for kategorie in zahlungskategorien %}
+                                    <option value="{{ kategorie.id }}" {% if selectedZahlungskategorie == kategorie.id %}selected{% endif %}>
+                                        {{ kategorie.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <select name="kostenkonto" id="kostenkonto" 
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                <option value="">Alle Kostenkontos</option>
+                                {% for kostenkonto in kostenkontos %}
+                                    <option value="{{ kostenkonto.id }}" {% if selectedKostenkonto == kostenkonto.id %}selected{% endif %}>
+                                        {{ kostenkonto.nummer }} - {{ kostenkonto.bezeichnung }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <select name="weg_einheit" id="weg_einheit" 
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                <option value="">Alle Eigentümer</option>
+                                {% for einheit in wegEinheiten %}
+                                    <option value="{{ einheit.id }}" {% if selectedWegEinheit == einheit.id %}selected{% endif %}>
+                                        {{ einheit.nummer }} - {{ einheit.miteigentuemer }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <select name="dienstleister" id="dienstleister" 
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                <option value="">Alle Dienstleister</option>
+                                {% for dl in dienstleister %}
+                                    <option value="{{ dl.id }}" {% if selectedDienstleister == dl.id %}selected{% endif %}>
+                                        {{ dl.bezeichnung }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit"
+                                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 whitespace-nowrap">
+                                <i class="fas fa-filter"></i> Filtern
+                            </button>
+                            {% if selectedKostenkonto or selectedZahlungskategorie or selectedDienstleister or selectedWegEinheit or onlyUncategorized %}
+                                <a href="{{ path('app_zahlung_index') }}"
+                                   class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-4 py-2.5 hover:text-gray-900 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 whitespace-nowrap">
+                                    <i class="fas fa-times"></i> Filter zurücksetzen
+                                </a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Flash messages -->
+                {% for label, messages in app.flashes %}
+                    {% for message in messages %}
+                        <div class="bg-{{ label == 'success' ? 'green' : 'red' }}-100 border border-{{ label == 'success' ? 'green' : 'red' }}-400 text-{{ label == 'success' ? 'green' : 'red' }}-700 px-4 py-3 rounded mb-4">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+
+                <!-- Combined table for all payments -->
+                <div class="mb-6">
+                    <div class="overflow-x-auto relative shadow-md sm:rounded-lg min-h-[600px]">
+                        <table id="default-table" class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col">ID</th>
+                                <th scope="col">Datum</th>
+                                <th scope="col">Jahr</th>
+                                <th scope="col">Bezeichnung</th>
+                                <th scope="col" data-type="number">Betrag</th>
+                                <th scope="col">Zahler/Empfänger</th>
+                                <th scope="col">Kategorie</th>
+                                <th scope="col">Kostenkonto</th>
+                                <th scope="col">Rechnung</th>
+                                <th scope="col" data-sortable="false">Aktionen</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for zahlung in zahlungen %}
+                                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    <td>{{ zahlung.id }}</td>
+                                    <td>{{ zahlung.datum ? zahlung.datum|date('d.m.Y') : '' }}</td>
+                                    <td>{{ zahlung.abrechnungsjahrZuordnung ? zahlung.abrechnungsjahrZuordnung : '' }}</td>
+                                    <td>{{ zahlung.bezeichnung }}</td>
+                                    <td class="{% if zahlung.betrag > 0 %}text-green-500{% else %}text-red-500{% endif %}">
+                                        {{ zahlung.betrag|number_format(2, ',', '.') }} €
+                                    </td>
+                                    <td>
+                                        {% if zahlung.betrag > 0 %}
+                                            {# Income - show Eigentümer (payer) #}
+                                            {{ zahlung.eigentuemer ? zahlung.eigentuemer.miteigentuemer : '' }}
+                                        {% else %}
+                                            {# Expense - show Dienstleister (recipient) #}
+                                            {{ zahlung.dienstleister ? zahlung.dienstleister.bezeichnung : '' }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ zahlung.hauptkategorie ? zahlung.hauptkategorie.name : '' }}</td>
+                                    <td>{{ zahlung.kostenkonto ? zahlung.kostenkonto.bezeichnung : '' }}</td>
+                                    <td>
+                                        {% if zahlung.rechnung %}
+                                            <div class="text-center">
+                                                {% if not zahlung.rechnung.rechnungsnummer %}
+                                                    <div class="text-gray-900 dark:text-white text-sm mb-1">ID: {{ zahlung.rechnung.id }}</div>
+                                                {% endif %}
+                                                <button data-action="rechnung#showRechnungDetails"
+                                                        data-rechnung-id="{{ zahlung.rechnung.id }}"
+                                                        class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-600 text-xs bg-transparent border border-blue-600 rounded px-2 py-1 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                                        title="Rechnung bearbeiten">
+                                                    <i class="fas fa-edit"></i> {{ zahlung.rechnung.rechnungsnummer ? zahlung.rechnung.rechnungsnummer : 'Bearbeiten' }}
+                                                </button>
+                                            </div>
+                                        {% else %}
+                                            <button data-action="rechnung#showCreateFormWithData"
+                                                    data-zahlung-id="{{ zahlung.id }}"
+                                                    data-dienstleister-id="{{ zahlung.dienstleister ? zahlung.dienstleister.id : '' }}"
+                                                    data-betrag="{{ zahlung.betrag|abs }}"
+                                                    data-information="{{ zahlung.bezeichnung }}"
+                                                    class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-600 text-xs bg-transparent border border-green-600 rounded px-2 py-1 hover:bg-green-50 dark:hover:bg-green-900/20">
+                                                <i class="fas fa-plus"></i> Erstellen
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                    <td class="flex space-x-2">
+                                        <!-- Unified Edit button for all payments -->
+                                        <button
+                                                data-action="zahlung#showEditForm"
+                                                data-zahlung-id="{{ zahlung.id }}"
+                                                class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-xs px-3 py-1.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                                            {{ zahlung.hauptkategorie ? 'Bearbeiten' : 'Kategorisieren' }}
+                                        </button>
+                                        <button
+                                                data-action="zahlung#setupDeleteModal"
+                                                data-zahlung-id="{{ zahlung.id }}"
+                                                class="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                    <td colspan="10" class="py-4 px-6 text-center">Keine Zahlungen gefunden</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        {% include 'zahlung/_modals/create.html.twig' %}
+        {% include 'zahlung/_modals/view.html.twig' %}
+        {% include 'zahlung/_modals/edit.html.twig' %}
+        {% include 'zahlung/_modals/delete.html.twig' %}
+
+        <!-- Rechnung Modals -->
+        {% include 'rechnung/_modals/create.html.twig' %}
+        {% include 'rechnung/_modals/view.html.twig' %}
+        {% include 'rechnung/_modals/edit.html.twig' %}
+        {% include 'rechnung/_modals/delete.html.twig' %}
+
+    </div>
+{% endblock %}

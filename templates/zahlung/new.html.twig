@@ -1,0 +1,79 @@
+{% form_theme form 'form/simplified.html.twig' %}
+
+<form method="post" action="{{ path('app_zahlung_new') }}" data-controller="zahlung-form"
+      data-zahlung-form-rechnung-by-dienstleister-url-value="{{ path('app_rechnung_by_dienstleister', {'id': 'DIENSTLEISTER_ID'}) }}">
+    {{ form_errors(form) }}
+
+    <div class="grid grid-cols-1 gap-4 mb-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                {{ form_row(form.datum, {'row_attr': {'class': 'mb-0'}}) }}
+            </div>
+            <div>
+                {{ form_row(form.abrechnungsjahrZuordnung, {'row_attr': {'class': 'mb-0'}}) }}
+            </div>
+        </div>
+
+        <div class="col-span-1">
+            {{ form_row(form.bezeichnung) }}
+        </div>
+
+        <div class="col-span-1">
+            {{ form_row(form.betrag, {'attr': {'data-zahlung-form-target': 'betrag'}}) }}
+        </div>
+
+        <div class="col-span-1">
+            {{ form_row(form.hauptkategorie, {'attr': {'data-zahlung-form-target': 'hauptkategorie'}}) }}
+        </div>
+
+        <div class="col-span-1 help-text-container hidden">
+            <div class="bg-blue-50 border border-blue-200 text-blue-800 text-sm p-3 rounded-lg">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="w-4 h-4 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-2">
+                        <span data-zahlung-form-target="helpText"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-span-1 kostenkonto-group">
+            {{ form_row(form.kostenkonto, {'attr': {'data-zahlung-form-target': 'kostenkonto'}}) }}
+        </div>
+
+        <div class="col-span-1 eigentuemer-group">
+            {{ form_row(form.eigentuemer, {'attr': {'data-zahlung-form-target': 'eigentuemer'}}) }}
+        </div>
+
+        <div class="col-span-1 dienstleister-group">
+            {{ form_row(form.dienstleister, {'attr': {'data-zahlung-form-target': 'dienstleister'}}) }}
+        </div>
+
+        <div class="col-span-1 rechnung-group">
+            {{ form_row(form.rechnung, {'attr': {'data-zahlung-form-target': 'rechnung'}}) }}
+        </div>
+
+        <div class="col-span-1 mehrwertsteuer-group">
+            {{ form_row(form.gesamtMwSt, {'attr': {'data-zahlung-form-target': 'mehrwertsteuer'}}) }}
+        </div>
+
+        <div class="col-span-1 hndanteil-group">
+            {{ form_row(form.hndAnteil, {'attr': {'data-zahlung-form-target': 'hndAnteil'}}) }}
+        </div>
+    </div>
+
+    <div class="flex items-center space-x-4">
+        <button type="button" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600" data-modal-hide="createZahlungModal">
+            Abbrechen
+        </button>
+        <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+            Speichern
+        </button>
+    </div>
+
+    {{ form_rest(form) }}
+</form>

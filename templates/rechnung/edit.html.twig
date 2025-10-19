@@ -1,0 +1,57 @@
+{% form_theme form 'form/default.html.twig' %}
+
+{{ form_start(form, {'action': path('app_rechnung_edit', {'id': rechnung.id}), 'attr': {'class': 'space-y-4'}}) }}
+{{ form_errors(form) }}
+
+<div class="grid grid-cols-1 gap-4 mb-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            {{ form_row(form.dienstleister, {'row_attr': {'class': 'mb-0'}}) }}
+        </div>
+        <div>
+            {{ form_row(form.rechnungsnummer, {'row_attr': {'class': 'mb-0'}}) }}
+        </div>
+    </div>
+    
+    <div class="col-span-1">
+        {{ form_row(form.information, {'row_attr': {'class': 'mb-3'}}) }}
+    </div>
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            {{ form_row(form.datumLeistung, {'row_attr': {'class': 'mb-0'}}) }}
+        </div>
+        <div>
+            {{ form_row(form.faelligkeitsdatum, {'row_attr': {'class': 'mb-0'}}) }}
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            {{ form_row(form.betragMitSteuern, {'row_attr': {'class': 'mb-0'}}) }}
+        </div>
+        <div>
+            {{ form_row(form.gesamtMwSt, {'row_attr': {'class': 'mb-0'}}) }}
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            {{ form_row(form.arbeitsFahrtkosten, {'row_attr': {'class': 'mb-0'}}) }}
+        </div>
+        <div>
+            {{ form_row(form.ausstehend, {'row_attr': {'class': 'mb-0'}}) }}
+        </div>
+    </div>
+</div>
+
+<div class="flex items-center space-x-4">
+    <button type="button" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600" data-modal-hide="editRechnungModal">
+        Abbrechen
+    </button>
+    <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+        Aktualisieren
+    </button>
+</div>
+
+{{ form_end(form) }}

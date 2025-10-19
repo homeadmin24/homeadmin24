@@ -1,0 +1,568 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}WEG Verwaltung{% endblock %}
+
+{% block body %}
+<div class="antialiased bg-gray-50 dark:bg-gray-900">
+    {% include 'components/sidebar.html.twig' %}
+
+    <main class="p-4 md:ml-64 h-auto pt-6">
+        <div class="mx-auto max-w-7xl">
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                    <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                    </svg>
+                    Weg
+                </h1>
+                <p class="mt-2 text-gray-600 dark:text-gray-400">Verwalten Sie WEG-Daten, Einheiten und Umlageschlüssel</p>
+            </div>
+
+    <!-- Flowbite Tabs -->
+    <div class="mb-4 border-b border-gray-200">
+        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="default-styled-tab" data-tabs-toggle="#default-styled-tab-content" data-tabs-active-classes="text-purple-600 hover:text-purple-600 border-purple-600" data-tabs-inactive-classes="text-gray-500 hover:text-gray-600 hover:border-gray-300 border-transparent" role="tablist">
+            <li class="me-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="weg-styled-tab" data-tabs-target="#styled-weg" type="button" role="tab" aria-controls="weg" aria-selected="{{ app.request.get('tab') == 'weg' or app.request.get('tab') is empty ? 'true' : 'false' }}">
+                    <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 0L0 6h2v14h16V6h2L10 0zM8 18H4V8h4v10zm8 0h-4V8h4v10z"/>
+                    </svg>
+                    WEG
+                </button>
+            </li>
+            <li class="me-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="einheiten-styled-tab" data-tabs-target="#styled-einheiten" type="button" role="tab" aria-controls="einheiten" aria-selected="{{ app.request.get('tab') == 'einheiten' ? 'true' : 'false' }}">
+                    <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M5 5V.13a2.96 2.96 0 0 0-1.293.749L.879 3.707A2.96 2.96 0 0 0 .13 5H5Z"/>
+                        <path d="M6.737 11.061a2.961 2.961 0 0 1 .81-1.515l6.117-6.116A4.839 4.839 0 0 1 16 2.141V2a1.97 1.97 0 0 0-1.933-2H7v5a2 2 0 0 1-2 2H0v11a1.969 1.969 0 0 0 1.933 2h12.134A1.97 1.97 0 0 0 16 18v-3.093l-1.546 1.546c-.413.413-.94.695-1.513.81l-3.4.679a2.947 2.947 0 0 1-1.85-.227 2.96 2.96 0 0 1-1.635-3.257l.681-3.397Z"/>
+                        <path d="M8.961 16a.93.93 0 0 0 .189-.019l3.4-.679a.961.961 0 0 0 .49-.263l6.118-6.117a2.884 2.884 0 0 0-4.079-4.078l-6.117 6.117a.96.96 0 0 0-.263.491l-.679 3.4A.961.961 0 0 0 8.961 16Zm7.477-9.8a.958.958 0 0 1 .68-.281.961.961 0 0 1 .682 1.644l-.315.315-1.36-1.36.313-.318Zm-5.911 5.911 4.236-4.236 1.359 1.359-4.236 4.237-1.7.339.341-1.699Z"/>
+                    </svg>
+                    WEG-Einheiten
+                </button>
+            </li>
+            <li class="me-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="umlageschluessel-styled-tab" data-tabs-target="#styled-umlageschluessel" type="button" role="tab" aria-controls="umlageschluessel" aria-selected="{{ app.request.get('tab') == 'umlageschluessel' ? 'true' : 'false' }}">
+                    <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M18 7.5h-.423l-.452-1.09.3-.3a1.5 1.5 0 0 0 0-2.121L16.01 2.575a1.5 1.5 0 0 0-2.121 0l-.3.3-1.089-.452V2A1.5 1.5 0 0 0 11 .5H9A1.5 1.5 0 0 0 7.5 2v.423l-1.09.452-.3-.3a1.5 1.5 0 0 0-2.121 0L2.575 3.99a1.5 1.5 0 0 0 0 2.121l.3.3L2.423 7.5H2A1.5 1.5 0 0 0 .5 9v2A1.5 1.5 0 0 0 2 12.5h.423l.452 1.09-.3.3a1.5 1.5 0 0 0 0 2.121l1.415 1.413a1.5 1.5 0 0 0 2.121 0l.3-.3 1.09.452V18A1.5 1.5 0 0 0 9 19.5h2a1.5 1.5 0 0 0 1.5-1.5v-.423l1.09-.452.3.3a1.5 1.5 0 0 0 2.121 0L17.425 16.01a1.5 1.5 0 0 0 0-2.121l-.3-.3.452-1.09H18a1.5 1.5 0 0 0 1.5-1.5V9A1.5 1.5 0 0 0 18 7.5ZM10 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"/>
+                    </svg>
+                    Umlageschlüssel
+                </button>
+            </li>
+            <li class="me-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="kategorien-styled-tab" data-tabs-target="#styled-kategorien" type="button" role="tab" aria-controls="kategorien" aria-selected="{{ app.request.get('tab') == 'kategorien' ? 'true' : 'false' }}">
+                    <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                    </svg>
+                    Zahlungskategorien
+                </button>
+            </li>
+            <li class="me-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="kostenkonto-styled-tab" data-tabs-target="#styled-kostenkonto" type="button" role="tab" aria-controls="kostenkonto" aria-selected="{{ app.request.get('tab') == 'kostenkonto' ? 'true' : 'false' }}">
+                    <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"></path>
+                    </svg>
+                    Kostenkonto
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <div id="default-styled-tab-content">
+        <!-- WEG Tab -->
+        <div class="{{ app.request.get('tab') == 'weg' or app.request.get('tab') is empty ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-weg" role="tabpanel" aria-labelledby="weg-tab">
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">WEG Verwaltung</h3>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">ID</th>
+                            <th scope="col" class="px-6 py-3">Bezeichnung</th>
+                            <th scope="col" class="px-6 py-3">Adresse</th>
+                            <th scope="col" class="px-6 py-3">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for weg in wegs %}
+                        <tr class="bg-white border-b hover:bg-gray-50" id="weg-row-{{ weg.id }}">
+                            <td class="px-6 py-4 font-medium text-gray-900">{{ weg.id }}</td>
+                            <td class="px-6 py-4">
+                                <span id="weg-bezeichnung-{{ weg.id }}">{{ weg.bezeichnung }}</span>
+                                <input type="text" id="weg-bezeichnung-input-{{ weg.id }}" value="{{ weg.bezeichnung }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                            </td>
+                            <td class="px-6 py-4">
+                                <span id="weg-adresse-{{ weg.id }}">{{ weg.adresse }}</span>
+                                <textarea id="weg-adresse-input-{{ weg.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">{{ weg.adresse }}</textarea>
+                            </td>
+                            <td class="px-6 py-4">
+                                <button type="button" onclick="editWeg({{ weg.id }})" id="weg-edit-btn-{{ weg.id }}" class="text-blue-600 hover:underline mr-2">Bearbeiten</button>
+                                <button type="button" onclick="saveWeg({{ weg.id }})" id="weg-save-btn-{{ weg.id }}" class="hidden text-green-600 hover:underline mr-2">Speichern</button>
+                                <button type="button" onclick="cancelWeg({{ weg.id }})" id="weg-cancel-btn-{{ weg.id }}" class="hidden text-gray-600 hover:underline">Abbrechen</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- WEG-Einheiten Tab -->
+        <div class="{{ app.request.get('tab') == 'einheiten' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-einheiten" role="tabpanel" aria-labelledby="einheiten-tab">
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">WEG-Einheiten Verwaltung</h3>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">Nummer</th>
+                            <th scope="col" class="px-4 py-3">Bezeichnung</th>
+                            <th scope="col" class="px-4 py-3">Miteigentümer</th>
+                            <th scope="col" class="px-4 py-3">MEA</th>
+                            <th scope="col" class="px-4 py-3">Stimme</th>
+                            <th scope="col" class="px-4 py-3">Adresse</th>
+                            <th scope="col" class="px-4 py-3">Telefon</th>
+                            <th scope="col" class="px-4 py-3">HW</th>
+                            <th scope="col" class="px-4 py-3">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for einheit in wegEinheiten %}
+                        <tr class="bg-white border-b hover:bg-gray-50" id="einheit-row-{{ einheit.id }}">
+                            <td class="px-4 py-4 font-medium text-gray-900">
+                                <span id="einheit-nummer-{{ einheit.id }}">{{ einheit.nummer }}</span>
+                                <input type="text" id="einheit-nummer-input-{{ einheit.id }}" value="{{ einheit.nummer }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="einheit-bezeichnung-{{ einheit.id }}">{{ einheit.bezeichnung }}</span>
+                                <input type="text" id="einheit-bezeichnung-input-{{ einheit.id }}" value="{{ einheit.bezeichnung }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="einheit-miteigentuemer-{{ einheit.id }}">{{ einheit.miteigentuemer }}</span>
+                                <input type="text" id="einheit-miteigentuemer-input-{{ einheit.id }}" value="{{ einheit.miteigentuemer }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="einheit-miteigentumsanteile-{{ einheit.id }}">{{ einheit.miteigentumsanteile }}</span>
+                                <input type="text" id="einheit-miteigentumsanteile-input-{{ einheit.id }}" value="{{ einheit.miteigentumsanteile }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="einheit-stimme-{{ einheit.id }}">{{ einheit.stimme }}</span>
+                                <input type="text" id="einheit-stimme-input-{{ einheit.id }}" value="{{ einheit.stimme }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4 max-w-xs">
+                                <span id="einheit-adresse-{{ einheit.id }}" class="break-words">{{ einheit.adresse|nl2br }}</span>
+                                <textarea id="einheit-adresse-input-{{ einheit.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">{{ einheit.adresse }}</textarea>
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="einheit-telefon-{{ einheit.id }}">{{ einheit.telefon }}</span>
+                                <input type="text" id="einheit-telefon-input-{{ einheit.id }}" value="{{ einheit.telefon }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="einheit-hauptwohneinheit-{{ einheit.id }}">{{ einheit.hauptwohneinheit ? '✓' : '✗' }}</span>
+                                <select id="einheit-hauptwohneinheit-input-{{ einheit.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                    <option value="1" {{ einheit.hauptwohneinheit ? 'selected' : '' }}>Ja</option>
+                                    <option value="0" {{ not einheit.hauptwohneinheit ? 'selected' : '' }}>Nein</option>
+                                </select>
+                            </td>
+                            <td class="px-4 py-4">
+                                <button type="button" onclick="editEinheit({{ einheit.id }})" id="einheit-edit-btn-{{ einheit.id }}" class="text-blue-600 hover:underline mr-2">Bearbeiten</button>
+                                <button type="button" onclick="saveEinheit({{ einheit.id }})" id="einheit-save-btn-{{ einheit.id }}" class="hidden text-green-600 hover:underline mr-2">Speichern</button>
+                                <button type="button" onclick="cancelEinheit({{ einheit.id }})" id="einheit-cancel-btn-{{ einheit.id }}" class="hidden text-gray-600 hover:underline">Abbrechen</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Umlageschlüssel Tab -->
+        <div class="{{ app.request.get('tab') == 'umlageschluessel' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-umlageschluessel" role="tabpanel" aria-labelledby="umlageschluessel-tab">
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Umlageschlüssel Verwaltung</h3>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Schlüssel</th>
+                            <th scope="col" class="px-6 py-3">Bezeichnung</th>
+                            <th scope="col" class="px-6 py-3">Beschreibung</th>
+                            <th scope="col" class="px-6 py-3">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for schluessel in umlageschluessel %}
+                        <tr class="bg-white border-b hover:bg-gray-50" id="schluessel-row-{{ schluessel.id }}">
+                            <td class="px-6 py-4 font-medium text-gray-900">{{ schluessel.schluessel }}</td>
+                            <td class="px-6 py-4">
+                                <span id="schluessel-bezeichnung-{{ schluessel.id }}">{{ schluessel.bezeichnung }}</span>
+                                <input type="text" id="schluessel-bezeichnung-input-{{ schluessel.id }}" value="{{ schluessel.bezeichnung }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                            </td>
+                            <td class="px-6 py-4">
+                                <span id="schluessel-beschreibung-{{ schluessel.id }}">{{ schluessel.beschreibung }}</span>
+                                <textarea id="schluessel-beschreibung-input-{{ schluessel.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">{{ schluessel.beschreibung }}</textarea>
+                            </td>
+                            <td class="px-6 py-4">
+                                <button type="button" onclick="editSchluessel({{ schluessel.id }})" id="schluessel-edit-btn-{{ schluessel.id }}" class="text-blue-600 hover:underline mr-2">Bearbeiten</button>
+                                <button type="button" onclick="saveSchluessel({{ schluessel.id }})" id="schluessel-save-btn-{{ schluessel.id }}" class="hidden text-green-600 hover:underline mr-2">Speichern</button>
+                                <button type="button" onclick="cancelSchluessel({{ schluessel.id }})" id="schluessel-cancel-btn-{{ schluessel.id }}" class="hidden text-gray-600 hover:underline">Abbrechen</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Kostenkonto Tab -->
+        <div class="{{ app.request.get('tab') == 'kostenkonto' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-kostenkonto" role="tabpanel" aria-labelledby="kostenkonto-tab">
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Kostenkonto Verwaltung</h3>
+                
+                <!-- HGA Impact Info Box -->
+                <div class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div class="text-sm text-blue-800 dark:text-blue-200">
+                            <p class="font-medium mb-2">Auswirkungen auf Hausgeldabrechnung (HGA):</p>
+                            <p><strong>Umlageschlüssel:</strong> Bestimmt Verteilung (05* = MEA-Anteil, 03* = gleichmäßig, 06* = Hebeanlage-spezial)</p>
+                            <p><strong>Kategorisierung Kostenart:</strong> "Umlagefähig" = auf Mieter umlegbar, "Nicht umlagefähig" = nur Eigentümer, "Rücklagenzuführung" = Reservenbildung</p>
+                            <p><strong>§35a EStG:</strong> Markierte Konten sind als haushaltsnahe Dienstleistungen/Handwerkerleistungen steuerlich absetzbar (20% der Arbeitskosten, max. 1.200€/Jahr)</p>
+                            <p><strong>Status:</strong> Nur aktive Konten werden in HGA-Berechnungen berücksichtigt</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">Nummer</th>
+                            <th scope="col" class="px-4 py-3">Bezeichnung</th>
+                            <th scope="col" class="px-4 py-3">Umlageschlüssel</th>
+                            <th scope="col" class="px-4 py-3">Kategorisierung Kostenart</th>
+                            <th scope="col" class="px-4 py-3">§35a</th>
+                            <th scope="col" class="px-4 py-3">Status</th>
+                            <th scope="col" class="px-4 py-3">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for konto in kostenkontos %}
+                        <tr class="bg-white border-b hover:bg-gray-50" id="konto-row-{{ konto.id }}">
+                            <td class="px-4 py-4 font-medium text-gray-900">
+                                <span id="konto-nummer-{{ konto.id }}">{{ konto.nummer }}</span>
+                                <input type="text" id="konto-nummer-input-{{ konto.id }}" value="{{ konto.nummer }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="konto-bezeichnung-{{ konto.id }}">{{ konto.bezeichnung }}</span>
+                                <textarea id="konto-bezeichnung-input-{{ konto.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">{{ konto.bezeichnung }}</textarea>
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="konto-umlageschluessel-{{ konto.id }}">{{ konto.umlageschluessel ? konto.umlageschluessel.bezeichnung : '-' }}</span>
+                                <select id="konto-umlageschluessel-input-{{ konto.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                    <option value="">-- Kein Umlageschlüssel --</option>
+                                    {% for schluessel in umlageschluessel %}
+                                        <option value="{{ schluessel.id }}" {{ konto.umlageschluessel and konto.umlageschluessel.id == schluessel.id ? 'selected' : '' }}>{{ schluessel.bezeichnung }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="konto-kategorisierungsTyp-{{ konto.id }}">
+                                    {% if konto.kategorisierungsTyp.value == 'umlagefaehig_sonstige' %}
+                                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Umlagefähig - Sonstige</span>
+                                    {% elseif konto.kategorisierungsTyp.value == 'umlagefaehig_heizung' %}
+                                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Umlagefähig - Heizung</span>
+                                    {% elseif konto.kategorisierungsTyp.value == 'umlagefaehig_wasser' %}
+                                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Umlagefähig - Wasser</span>
+                                    {% elseif konto.kategorisierungsTyp.value == 'nicht_umlagefaehig' %}
+                                        <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">Nicht umlagefähig</span>
+                                    {% elseif konto.kategorisierungsTyp.value == 'ruecklagenzufuehrung' %}
+                                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Rücklagenzuführung</span>
+                                    {% else %}
+                                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">{{ konto.kategorisierungsTyp.getDisplayName() }}</span>
+                                    {% endif %}
+                                </span>
+                                <select id="konto-kategorisierungsTyp-input-{{ konto.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                    {% for typ in kategorisierungsTypen %}
+                                        <option value="{{ typ.value }}" {{ konto.kategorisierungsTyp.value == typ.value ? 'selected' : '' }}>{{ typ.getDisplayName() }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="konto-taxDeductible-{{ konto.id }}">
+                                    {% if konto.taxDeductible %}
+                                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded inline-flex items-center">
+                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            §35a
+                                        </span>
+                                    {% else %}
+                                        <span class="bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-0.5 rounded">-</span>
+                                    {% endif %}
+                                </span>
+                                <select id="konto-taxDeductible-input-{{ konto.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                    <option value="1" {{ konto.taxDeductible ? 'selected' : '' }}>§35a Steuerlich absetzbar</option>
+                                    <option value="0" {{ not konto.taxDeductible ? 'selected' : '' }}>Nicht absetzbar</option>
+                                </select>
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="konto-isActive-{{ konto.id }}">
+                                    {% if konto.isActive %}
+                                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Aktiv</span>
+                                    {% else %}
+                                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">Inaktiv</span>
+                                    {% endif %}
+                                </span>
+                                <select id="konto-isActive-input-{{ konto.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                    <option value="1" {{ konto.isActive ? 'selected' : '' }}>Aktiv</option>
+                                    <option value="0" {{ not konto.isActive ? 'selected' : '' }}>Inaktiv</option>
+                                </select>
+                            </td>
+                            <td class="px-4 py-4">
+                                <button type="button" onclick="editKonto({{ konto.id }})" id="konto-edit-btn-{{ konto.id }}" class="text-blue-600 hover:underline mr-2">Bearbeiten</button>
+                                <button type="button" onclick="saveKonto({{ konto.id }})" id="konto-save-btn-{{ konto.id }}" class="hidden text-green-600 hover:underline mr-2">Speichern</button>
+                                <button type="button" onclick="cancelKonto({{ konto.id }})" id="konto-cancel-btn-{{ konto.id }}" class="hidden text-gray-600 hover:underline">Abbrechen</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Zahlungskategorien Tab -->
+        <div class="{{ app.request.get('tab') == 'kategorien' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-kategorien" role="tabpanel" aria-labelledby="kategorien-tab">
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Zahlungskategorien → Kostenkonto Mapping</h3>
+                <p class="text-sm text-gray-600 mb-4">Diese Tabelle zeigt, welche Kostenkontos für jede Zahlungskategorie erlaubt sind.</p>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">Kategorie</th>
+                            <th scope="col" class="px-4 py-3">Erlaubte Kostenkontos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for kategorie in zahlungskategorien %}
+                        <tr class="bg-white border-b hover:bg-gray-50">
+                            <td class="px-4 py-4 font-medium text-gray-900">
+                                {{ kategorie.name }}
+                            </td>
+                            <td class="px-4 py-4">
+                                {% set kostenkontoFilter = kategorie.fieldConfig['kostenkonto_filter'] ?? [] %}
+                                {% if kostenkontoFilter is empty %}
+                                    <span class="text-gray-400 italic">Alle Kostenkontos erlaubt</span>
+                                {% else %}
+                                    <div class="flex flex-wrap gap-2">
+                                        {% for konto in kostenkontos %}
+                                            {% if konto.id in kostenkontoFilter %}
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    {{ konto.nummer }} - {{ konto.bezeichnung }}
+                                                </span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </div>
+    </main>
+</div>
+
+<script>
+// Initialize tabs function
+function initializeTabs() {
+    // Re-initialize Flowbite components
+    if (typeof window.initFlowbite === 'function') {
+        window.initFlowbite();
+    }
+    
+    // Handle initial tab selection based on URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab');
+    
+    if (activeTab) {
+        // Small delay to ensure Flowbite has initialized
+        setTimeout(() => {
+            const tabButton = document.getElementById(activeTab + '-styled-tab');
+            if (tabButton) {
+                tabButton.click();
+            }
+        }, 100);
+    }
+}
+
+// Handle both regular DOM load and Turbo navigation
+document.addEventListener('DOMContentLoaded', initializeTabs);
+document.addEventListener('turbo:load', initializeTabs);
+document.addEventListener('turbo:frame-load', initializeTabs);
+
+// WEG editing functions
+function editWeg(id) {
+    document.getElementById('weg-bezeichnung-' + id).classList.add('hidden');
+    document.getElementById('weg-adresse-' + id).classList.add('hidden');
+    document.getElementById('weg-bezeichnung-input-' + id).classList.remove('hidden');
+    document.getElementById('weg-adresse-input-' + id).classList.remove('hidden');
+    document.getElementById('weg-edit-btn-' + id).classList.add('hidden');
+    document.getElementById('weg-save-btn-' + id).classList.remove('hidden');
+    document.getElementById('weg-cancel-btn-' + id).classList.remove('hidden');
+}
+
+function saveWeg(id) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/weg/' + id + '/edit';
+    
+    const bezeichnung = document.getElementById('weg-bezeichnung-input-' + id).value;
+    const adresse = document.getElementById('weg-adresse-input-' + id).value;
+    
+    form.innerHTML = `
+        <input type="hidden" name="bezeichnung" value="${bezeichnung}">
+        <input type="hidden" name="adresse" value="${adresse}">
+    `;
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function cancelWeg(id) {
+    document.getElementById('weg-bezeichnung-' + id).classList.remove('hidden');
+    document.getElementById('weg-adresse-' + id).classList.remove('hidden');
+    document.getElementById('weg-bezeichnung-input-' + id).classList.add('hidden');
+    document.getElementById('weg-adresse-input-' + id).classList.add('hidden');
+    document.getElementById('weg-edit-btn-' + id).classList.remove('hidden');
+    document.getElementById('weg-save-btn-' + id).classList.add('hidden');
+    document.getElementById('weg-cancel-btn-' + id).classList.add('hidden');
+}
+
+// WEG-Einheit editing functions
+function editEinheit(id) {
+    const fields = ['nummer', 'bezeichnung', 'miteigentuemer', 'miteigentumsanteile', 'stimme', 'adresse', 'telefon', 'hauptwohneinheit'];
+    fields.forEach(field => {
+        document.getElementById('einheit-' + field + '-' + id).classList.add('hidden');
+        document.getElementById('einheit-' + field + '-input-' + id).classList.remove('hidden');
+    });
+    document.getElementById('einheit-edit-btn-' + id).classList.add('hidden');
+    document.getElementById('einheit-save-btn-' + id).classList.remove('hidden');
+    document.getElementById('einheit-cancel-btn-' + id).classList.remove('hidden');
+}
+
+function saveEinheit(id) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/weg/einheit/' + id + '/edit';
+    
+    const fields = ['nummer', 'bezeichnung', 'miteigentuemer', 'miteigentumsanteile', 'stimme', 'adresse', 'telefon', 'hauptwohneinheit'];
+    fields.forEach(field => {
+        const value = document.getElementById('einheit-' + field + '-input-' + id).value;
+        form.innerHTML += `<input type="hidden" name="${field}" value="${value}">`;
+    });
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function cancelEinheit(id) {
+    const fields = ['nummer', 'bezeichnung', 'miteigentuemer', 'miteigentumsanteile', 'stimme', 'adresse', 'telefon', 'hauptwohneinheit'];
+    fields.forEach(field => {
+        document.getElementById('einheit-' + field + '-' + id).classList.remove('hidden');
+        document.getElementById('einheit-' + field + '-input-' + id).classList.add('hidden');
+    });
+    document.getElementById('einheit-edit-btn-' + id).classList.remove('hidden');
+    document.getElementById('einheit-save-btn-' + id).classList.add('hidden');
+    document.getElementById('einheit-cancel-btn-' + id).classList.add('hidden');
+}
+
+// Umlageschlüssel editing functions
+function editSchluessel(id) {
+    document.getElementById('schluessel-bezeichnung-' + id).classList.add('hidden');
+    document.getElementById('schluessel-beschreibung-' + id).classList.add('hidden');
+    document.getElementById('schluessel-bezeichnung-input-' + id).classList.remove('hidden');
+    document.getElementById('schluessel-beschreibung-input-' + id).classList.remove('hidden');
+    document.getElementById('schluessel-edit-btn-' + id).classList.add('hidden');
+    document.getElementById('schluessel-save-btn-' + id).classList.remove('hidden');
+    document.getElementById('schluessel-cancel-btn-' + id).classList.remove('hidden');
+}
+
+function saveSchluessel(id) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/weg/umlageschluessel/' + id + '/edit';
+    
+    const bezeichnung = document.getElementById('schluessel-bezeichnung-input-' + id).value;
+    const beschreibung = document.getElementById('schluessel-beschreibung-input-' + id).value;
+    
+    form.innerHTML = `
+        <input type="hidden" name="bezeichnung" value="${bezeichnung}">
+        <input type="hidden" name="beschreibung" value="${beschreibung}">
+    `;
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function cancelSchluessel(id) {
+    document.getElementById('schluessel-bezeichnung-' + id).classList.remove('hidden');
+    document.getElementById('schluessel-beschreibung-' + id).classList.remove('hidden');
+    document.getElementById('schluessel-bezeichnung-input-' + id).classList.add('hidden');
+    document.getElementById('schluessel-beschreibung-input-' + id).classList.add('hidden');
+    document.getElementById('schluessel-edit-btn-' + id).classList.remove('hidden');
+    document.getElementById('schluessel-save-btn-' + id).classList.add('hidden');
+    document.getElementById('schluessel-cancel-btn-' + id).classList.add('hidden');
+}
+
+// Kostenkonto editing functions
+function editKonto(id) {
+    const fields = ['nummer', 'bezeichnung', 'kategorisierungsTyp', 'umlageschluessel', 'taxDeductible', 'isActive'];
+    fields.forEach(field => {
+        document.getElementById('konto-' + field + '-' + id).classList.add('hidden');
+        document.getElementById('konto-' + field + '-input-' + id).classList.remove('hidden');
+    });
+    document.getElementById('konto-edit-btn-' + id).classList.add('hidden');
+    document.getElementById('konto-save-btn-' + id).classList.remove('hidden');
+    document.getElementById('konto-cancel-btn-' + id).classList.remove('hidden');
+}
+
+function saveKonto(id) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/weg/kostenkonto/' + id + '/edit';
+    
+    const fields = ['nummer', 'bezeichnung', 'kategorisierungsTyp', 'umlageschluessel', 'taxDeductible', 'isActive'];
+    fields.forEach(field => {
+        const value = document.getElementById('konto-' + field + '-input-' + id).value;
+        form.innerHTML += `<input type="hidden" name="${field}" value="${value}">`;
+    });
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function cancelKonto(id) {
+    const fields = ['nummer', 'bezeichnung', 'kategorisierungsTyp', 'umlageschluessel', 'taxDeductible', 'isActive'];
+    fields.forEach(field => {
+        document.getElementById('konto-' + field + '-' + id).classList.remove('hidden');
+        document.getElementById('konto-' + field + '-input-' + id).classList.add('hidden');
+    });
+    document.getElementById('konto-edit-btn-' + id).classList.remove('hidden');
+    document.getElementById('konto-save-btn-' + id).classList.add('hidden');
+    document.getElementById('konto-cancel-btn-' + id).classList.add('hidden');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,116 @@
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Left Column -->
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Dienstleister
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {{ rechnung.dienstleister ? rechnung.dienstleister.bezeichnung : 'Nicht zugewiesen' }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Rechnungsnummer
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {{ rechnung.rechnungsnummer|default('Nicht angegeben') }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Information
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {{ rechnung.information }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Status
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {% if rechnung.ausstehend %}
+                    <span class="bg-red-100 text-red-800 text-sm font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300">
+                        <i class="fas fa-exclamation-circle"></i> Rechnung ausstehend
+                    </span>
+                {% else %}
+                    <span class="bg-green-100 text-green-800 text-sm font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">
+                        <i class="fas fa-check-circle"></i> Rechnung bezahlt
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Datum Leistung
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {{ rechnung.datumLeistung ? rechnung.datumLeistung|date('d.m.Y') : 'Nicht angegeben' }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Fälligkeitsdatum
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {{ rechnung.faelligkeitsdatum ? rechnung.faelligkeitsdatum|date('d.m.Y') : 'Nicht angegeben' }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Betrag mit Steuern
+            </label>
+            <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <span class="text-lg font-semibold text-red-600 dark:text-red-400">
+                    {{ rechnung.betragMitSteuern|number_format(2, ',', '.') }} €
+                </span>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Gesamt MwSt.
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {{ rechnung.gesamtMwSt ? rechnung.gesamtMwSt|number_format(2, ',', '.') ~ ' €' : 'Nicht angegeben' }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Arbeits-/Fahrtkosten
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {{ rechnung.arbeitsFahrtkosten ? rechnung.arbeitsFahrtkosten|number_format(2, ',', '.') ~ ' €' : 'Nicht angegeben' }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="flex space-x-4 pt-4 mt-6 border-t border-gray-200 dark:border-gray-600">
+    <button type="button" 
+            data-rechnung-id="{{ rechnung.id }}"
+            data-action="click->rechnung#showEditForm" 
+            class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+        <i class="fas fa-edit"></i> Bearbeiten
+    </button>
+    <button type="button" 
+            data-rechnung-id="{{ rechnung.id }}"
+            data-action="click->rechnung#setupDeleteModal" 
+            class="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800">
+        <i class="fas fa-trash"></i> Löschen
+    </button>
+    <button type="button" data-modal-hide="viewRechnungModal" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-600">
+        Schließen
+    </button>
+</div>
