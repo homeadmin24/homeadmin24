@@ -98,7 +98,6 @@ services:
     environment:
       - APP_ENV=dev
     restart: unless-stopped
-    volumes: []  # Override: Don't mount host directory (use built-in code)
 
   mysql:
     container_name: homeadmin24-demo-mysql

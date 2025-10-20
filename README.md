@@ -96,7 +96,7 @@ Die Dokumentation ist in drei Hauptkategorien organisiert:
 
 2. Docker-Container starten:
    ```bash
-   docker-compose up -d
+   docker-compose -f docker-compose.yaml -f docker-compose.dev.yml up -d
    ```
 
 3. Datenbank-Migrationen ausführen:
@@ -125,8 +125,8 @@ Die Dokumentation ist in drei Hauptkategorien organisiert:
 
 **Docker-Befehle:**
 ```bash
-# Container starten
-docker-compose up -d
+# Container starten (für lokale Entwicklung)
+docker-compose -f docker-compose.yaml -f docker-compose.dev.yml up -d
 
 # Container stoppen
 docker-compose down

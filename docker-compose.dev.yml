@@ -1,0 +1,9 @@
+# Development override for docker-compose.yaml
+# Mounts local code directory for hot-reloading during development
+#
+# Usage: docker-compose -f docker-compose.yaml -f docker-compose.dev.yml up -d
+
+services:
+  web:
+    volumes:
+      - .:/var/www/html  # Mount host directory for live code changes

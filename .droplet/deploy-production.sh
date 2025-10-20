@@ -80,7 +80,6 @@ services:
     environment:
       - APP_ENV=prod
     restart: unless-stopped
-    volumes: []  # Override: Don't mount host directory (use built-in code)
 
   mysql:
     restart: unless-stopped
