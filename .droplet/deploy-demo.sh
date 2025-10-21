@@ -132,6 +132,8 @@ services:
     container_name: homeadmin24-demo-web
     environment:
       - APP_ENV=dev
+      - TRUSTED_PROXIES=127.0.0.1,REMOTE_ADDR
+      - TRUSTED_HOSTS=^demo\.homeadmin24\.de$
     restart: unless-stopped
 
   mysql:
