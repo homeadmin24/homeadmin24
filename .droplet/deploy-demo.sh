@@ -65,13 +65,17 @@ if [ ! -f .env ]; then
     ENV_ACTION="created"
 else
     echo ".env already exists, checking configuration..."
-    # Check if DATABASE_URL uses 127.0.0.1 (wrong for Docker) or MESSENGER_TRANSPORT_DSN is missing
+    # Check if DATABASE_URL uses 127.0.0.1 (wrong for Docker) or required env vars are missing
     if grep -q "127.0.0.1" .env; then
         echo "⚠️  WARNING: .env uses 127.0.0.1 (local) instead of 'mysql' (Docker)"
         echo "Updating .env for Docker deployment..."
         ENV_ACTION="updated"
     elif ! grep -q "MESSENGER_TRANSPORT_DSN" .env || grep -q "^# MESSENGER_TRANSPORT_DSN" .env; then
         echo "⚠️  WARNING: .env missing MESSENGER_TRANSPORT_DSN"
+        echo "Updating .env for Docker deployment..."
+        ENV_ACTION="updated"
+    elif ! grep -q "TRUSTED_PROXIES" .env || grep -q "^# TRUSTED_PROXIES" .env; then
+        echo "⚠️  WARNING: .env missing TRUSTED_PROXIES (needed for Nginx proxy)"
         echo "Updating .env for Docker deployment..."
         ENV_ACTION="updated"
     else
@@ -96,11 +100,28 @@ if [ "$ENV_ACTION" != "validated" ]; then
         sed -i 's/^MESSENGER_TRANSPORT_DSN=.*/MESSENGER_TRANSPORT_DSN=doctrine:\/\/default?auto_setup=0/' .env 2>/dev/null || true
     fi
 
+    # Add TRUSTED_PROXIES and TRUSTED_HOSTS for Nginx proxy
+    if ! grep -q "TRUSTED_PROXIES" .env; then
+        echo "TRUSTED_PROXIES=127.0.0.1,REMOTE_ADDR" >> .env
+    else
+        sed -i 's/^# TRUSTED_PROXIES=.*/TRUSTED_PROXIES=127.0.0.1,REMOTE_ADDR/' .env
+        sed -i 's/^TRUSTED_PROXIES=.*/TRUSTED_PROXIES=127.0.0.1,REMOTE_ADDR/' .env 2>/dev/null || true
+    fi
+
+    if ! grep -q "TRUSTED_HOSTS" .env; then
+        echo "TRUSTED_HOSTS=^demo\\.homeadmin24\\.de$" >> .env
+    else
+        sed -i 's/^# TRUSTED_HOSTS=.*/TRUSTED_HOSTS=^demo\\.homeadmin24\\.de$/' .env
+        sed -i 's/^TRUSTED_HOSTS=.*/TRUSTED_HOSTS=^demo\\.homeadmin24\\.de$/' .env 2>/dev/null || true
+    fi
+
     echo "✅ .env ${ENV_ACTION} and configured for DEMO:"
     echo "   • APP_ENV=dev (development mode)"
     echo "   • DATABASE_URL=mysql://root:***@mysql:3306/homeadmin24 (Docker)"
     echo "   • APP_SECRET=*** (demo secret)"
     echo "   • MESSENGER_TRANSPORT_DSN=doctrine://default (demo queue)"
+    echo "   • TRUSTED_PROXIES=127.0.0.1,REMOTE_ADDR (Nginx proxy support)"
+    echo "   • TRUSTED_HOSTS=^demo.homeadmin24.de$ (domain restriction)"
 fi
 
 # Create demo docker-compose override
