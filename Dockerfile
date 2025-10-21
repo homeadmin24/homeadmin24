@@ -1,11 +1,14 @@
 FROM php:8.2-fpm
 
-# Install minimal dependencies
+# Install minimal dependencies including Node.js for Webpack Encore
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libzip-dev \
     nginx \
+    curl \
     && docker-php-ext-install pdo_mysql zip \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -25,6 +28,9 @@ RUN apt-get update && apt-get install -y wget \
     && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
     && rm composer-setup.php \
     && composer install --optimize-autoloader
+
+# Build frontend assets with Webpack Encore
+RUN npm install && npm run build
 
 # Create sessions directory and set permissions
 RUN mkdir -p /var/www/html/var/sessions/dev \
