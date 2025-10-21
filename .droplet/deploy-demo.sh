@@ -65,9 +65,13 @@ if [ ! -f .env ]; then
     ENV_ACTION="created"
 else
     echo ".env already exists, checking configuration..."
-    # Check if DATABASE_URL uses 127.0.0.1 (wrong for Docker)
+    # Check if DATABASE_URL uses 127.0.0.1 (wrong for Docker) or MESSENGER_TRANSPORT_DSN is missing
     if grep -q "127.0.0.1" .env; then
         echo "⚠️  WARNING: .env uses 127.0.0.1 (local) instead of 'mysql' (Docker)"
+        echo "Updating .env for Docker deployment..."
+        ENV_ACTION="updated"
+    elif ! grep -q "MESSENGER_TRANSPORT_DSN" .env || grep -q "^# MESSENGER_TRANSPORT_DSN" .env; then
+        echo "⚠️  WARNING: .env missing MESSENGER_TRANSPORT_DSN"
         echo "Updating .env for Docker deployment..."
         ENV_ACTION="updated"
     else
