@@ -102,10 +102,10 @@ if [ "$ENV_ACTION" != "validated" ]; then
 
     # Add TRUSTED_PROXIES and TRUSTED_HOSTS for Nginx proxy
     if ! grep -q "TRUSTED_PROXIES" .env; then
-        echo "TRUSTED_PROXIES=127.0.0.1,REMOTE_ADDR" >> .env
+        echo "TRUSTED_PROXIES=127.0.0.1" >> .env
     else
-        sed -i 's/^# TRUSTED_PROXIES=.*/TRUSTED_PROXIES=127.0.0.1,REMOTE_ADDR/' .env
-        sed -i 's/^TRUSTED_PROXIES=.*/TRUSTED_PROXIES=127.0.0.1,REMOTE_ADDR/' .env 2>/dev/null || true
+        sed -i 's/^# TRUSTED_PROXIES=.*/TRUSTED_PROXIES=127.0.0.1/' .env
+        sed -i 's/^TRUSTED_PROXIES=.*/TRUSTED_PROXIES=127.0.0.1/' .env 2>/dev/null || true
     fi
 
     if ! grep -q "TRUSTED_HOSTS" .env; then
@@ -120,7 +120,7 @@ if [ "$ENV_ACTION" != "validated" ]; then
     echo "   • DATABASE_URL=mysql://root:***@mysql:3306/homeadmin24 (Docker)"
     echo "   • APP_SECRET=*** (demo secret)"
     echo "   • MESSENGER_TRANSPORT_DSN=doctrine://default (demo queue)"
-    echo "   • TRUSTED_PROXIES=127.0.0.1,REMOTE_ADDR (Nginx proxy support)"
+    echo "   • TRUSTED_PROXIES=127.0.0.1 (Nginx proxy support)"
     echo "   • TRUSTED_HOSTS=^demo.homeadmin24.de$ (domain restriction)"
 fi
 
@@ -132,7 +132,7 @@ services:
     container_name: homeadmin24-demo-web
     environment:
       - APP_ENV=dev
-      - TRUSTED_PROXIES=127.0.0.1,REMOTE_ADDR
+      - TRUSTED_PROXIES=127.0.0.1
       - TRUSTED_HOSTS=^demo\.homeadmin24\.de$
     restart: unless-stopped
 
