@@ -45,7 +45,7 @@ final class Version20250817_CombinedInitialMigration extends AbstractMigration
 
         $this->addSql('CREATE TABLE monats_saldo (id INT AUTO_INCREMENT NOT NULL, weg_id INT NOT NULL, balance_month DATE NOT NULL, opening_balance NUMERIC(10, 2) NOT NULL, closing_balance NUMERIC(10, 2) NOT NULL, transaction_sum NUMERIC(10, 2) NOT NULL, transaction_count INT NOT NULL, created_at DATETIME NOT NULL, updated_at DATETIME DEFAULT NULL, INDEX IDX_22C96DFAC9C6B77F (weg_id), UNIQUE INDEX unique_weg_month (weg_id, balance_month), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');
 
-        $this->addSql('CREATE TABLE unit_monthly_payment (id INT AUTO_INCREMENT NOT NULL, weg_einheit_id INT NOT NULL, year INT NOT NULL, monthly_amount NUMERIC(10, 2) NOT NULL, yearly_advance_payment NUMERIC(10, 2) DEFAULT NULL, is_active TINYINT(1) DEFAULT 1 NOT NULL, created_at DATETIME NOT NULL COMMENT \'(DC2Type:datetime_immutable)\', INDEX IDX_unit_monthly_payment_weg_einheit (weg_einheit_id), UNIQUE INDEX unique_unit_year (weg_einheit_id, year), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');
+        $this->addSql('CREATE TABLE weg_einheit_vorauszahlung (id INT AUTO_INCREMENT NOT NULL, weg_einheit_id INT NOT NULL, year INT NOT NULL, monthly_amount NUMERIC(10, 2) NOT NULL, yearly_advance_payment NUMERIC(10, 2) DEFAULT NULL, is_active TINYINT(1) DEFAULT 1 NOT NULL, created_at DATETIME NOT NULL COMMENT \'(DC2Type:datetime_immutable)\', INDEX IDX_weg_einheit_vorauszahlung_weg_einheit (weg_einheit_id), UNIQUE INDEX unique_weg_einheit_year (weg_einheit_id, year), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');
 
         // Authentication tables
         $this->addSql('CREATE TABLE role (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(50) NOT NULL, display_name VARCHAR(100) NOT NULL, description LONGTEXT DEFAULT NULL, is_active TINYINT(1) NOT NULL, created_at DATETIME NOT NULL, UNIQUE INDEX UNIQ_57698A6A5E237E06 (name), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');
@@ -74,7 +74,7 @@ final class Version20250817_CombinedInitialMigration extends AbstractMigration
         $this->addSql('ALTER TABLE heiz_wasserkosten ADD CONSTRAINT FK_2A6BEC39C9C6B77F FOREIGN KEY (weg_id) REFERENCES weg (id)');
         $this->addSql('ALTER TABLE heiz_wasserkosten ADD CONSTRAINT FK_2A6BEC39F1394D96 FOREIGN KEY (weg_einheit_id) REFERENCES weg_einheit (id)');
         $this->addSql('ALTER TABLE monats_saldo ADD CONSTRAINT FK_A0A1A455C9C6B77F FOREIGN KEY (weg_id) REFERENCES weg (id)');
-        $this->addSql('ALTER TABLE unit_monthly_payment ADD CONSTRAINT FK_unit_monthly_payment_weg_einheit FOREIGN KEY (weg_einheit_id) REFERENCES weg_einheit (id)');
+        $this->addSql('ALTER TABLE weg_einheit_vorauszahlung ADD CONSTRAINT FK_weg_einheit_vorauszahlung_weg_einheit FOREIGN KEY (weg_einheit_id) REFERENCES weg_einheit (id)');
         $this->addSql('ALTER TABLE user_role ADD CONSTRAINT FK_2DE8C6A3A76ED395 FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE');
         $this->addSql('ALTER TABLE user_role ADD CONSTRAINT FK_2DE8C6A3D60322AC FOREIGN KEY (role_id) REFERENCES role (id) ON DELETE CASCADE');
 
@@ -182,7 +182,7 @@ final class Version20250817_CombinedInitialMigration extends AbstractMigration
         $this->addSql('ALTER TABLE heiz_wasserkosten DROP FOREIGN KEY FK_2A6BEC39C9C6B77F');
         $this->addSql('ALTER TABLE heiz_wasserkosten DROP FOREIGN KEY FK_2A6BEC39F1394D96');
         $this->addSql('ALTER TABLE monats_saldo DROP FOREIGN KEY FK_A0A1A455C9C6B77F');
-        $this->addSql('ALTER TABLE unit_monthly_payment DROP FOREIGN KEY FK_unit_monthly_payment_weg_einheit');
+        $this->addSql('ALTER TABLE weg_einheit_vorauszahlung DROP FOREIGN KEY FK_weg_einheit_vorauszahlung_weg_einheit');
         $this->addSql('ALTER TABLE user_role DROP FOREIGN KEY FK_2DE8C6A3A76ED395');
         $this->addSql('ALTER TABLE user_role DROP FOREIGN KEY FK_2DE8C6A3D60322AC');
 
@@ -197,7 +197,7 @@ final class Version20250817_CombinedInitialMigration extends AbstractMigration
         $this->addSql('DROP TABLE role');
         $this->addSql('DROP TABLE system_config');
         $this->addSql('DROP TABLE umlageschluessel');
-        $this->addSql('DROP TABLE unit_monthly_payment');
+        $this->addSql('DROP TABLE weg_einheit_vorauszahlung');
         $this->addSql('DROP TABLE user');
         $this->addSql('DROP TABLE user_role');
         $this->addSql('DROP TABLE weg');
