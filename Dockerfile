@@ -26,8 +26,10 @@ RUN apt-get update && apt-get install -y wget \
     && rm composer-setup.php \
     && composer install --optimize-autoloader
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html/var
+# Create sessions directory and set permissions
+RUN mkdir -p /var/www/html/var/sessions \
+    && chown -R www-data:www-data /var/www/html/var \
+    && chmod -R 777 /var/www/html/var/sessions
 
 # Start script
 COPY docker/start.sh /start.sh
