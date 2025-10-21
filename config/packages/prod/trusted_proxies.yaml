@@ -1,0 +1,10 @@
+when@prod:
+    framework:
+        # Trust reverse proxy (Nginx) for HTTPS detection in production
+        # This allows Symfony to detect HTTPS when behind Nginx reverse proxy
+        # Only applies when TRUSTED_PROXIES environment variable is set
+        trusted_proxies: '%env(string:default:empty_string:TRUSTED_PROXIES)%'
+        trusted_headers: ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-port']
+
+parameters:
+    empty_string: ''
