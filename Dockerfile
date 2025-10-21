@@ -27,7 +27,8 @@ RUN apt-get update && apt-get install -y wget \
     && composer install --optimize-autoloader
 
 # Create sessions directory and set permissions
-RUN mkdir -p /var/www/html/var/sessions \
+RUN mkdir -p /var/www/html/var/sessions/dev \
+    && mkdir -p /var/www/html/var/sessions/prod \
     && chown -R www-data:www-data /var/www/html/var \
     && chmod -R 777 /var/www/html/var/sessions
 
