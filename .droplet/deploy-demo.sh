@@ -134,6 +134,7 @@ services:
       - APP_ENV=dev
       - TRUSTED_PROXIES=127.0.0.1
       - TRUSTED_HOSTS=^demo\.homeadmin24\.de$
+      - MESSENGER_TRANSPORT_DSN=doctrine://default?auto_setup=0
     restart: unless-stopped
 
   mysql:
