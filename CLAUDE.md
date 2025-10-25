@@ -31,6 +31,7 @@ Technical implementation details, architecture decisions, and development workfl
 - **[HGA Migration Guide](doc/TechnicalArchitecture/HGA_MIGRATION_GUIDE.md)** - Complete migration guide for new HGA architecture
 - **[Recent Major Changes](doc/TechnicalArchitecture/RECENT_MAJOR_CHANGES.md)** - 2025 architectural improvements and database refactoring
 - **[Cloud Migration](doc/TechnicalArchitecture/doc_cloud_migration.md)** - Cloud deployment planning and documentation
+- **[Droplet Deployment](.droplet/README.md)** - DigitalOcean droplet deployment guide (production & demo)
 
 > 💡 **Quick Navigation Tip**: Use your editor's file tree or `Ctrl+P` to quickly jump to any documentation file by typing `doc/Category/filename`
 

@@ -15,8 +15,8 @@
 # - Git repository access
 #
 # Usage:
-#   cd /opt/homeadmin24
-#   bash .droplet/deploy-production.sh prod.homeadmin24.de your@email.com
+#   cd /opt/homeadmin24-prod
+#   bash .droplet/deploy-production.sh ballauf35.homeadmin24.de info@homeadmin24.de
 ###############################################################################
 
 set -e  # Exit on error
@@ -43,10 +43,17 @@ echo "=========================================="
 echo "Domain: $DOMAIN"
 echo "Email: $EMAIL"
 echo "Type: PRODUCTION (persistent data)"
+echo "Working directory: $(pwd)"
 echo ""
 
-# Ensure we're in the app directory
-cd /opt/homeadmin24
+# Get the script directory (should be /opt/homeadmin24-prod/.droplet)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Change to app directory
+cd "$APP_DIR"
+echo "App directory: $APP_DIR"
+echo ""
 
 # Pull latest changes
 echo "[1/10] Pulling latest code from GitHub..."
@@ -57,7 +64,7 @@ if [ ! -f .env ]; then
     echo "[2/10] Creating .env file..."
     if [ -f .env.example ]; then
         cp .env.example .env
-        echo "⚠️  IMPORTANT: Configure /opt/homeadmin24/.env for PRODUCTION"
+        echo "⚠️  IMPORTANT: Configure $APP_DIR/.env for PRODUCTION"
         echo "    - Set APP_ENV=prod"
         echo "    - Generate secure APP_SECRET"
         echo "    - Configure database credentials"
@@ -134,7 +141,7 @@ server {
 
     # Proxy to Docker container
     location / {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://localhost:8001;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -200,6 +207,6 @@ echo ""
 echo "4. Create manual backup:"
 echo "   /usr/local/bin/homeadmin24-backup.sh"
 echo ""
-echo "🔄 Automated backups: Daily at 3 AM → /opt/homeadmin24/backups/"
+echo "🔄 Automated backups: Daily at 3 AM → $APP_DIR/backups/"
 echo "📜 SSL auto-renewal: Configured via certbot systemd timer"
 echo ""

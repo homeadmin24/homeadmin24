@@ -1,4 +1,16 @@
-# Fixture Strategy: Open Source vs Production Versions
+# Fixture Strategy: Development, Demo, and Production Deployments
+
+## 🌍 **Environment Overview**
+
+| Environment | Purpose | Data Source | Fixtures? |
+|-------------|---------|-------------|-----------|
+| **Local Development** | Development & testing | Demo fixtures OR backups | ✅ Yes (demo-data) |
+| **Demo Droplet** | Public demo site | Demo fixtures (auto-reset) | ✅ Yes (demo-data) |
+| **Production Droplet** | Live WEG management | **Real backup files** | ❌ **NO** |
+
+**⚠️ IMPORTANT:** Production deployments should **NEVER** use fixtures. Always restore from real backup files.
+
+---
 
 ## 🔧 **Setup Commands**
 
@@ -34,14 +46,30 @@ mysql -h127.0.0.1 -uroot hausman < backup/your_backup.sql
 # Login: Use your existing credentials
 ```
 
-### **Option C: Fresh Production Start**
+### **Option C: Fresh Production Start (Local Only)**
 ```bash
 # Clean production install (no demo data)
+# ⚠️ Only for local development - NOT for production droplets!
 php bin/console doctrine:fixtures:load --group=system-config --no-interaction
 
 # Result: Empty system with core configuration
 # Login: admin@hausman.local / admin123
 # Next: Add your real WEGs, units, payments manually
+```
+
+### **Option D: Production Droplet Deployment** ⭐
+```bash
+# For production deployment on DigitalOcean droplets, see:
+# .droplet/README.md  - Generic deployment guide (in git)
+# .droplet/how-to.md  - Your actual values (gitignored)
+
+# Quick summary:
+# 1. Run migrations (creates tables)
+# 2. Restore from backup (NOT fixtures!)
+# 3. Never use demo-data fixtures on production
+
+# Result: Production with real WEG data
+# Login: Use credentials from your backup
 ```
 
 ### **📦 Backup Management**
@@ -55,7 +83,7 @@ php bin/console doctrine:fixtures:load --group=system-config --no-interaction
 ./bin/backup_db.sh "before_upgrade"
 ```
 
-#### **Restore Backup**
+#### **Restore Backup (Local Development)**
 ```bash
 # Restore specific backup
 mysql -h127.0.0.1 -uroot hausman < backup/backup_20250723_204935_production_working.sql
@@ -65,5 +93,37 @@ php bin/console doctrine:database:drop --force
 php bin/console doctrine:database:create
 mysql -h127.0.0.1 -uroot hausman < backup/your_backup.sql
 ```
+
+#### **Restore Backup (Production Droplet)**
+```bash
+# See .droplet/README.md for generic guide
+# See .droplet/how-to.md for your actual commands
+```
+
+---
+
+## 🚨 **Critical Rules**
+
+### **Production Deployments**
+- ✅ **DO**: Use real database backups from `backup/` directory
+- ✅ **DO**: Follow `.droplet/README.md` (generic) or `.droplet/how-to.md` (your values)
+- ✅ **DO**: Restore via Docker container commands on droplet
+- ❌ **DON'T**: Use fixtures on production droplets
+- ❌ **DON'T**: Load demo-data on production
+- ❌ **DON'T**: Manually enter WEG data (always restore from backup)
+
+**Full deployment guide:** See `.droplet/README.md` in repository
+
+### **Demo Deployments**
+- ✅ **DO**: Use fixtures (demo-data group)
+- ✅ **DO**: Auto-reset every 30 minutes (via cron)
+- ✅ **DO**: Load fresh fixtures on each deployment
+- ❌ **DON'T**: Use real production data on demo site
+
+### **Local Development**
+- ✅ **DO**: Use either fixtures OR backups (your choice)
+- ✅ **DO**: Test with demo-data fixtures for development
+- ✅ **DO**: Test with real backups for realistic testing
+- ✅ **DO**: Create backups before major changes
 
 ---

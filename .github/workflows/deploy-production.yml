@@ -1,0 +1,41 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Production environment'
+        required: true
+        default: 'production'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DROPLET_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.PRODUCTION_DROPLET_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Deploy to production
+        env:
+          DOMAIN: ${{ secrets.PRODUCTION_DOMAIN }}
+          EMAIL: ${{ secrets.PRODUCTION_EMAIL }}
+        run: |
+          ssh root@${{ secrets.PRODUCTION_DROPLET_HOST }} "cd /opt/homeadmin24-prod && \
+            git pull && \
+            docker compose -f docker-compose.yaml -f docker-compose.prod.yml build --no-cache && \
+            docker compose -f docker-compose.yaml -f docker-compose.prod.yml up -d && \
+            docker compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction"
+      
+      - name: Health check
+        run: |
+          sleep 10
+          curl -f https://${{ secrets.PRODUCTION_DOMAIN }}/login || exit 1

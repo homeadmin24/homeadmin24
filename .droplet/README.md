@@ -52,15 +52,6 @@ cd /opt/homeadmin24-demo
 sudo bash .droplet/deploy-demo.sh demo.example.com admin@example.com
 ```
 
-### Landing Page Setup
-
-**`setup-www-redirect.sh`** - Configure domain redirects and landing page
-```bash
-wget https://raw.githubusercontent.com/homeadmin24/homeadmin24/main/.droplet/setup-www-redirect.sh
-chmod +x setup-www-redirect.sh
-sudo ./setup-www-redirect.sh admin@example.com example.com www.example.com prod.example.com demo.example.com
-```
-
 ## 🚀 Complete Deployment Process
 
 ### Step 1: Create and Configure Droplets
@@ -69,20 +60,13 @@ Create 3 droplets on DigitalOcean (or 2 if combining landing with production):
 
 1. **Production Droplet** - Ubuntu 22.04/24.04, 2GB+ RAM, 2 vCPUs
 2. **Demo Droplet** - Ubuntu 22.04/24.04, 1GB+ RAM, 1 vCPU
-3. **Landing Droplet** (optional) - Ubuntu 22.04/24.04, 512MB RAM, 1 vCPU
 
 ### Step 2: Configure DNS
 
 Point these A records to your droplet IPs:
 
-```
-example.com        → Landing droplet IP
-www.example.com    → Landing droplet IP
 prod.example.com   → Production droplet IP
-demo.example.com   → Demo droplet IP
-```
-
-Wait for DNS propagation (can take up to 48 hours, usually 5-10 minutes).
+demo.example.com   → Demo droplet IP```
 
 ### Step 3: Setup Production Droplet
 
@@ -131,19 +115,6 @@ git clone https://github.com/homeadmin24/homeadmin24.git .
 # Deploy application
 bash .droplet/deploy-demo.sh demo.example.com admin@example.com
 ```
-
-### Step 5: Setup Landing Page
-
-SSH into your landing droplet (or production droplet if combining):
-
-```bash
-ssh root@<landing-droplet-ip>
-
-wget https://raw.githubusercontent.com/homeadmin24/homeadmin24/main/.droplet/setup-www-redirect.sh
-chmod +x setup-www-redirect.sh
-./setup-www-redirect.sh admin@example.com example.com www.example.com prod.example.com demo.example.com
-```
-
 ### Step 6: Configure GitHub Secrets
 
 Add these secrets to your GitHub repository (Settings → Secrets and variables → Actions):
@@ -407,34 +378,3 @@ The workflow `.github/workflows/deploy-droplet.yml` handles automated deployment
 - GitHub Secrets configured (see Step 6)
 - Droplets must be set up and accessible via SSH
 - Repository must be public or have proper access tokens
-
-## 📝 Maintenance Checklist
-
-### Weekly
-- [ ] Check application logs for errors
-- [ ] Verify demo auto-reset is working
-- [ ] Review disk space usage
-
-### Monthly
-- [ ] Test backup restoration (production)
-- [ ] Review and clean old backups
-- [ ] Update dependencies (`composer update`, `npm update`)
-- [ ] Check for security updates (`apt update && apt upgrade`)
-
-### Quarterly
-- [ ] Review and update SSL certificates (auto-renewed, just verify)
-- [ ] Audit user accounts and permissions
-- [ ] Performance review and optimization
-- [ ] Documentation updates
-
-## 🆘 Support
-
-For issues or questions:
-- GitHub Issues: https://github.com/homeadmin24/homeadmin24/issues
-- Documentation: `/doc/` directory in repository
-- Configuration: `.env.droplet.example` for deployment settings
-- System logs: See "Log Locations" section above
-
-## 📄 License
-
-homeadmin24 is open-source software. See LICENSE file for details.

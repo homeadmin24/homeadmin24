@@ -1,0 +1,69 @@
+name: Deploy to Demo
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      reset_data:
+        description: 'Reset demo data (loads fresh fixtures)'
+        required: false
+        default: 'true'
+        type: boolean
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: demo
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DROPLET_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.DEMO_DROPLET_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to demo
+        env:
+          RESET_DATA: ${{ github.event.inputs.reset_data || 'true' }}
+        run: |
+          ssh root@${{ secrets.DEMO_DROPLET_HOST }} "cd /opt/homeadmin24-demo && \
+            git pull && \
+            docker compose -f docker-compose.yaml -f docker-compose.demo.yml build --no-cache && \
+            docker compose -f docker-compose.yaml -f docker-compose.demo.yml up -d && \
+            sleep 20 && \
+            docker compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction"
+
+      - name: Reset demo data
+        if: ${{ github.event.inputs.reset_data == 'true' || github.event_name == 'push' }}
+        run: |
+          ssh root@${{ secrets.DEMO_DROPLET_HOST }} "cd /opt/homeadmin24-demo && \
+            docker compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction && \
+            docker compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction"
+
+      - name: Clear cache
+        run: |
+          ssh root@${{ secrets.DEMO_DROPLET_HOST }} "cd /opt/homeadmin24-demo && \
+            docker compose exec -T web php bin/console cache:clear"
+
+      - name: Health check
+        run: |
+          sleep 10
+          curl -f https://demo.homeadmin24.de/login || exit 1
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "=========================================="
+          echo "✅ Demo Deployment Complete"
+          echo "=========================================="
+          echo ""
+          echo "🎮 Demo: https://demo.homeadmin24.de"
+          echo "📊 Data reset: ${{ github.event.inputs.reset_data || 'true' }}"
+          echo "🔄 Auto-deploys on push to main"
+          echo ""
