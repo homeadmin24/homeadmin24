@@ -89,4 +89,17 @@ Encore
     .enablePostCssLoader()
 ;
 
-module.exports = Encore.getWebpackConfig();
+// Get the config
+const config = Encore.getWebpackConfig();
+
+// Disable TerserPlugin (minification) to reduce memory usage and speed up builds
+// This prevents OOM errors on low-RAM servers during npm run build
+if (config.optimization && config.optimization.minimizer) {
+    config.optimization.minimizer = [];
+}
+config.optimization = {
+    ...config.optimization,
+    minimize: false
+};
+
+module.exports = config;
