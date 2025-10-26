@@ -62,7 +62,7 @@ echo "Type: DEMO (auto-reset every 30 minutes)"
 if [ "$QUICK_MODE" = true ]; then
     echo "Mode: ⚡ QUICK (skip Docker rebuild, ~2-3 min)"
 else
-    echo "Mode: 🔨 FULL (Docker rebuild, ~30 min)"
+    echo "Mode: 🔨 FULL (Docker rebuild + swap setup, ~30 min)"
 fi
 echo ""
 
@@ -186,23 +186,41 @@ if [ "$QUICK_MODE" = true ]; then
     docker-compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
 else
     # Full deployment with Docker rebuild
-    echo "[4/11] Building Docker containers..."
+    echo "[4/13] Setting up swap space (if needed)..."
+    if ! swapon --show | grep -q '/swapfile'; then
+        echo "Creating 2GB swap file..."
+        fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048
+        chmod 600 /swapfile
+        mkswap /swapfile
+        swapon /swapfile
+
+        # Make swap permanent
+        if ! grep -q '/swapfile' /etc/fstab; then
+            echo '/swapfile none swap sw 0 0' >> /etc/fstab
+        fi
+
+        echo "✅ Swap enabled: $(free -h | grep Swap)"
+    else
+        echo "✅ Swap already configured: $(swapon --show | grep '/swapfile')"
+    fi
+
+    echo "[5/13] Building Docker containers..."
     docker-compose -f docker-compose.yaml -f docker-compose.demo.yml build --no-cache
 
-    echo "[5/11] Starting Docker containers..."
+    echo "[6/13] Starting Docker containers..."
     docker-compose -f docker-compose.yaml -f docker-compose.demo.yml down
     docker-compose -f docker-compose.yaml -f docker-compose.demo.yml up -d
 
     # Wait for database to be ready
-    echo "[6/11] Waiting for database to be ready..."
+    echo "[7/13] Waiting for database to be ready..."
     sleep 20
 
     # Run database migrations
-    echo "[7/11] Running database migrations..."
+    echo "[8/13] Running database migrations..."
     docker-compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
 
     # Load demo data
-    echo "[8/11] Loading demo data..."
+    echo "[9/13] Loading demo data..."
     docker-compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction
     docker-compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
 fi
@@ -221,7 +239,7 @@ if [ "$QUICK_MODE" = true ] && [ -f /etc/nginx/sites-available/homeadmin24-demo 
     exit 0
 fi
 
-echo "[9/11] Configuring Nginx..."
+echo "[10/13] Configuring Nginx..."
 cat > /etc/nginx/sites-available/homeadmin24-demo <<EOF
 server {
     listen 80;
@@ -276,7 +294,7 @@ nginx -t
 systemctl reload nginx
 
 # Setup SSL with Certbot
-echo "[10/11] Setting up SSL certificate..."
+echo "[11/13] Setting up SSL certificate..."
 if [ ! -d /etc/letsencrypt/live/$DOMAIN ]; then
     certbot --nginx -d $DOMAIN --email $EMAIL --agree-tos --non-interactive --redirect
 else
@@ -285,7 +303,7 @@ else
 fi
 
 # Setup auto-reset cron job
-echo "[11/11] Configuring auto-reset cron job..."
+echo "[12/13] Configuring auto-reset cron job..."
 # Remove existing hausman-demo-reset jobs
 crontab -l 2>/dev/null | grep -v hausman-demo-reset | crontab - 2>/dev/null || true
 
@@ -294,6 +312,8 @@ crontab -l 2>/dev/null | grep -v hausman-demo-reset | crontab - 2>/dev/null || t
 
 echo "✅ Auto-reset configured: Every 30 minutes (on the hour and half-hour)"
 
+# Display final system info
+echo "[13/13] Deployment summary..."
 echo ""
 echo "=========================================="
 echo "✅ DEMO Deployment complete!"

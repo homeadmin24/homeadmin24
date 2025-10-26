@@ -16,7 +16,11 @@
 #
 # Usage:
 #   cd /opt/homeadmin24-prod
-#   bash .droplet/deploy-production.sh ballauf35.homeadmin24.de info@homeadmin24.de
+#   bash .droplet/deploy-production.sh ballauf35.homeadmin24.de info@homeadmin24.de [--quick]
+#
+# Options:
+#   --quick    Quick deployment (skip Docker rebuild, ~2-3 min instead of 30 min)
+#              Use for code-only changes. Omit for dependency/config updates.
 ###############################################################################
 
 set -e  # Exit on error
@@ -27,13 +31,25 @@ if [ "$EUID" -ne 0 ]; then
    exit 1
 fi
 
-# Check arguments
-DOMAIN=${1:-}
-EMAIL=${2:-}
+# Parse arguments
+QUICK_MODE=false
+DOMAIN=""
+EMAIL=""
+
+for arg in "$@"; do
+    if [ "$arg" = "--quick" ]; then
+        QUICK_MODE=true
+    elif [ -z "$DOMAIN" ]; then
+        DOMAIN="$arg"
+    elif [ -z "$EMAIL" ]; then
+        EMAIL="$arg"
+    fi
+done
 
 if [ -z "$DOMAIN" ] || [ -z "$EMAIL" ]; then
-    echo "Usage: $0 <domain> <email>"
+    echo "Usage: $0 <domain> <email> [--quick]"
     echo "Example: $0 your-production-domain.com admin@example.com"
+    echo "Example: $0 your-production-domain.com admin@example.com --quick"
     exit 1
 fi
 
@@ -43,7 +59,11 @@ echo "=========================================="
 echo "Domain: $DOMAIN"
 echo "Email: $EMAIL"
 echo "Type: PRODUCTION (persistent data)"
-echo "Working directory: $(pwd)"
+if [ "$QUICK_MODE" = true ]; then
+    echo "Mode: ⚡ QUICK (skip Docker rebuild, ~2-3 min)"
+else
+    echo "Mode: 🔨 FULL (Docker rebuild + swap setup, ~30 min)"
+fi
 echo ""
 
 # Get the script directory (should be /opt/homeadmin24-prod/.droplet)
@@ -56,12 +76,12 @@ echo "App directory: $APP_DIR"
 echo ""
 
 # Pull latest changes
-echo "[1/10] Pulling latest code from GitHub..."
+echo "[1/12] Pulling latest code from GitHub..."
 git pull origin main
 
 # Check if .env exists
 if [ ! -f .env ]; then
-    echo "[2/10] Creating .env file..."
+    echo "[2/12] Creating .env file..."
     if [ -f .env.example ]; then
         cp .env.example .env
         echo "⚠️  IMPORTANT: Configure $APP_DIR/.env for PRODUCTION"
@@ -76,11 +96,11 @@ if [ ! -f .env ]; then
         exit 1
     fi
 else
-    echo "[2/10] .env already exists"
+    echo "[2/12] .env already exists"
 fi
 
 # Create production docker-compose override
-echo "[3/10] Creating production docker-compose configuration..."
+echo "[3/12] Creating production docker-compose configuration..."
 cat > docker-compose.prod.yml <<'DOCKER_COMPOSE'
 services:
   web:
@@ -99,24 +119,68 @@ volumes:
     driver: local
 DOCKER_COMPOSE
 
-# Build and start Docker containers
-echo "[4/10] Building Docker containers..."
-docker-compose -f docker-compose.yaml -f docker-compose.prod.yml build --no-cache
+if [ "$QUICK_MODE" = true ]; then
+    echo "[4/8] ⚡ Skipping Docker rebuild (quick mode)..."
+    echo "       Containers will continue running with new code"
 
-echo "[5/10] Starting Docker containers..."
-docker-compose -f docker-compose.yaml -f docker-compose.prod.yml down
-docker-compose -f docker-compose.yaml -f docker-compose.prod.yml up -d
+    echo "[5/8] Clearing Symfony cache..."
+    docker-compose exec -T web php bin/console cache:clear
 
-# Wait for database to be ready
-echo "[6/10] Waiting for database to be ready..."
-sleep 15
+    echo "[6/8] Rebuilding frontend assets..."
+    docker-compose exec -T web npm run build
 
-# Run database migrations
-echo "[7/10] Running database migrations..."
-docker-compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+    echo "[7/8] Running database migrations..."
+    docker-compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+
+    echo "[8/8] Deployment complete (skipping Nginx/SSL config in quick mode)"
+    echo ""
+    echo "=========================================="
+    echo "✅ Quick PRODUCTION Deployment complete!"
+    echo "=========================================="
+    echo ""
+    echo "🔒 Application running at: https://$DOMAIN"
+    echo "⚡ Deployment time: ~2-3 minutes"
+    echo ""
+    exit 0
+else
+    # Full deployment with Docker rebuild
+    echo "[4/12] Setting up swap space (if needed)..."
+    if ! swapon --show | grep -q '/swapfile'; then
+        echo "Creating 2GB swap file..."
+        fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048
+        chmod 600 /swapfile
+        mkswap /swapfile
+        swapon /swapfile
+
+        # Make swap permanent
+        if ! grep -q '/swapfile' /etc/fstab; then
+            echo '/swapfile none swap sw 0 0' >> /etc/fstab
+        fi
+
+        echo "✅ Swap enabled: $(free -h | grep Swap)"
+    else
+        echo "✅ Swap already configured: $(swapon --show | grep '/swapfile')"
+    fi
+
+    # Build and start Docker containers
+    echo "[5/12] Building Docker containers..."
+    docker-compose -f docker-compose.yaml -f docker-compose.prod.yml build --no-cache
+
+    echo "[6/12] Starting Docker containers..."
+    docker-compose -f docker-compose.yaml -f docker-compose.prod.yml down
+    docker-compose -f docker-compose.yaml -f docker-compose.prod.yml up -d
+
+    # Wait for database to be ready
+    echo "[7/12] Waiting for database to be ready..."
+    sleep 15
+
+    # Run database migrations
+    echo "[8/12] Running database migrations..."
+    docker-compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+fi
 
 # Load system configuration (only if empty database)
-echo "[8/10] Checking database status..."
+echo "[9/12] Checking database status..."
 TABLE_COUNT=$(docker-compose exec -T mysql mysql -uroot -prootpassword homeadmin24 -se "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='homeadmin24'")
 
 if [ "$TABLE_COUNT" -lt 5 ]; then
@@ -127,7 +191,7 @@ else
 fi
 
 # Configure Nginx reverse proxy
-echo "[9/10] Configuring Nginx..."
+echo "[10/12] Configuring Nginx..."
 cat > /etc/nginx/sites-available/homeadmin24-production <<EOF
 server {
     listen 80;
@@ -180,7 +244,7 @@ nginx -t
 systemctl reload nginx
 
 # Setup SSL with Certbot
-echo "[10/10] Setting up SSL certificate..."
+echo "[11/12] Setting up SSL certificate..."
 if [ ! -d /etc/letsencrypt/live/$DOMAIN ]; then
     certbot --nginx -d $DOMAIN --email $EMAIL --agree-tos --non-interactive --redirect
 else
@@ -188,6 +252,7 @@ else
     certbot renew --dry-run
 fi
 
+echo "[12/12] Deployment summary..."
 echo ""
 echo "=========================================="
 echo "✅ PRODUCTION Deployment complete!"
