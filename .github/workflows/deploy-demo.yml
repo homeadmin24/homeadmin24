@@ -23,16 +23,26 @@ jobs:
 
       - name: Setup SSH with keepalive
         run: |
+          set -e
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
           echo "${{ secrets.DROPLET_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.DEMO_DROPLET_HOST }} >> ~/.ssh/known_hosts
+
+          # Scan SSH host keys
+          ssh-keyscan -H ${{ secrets.DEMO_DROPLET_HOST }} >> ~/.ssh/known_hosts 2>&1 || echo "Warning: ssh-keyscan failed, continuing anyway"
 
           # Configure SSH to keep connection alive during long builds
-          echo "Host ${{ secrets.DEMO_DROPLET_HOST }}" >> ~/.ssh/config
-          echo "  ServerAliveInterval 30" >> ~/.ssh/config
-          echo "  ServerAliveCountMax 120" >> ~/.ssh/config
-          echo "  TCPKeepAlive yes" >> ~/.ssh/config
+          cat > ~/.ssh/config << 'SSH_CONFIG'
+          Host *
+            ServerAliveInterval 30
+            ServerAliveCountMax 120
+            TCPKeepAlive yes
+            StrictHostKeyChecking accept-new
+          SSH_CONFIG
+
+          chmod 600 ~/.ssh/config
 
       - name: Deploy to demo (using deploy script)
         env:
