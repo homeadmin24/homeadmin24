@@ -6,6 +6,11 @@ on:
       - main
   workflow_dispatch:
     inputs:
+      full_rebuild:
+        description: 'Full rebuild (Docker + dependencies)'
+        required: false
+        default: 'false'
+        type: boolean
       reset_data:
         description: 'Reset demo data (loads fresh fixtures)'
         required: false
@@ -44,32 +49,30 @@ jobs:
 
           chmod 600 ~/.ssh/config
 
-      - name: Trigger deployment on server
+      - name: Deploy to server
         run: |
-          echo "Attempting to trigger deployment on demo server..."
+          DEPLOY_MODE="${{ github.event.inputs.full_rebuild == 'true' && '' || '--quick' }}"
 
-          # Try to connect and trigger deployment (may fail if server is busy)
-          # This is okay - the deployment will happen via webhook or manual trigger
-          if ssh -o ConnectTimeout=30 -o ConnectionAttempts=3 root@${{ secrets.DEMO_DROPLET_HOST }} \
-             "cd /opt/homeadmin24-demo && \
-              git pull origin main && \
-              nohup bash .droplet/deploy-demo.sh ${{ secrets.DEMO_DOMAIN }} ${{ secrets.DEMO_EMAIL }} > /tmp/deploy.log 2>&1 &" 2>&1; then
-            echo "✅ Deployment triggered successfully"
+          echo "=========================================="
+          if [ -z "$DEPLOY_MODE" ]; then
+            echo "Full Deployment (Docker + dependencies)"
           else
-            echo "⚠️ Could not connect to server (may be busy from previous deployment)"
-            echo "The demo site will auto-update from git on next reset cycle (every 30 min)"
-            echo "Or you can manually deploy by SSH-ing to the server"
+            echo "Quick Deployment (code + cache only)"
           fi
+          echo "=========================================="
+
+          ssh -o ConnectTimeout=30 root@${{ secrets.DEMO_DROPLET_HOST }} \
+            "cd /opt/homeadmin24-demo && \
+             git pull origin main && \
+             bash .droplet/deploy-demo.sh ${{ secrets.DEMO_DOMAIN }} ${{ secrets.DEMO_EMAIL }} $DEPLOY_MODE"
+
+          echo "✅ Deployment completed"
 
       - name: Wait for deployment
+        if: github.event.inputs.full_rebuild == 'true'
         run: |
-          echo "Waiting for demo site to become available..."
-          echo "This may take 10-15 minutes during Docker rebuild"
-          echo ""
-
-          # Just wait a fixed time for the build to complete
-          # We can't reliably check via SSH due to server load
-          sleep 600  # 10 minutes
+          echo "Waiting for full rebuild to complete..."
+          sleep 300  # 5 minutes (reduced from 10 since deploy script is synchronous now)
 
       - name: Health check
         run: |
@@ -102,6 +105,9 @@ jobs:
           echo "=========================================="
           echo ""
           echo "🎮 Demo: https://demo.homeadmin24.de"
+          echo "⚡ Mode: ${{ github.event.inputs.full_rebuild == 'true' && 'Full rebuild' || 'Quick deploy' }}"
           echo "📊 Data reset: ${{ github.event.inputs.reset_data || 'true' }}"
-          echo "🔄 Auto-deploys on push to main"
+          echo "🔄 Auto-deploys on push to main (quick mode)"
+          echo ""
+          echo "💡 Tip: Use 'workflow_dispatch' with 'full_rebuild=true' for dependency updates"
           echo ""

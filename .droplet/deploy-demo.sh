@@ -16,7 +16,11 @@
 #
 # Usage:
 #   cd /opt/homeadmin24-demo
-#   bash .droplet/deploy-demo.sh demo.homeadmin24.de your@email.com
+#   bash .droplet/deploy-demo.sh demo.homeadmin24.de your@email.com [--quick]
+#
+# Options:
+#   --quick    Quick deployment (skip Docker rebuild, ~2-3 min instead of 30 min)
+#              Use for code-only changes. Omit for dependency/config updates.
 ###############################################################################
 
 set -e  # Exit on error
@@ -27,13 +31,25 @@ if [ "$EUID" -ne 0 ]; then
    exit 1
 fi
 
-# Check arguments
-DOMAIN=${1:-}
-EMAIL=${2:-}
+# Parse arguments
+QUICK_MODE=false
+DOMAIN=""
+EMAIL=""
+
+for arg in "$@"; do
+    if [ "$arg" = "--quick" ]; then
+        QUICK_MODE=true
+    elif [ -z "$DOMAIN" ]; then
+        DOMAIN="$arg"
+    elif [ -z "$EMAIL" ]; then
+        EMAIL="$arg"
+    fi
+done
 
 if [ -z "$DOMAIN" ] || [ -z "$EMAIL" ]; then
-    echo "Usage: $0 <domain> <email>"
+    echo "Usage: $0 <domain> <email> [--quick]"
     echo "Example: $0 demo.example.com admin@example.com"
+    echo "Example: $0 demo.example.com admin@example.com --quick"
     exit 1
 fi
 
@@ -43,6 +59,11 @@ echo "=========================================="
 echo "Domain: $DOMAIN"
 echo "Email: $EMAIL"
 echo "Type: DEMO (auto-reset every 30 minutes)"
+if [ "$QUICK_MODE" = true ]; then
+    echo "Mode: ⚡ QUICK (skip Docker rebuild, ~2-3 min)"
+else
+    echo "Mode: 🔨 FULL (Docker rebuild, ~30 min)"
+fi
 echo ""
 
 # Ensure we're in the app directory
@@ -148,28 +169,58 @@ volumes:
     name: homeadmin24-demo_mysql_data
 DOCKER_COMPOSE
 
-# Build and start Docker containers
-echo "[4/11] Building Docker containers..."
-docker-compose -f docker-compose.yaml -f docker-compose.demo.yml build --no-cache
+if [ "$QUICK_MODE" = true ]; then
+    echo "[4/8] ⚡ Skipping Docker rebuild (quick mode)..."
+    echo "       Containers will continue running with new code"
 
-echo "[5/11] Starting Docker containers..."
-docker-compose -f docker-compose.yaml -f docker-compose.demo.yml down
-docker-compose -f docker-compose.yaml -f docker-compose.demo.yml up -d
+    echo "[5/8] Clearing Symfony cache..."
+    docker-compose exec -T web php bin/console cache:clear
 
-# Wait for database to be ready
-echo "[6/11] Waiting for database to be ready..."
-sleep 20
+    echo "[6/8] Rebuilding frontend assets..."
+    docker-compose exec -T web npm run build
 
-# Run database migrations
-echo "[7/11] Running database migrations..."
-docker-compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+    echo "[7/8] Running database migrations..."
+    docker-compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
 
-# Load demo data
-echo "[8/11] Loading demo data..."
-docker-compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction
-docker-compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
+    echo "[8/8] Reloading demo data..."
+    docker-compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
+else
+    # Full deployment with Docker rebuild
+    echo "[4/11] Building Docker containers..."
+    docker-compose -f docker-compose.yaml -f docker-compose.demo.yml build --no-cache
 
-# Configure Nginx reverse proxy with demo banner
+    echo "[5/11] Starting Docker containers..."
+    docker-compose -f docker-compose.yaml -f docker-compose.demo.yml down
+    docker-compose -f docker-compose.yaml -f docker-compose.demo.yml up -d
+
+    # Wait for database to be ready
+    echo "[6/11] Waiting for database to be ready..."
+    sleep 20
+
+    # Run database migrations
+    echo "[7/11] Running database migrations..."
+    docker-compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+
+    # Load demo data
+    echo "[8/11] Loading demo data..."
+    docker-compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction
+    docker-compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
+fi
+
+# Configure Nginx reverse proxy with demo banner (skip in quick mode if already configured)
+if [ "$QUICK_MODE" = true ] && [ -f /etc/nginx/sites-available/homeadmin24-demo ]; then
+    echo "⚡ Skipping Nginx/SSL configuration (quick mode, already configured)"
+    echo ""
+    echo "=========================================="
+    echo "✅ Quick DEMO Deployment complete!"
+    echo "=========================================="
+    echo ""
+    echo "🔒 Demo system running at: https://$DOMAIN"
+    echo "⚡ Deployment time: ~2-3 minutes"
+    echo ""
+    exit 0
+fi
+
 echo "[9/11] Configuring Nginx..."
 cat > /etc/nginx/sites-available/homeadmin24-demo <<EOF
 server {
