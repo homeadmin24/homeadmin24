@@ -187,15 +187,16 @@ export default class extends Controller {
         
         const kostenkontoFilter = JSON.parse(selectedOption.dataset.kostenkontoFilter || '[]');
         console.log("Filtering kostenkonto for kategorie:", selectedOption.textContent, "filter:", kostenkontoFilter);
-        
+
         // Filter kostenkonto options
         const options = this.kostenkontoTarget.querySelectorAll('option');
         options.forEach(option => {
             if (!option.value) return; // Skip placeholder
-            
-            const kostenkontoId = parseInt(option.value);
-            const shouldShow = kostenkontoFilter.length === 0 || kostenkontoFilter.includes(kostenkontoId);
-            
+
+            // Match by nummer instead of ID for cross-environment compatibility
+            const kostenkontoNummer = option.dataset.kostenkontoNummer || option.value;
+            const shouldShow = kostenkontoFilter.length === 0 || kostenkontoFilter.includes(kostenkontoNummer);
+
             option.disabled = !shouldShow;
             option.hidden = !shouldShow;
         });

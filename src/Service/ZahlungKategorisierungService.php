@@ -374,12 +374,12 @@ class ZahlungKategorisierungService
 
         // Check how many words from name1 appear in name2
         foreach ($words1 as $word1) {
-            if (\mb_strlen($word1) < 3) {
+            if (mb_strlen($word1) < 3) {
                 continue;
             } // Skip short words
 
             foreach ($words2 as $word2) {
-                if (\mb_strlen($word2) < 3) {
+                if (mb_strlen($word2) < 3) {
                     continue;
                 }
 

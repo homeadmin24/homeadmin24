@@ -19,7 +19,7 @@ class ZahlungskategorieFixtures extends Fixture implements FixtureGroupInterface
                 'field_config' => [
                     'show' => ['kostenkonto', 'dienstleister', 'rechnung', 'mehrwertsteuer'],
                     'required' => ['kostenkonto', 'dienstleister'],
-                    'kostenkonto_filter' => [63, 64, 70, 72, 97, 82, 100, 85, 87, 89, 123, 94, 95, 96, 102, 109],
+                    'kostenkonto_filter' => [], // Empty = all active Kostenkontos allowed
                 ],
                 'validation_rules' => [
                     'betrag' => ['max' => 0],
@@ -37,7 +37,7 @@ class ZahlungskategorieFixtures extends Fixture implements FixtureGroupInterface
                 'field_config' => [
                     'show' => ['kostenkonto'],
                     'required' => ['kostenkonto'],
-                    'kostenkonto_filter' => [63, 64, 70, 72, 97, 82, 100, 85, 87, 89, 123, 94, 95, 96, 102, 109],
+                    'kostenkonto_filter' => [], // Empty = all active Kostenkontos allowed
                 ],
                 'validation_rules' => [
                     'betrag' => ['max' => 0],
@@ -55,7 +55,7 @@ class ZahlungskategorieFixtures extends Fixture implements FixtureGroupInterface
                 'field_config' => [
                     'show' => ['kostenkonto', 'eigentuemer'],
                     'required' => ['kostenkonto', 'eigentuemer'],
-                    'kostenkonto_filter' => [63, 64, 70, 72, 97, 82, 100, 85, 87, 89, 123, 94, 95, 96, 102, 109],
+                    'kostenkonto_filter' => [], // Empty = all active Kostenkontos allowed
                 ],
                 'validation_rules' => [
                     'betrag' => ['max' => 0],
@@ -74,7 +74,7 @@ class ZahlungskategorieFixtures extends Fixture implements FixtureGroupInterface
                     'show' => ['eigentuemer'],
                     'auto_set' => ['kostenkonto' => '099900'],
                     'required' => ['eigentuemer'],
-                    'kostenkonto_filter' => [124],
+                    'kostenkonto_filter' => ['099900'], // Only Wohngeld account
                 ],
                 'validation_rules' => [
                     'betrag' => ['max' => 0],
@@ -92,7 +92,7 @@ class ZahlungskategorieFixtures extends Fixture implements FixtureGroupInterface
                     'show' => ['kostenkonto'],
                     'auto_set' => ['kostenkonto' => '049000'],
                     'required' => [],
-                    'kostenkonto_filter' => [106],
+                    'kostenkonto_filter' => ['049000'], // Only Nebenkosten Geldverkehr
                 ],
                 'validation_rules' => [
                     'betrag' => ['max' => 0],
@@ -108,9 +108,9 @@ class ZahlungskategorieFixtures extends Fixture implements FixtureGroupInterface
                 'ist_positiver_betrag' => true,
                 'field_config' => [
                     'show' => ['eigentuemer'],
-                    'auto_set' => ['kostenkonto' => '124'],
+                    'auto_set' => ['kostenkonto' => '099900'],
                     'required' => ['eigentuemer'],
-                    'kostenkonto_filter' => [124],
+                    'kostenkonto_filter' => ['099900'], // Only Wohngeld account
                 ],
                 'validation_rules' => [
                     'betrag' => ['min' => 0.01],
@@ -128,7 +128,7 @@ class ZahlungskategorieFixtures extends Fixture implements FixtureGroupInterface
                     'show' => ['eigentuemer'],
                     'auto_set' => ['kostenkonto' => '099900'],
                     'required' => ['eigentuemer'],
-                    'kostenkonto_filter' => [124],
+                    'kostenkonto_filter' => ['099900'], // Only Wohngeld account
                 ],
                 'validation_rules' => [
                     'betrag' => ['min' => 0.01],
@@ -145,7 +145,7 @@ class ZahlungskategorieFixtures extends Fixture implements FixtureGroupInterface
                 'field_config' => [
                     'show' => ['kostenkonto', 'dienstleister'],
                     'required' => ['kostenkonto', 'dienstleister'],
-                    'kostenkonto_filter' => [63, 64, 70, 72, 97, 82, 100, 85, 87, 89, 123, 94, 95, 96, 102, 109],
+                    'kostenkonto_filter' => [], // Empty = all active Kostenkontos allowed
                 ],
                 'validation_rules' => [
                     'betrag' => ['min' => 0.01],
@@ -164,7 +164,7 @@ class ZahlungskategorieFixtures extends Fixture implements FixtureGroupInterface
                     'show' => ['kostenkonto'],
                     'auto_set' => ['kostenkonto' => '049000'],
                     'required' => [],
-                    'kostenkonto_filter' => [106],
+                    'kostenkonto_filter' => ['049000'], // Only Nebenkosten Geldverkehr
                 ],
                 'validation_rules' => [
                     'betrag' => ['min' => 0.01],

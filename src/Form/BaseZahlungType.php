@@ -69,6 +69,11 @@ abstract class BaseZahlungType extends AbstractType
                 'choice_label' => function (Kostenkonto $kostenkonto) {
                     return $kostenkonto->getNummer() . ' - ' . $kostenkonto->getBezeichnung();
                 },
+                'choice_attr' => function (Kostenkonto $kostenkonto) {
+                    return [
+                        'data-kostenkonto-nummer' => $kostenkonto->getNummer(), // Add nummer as data attribute
+                    ];
+                },
                 'label' => 'Kostenkonto',
                 'required' => false,
                 'placeholder' => '-- Kostenkonto auswählen --',

@@ -375,7 +375,7 @@ class BankStatementParsingService
                 'type' => $transaction['booking_text'],
                 'typeClass' => $this->getTypeClass($transaction['booking_text']),
                 'partner' => $transaction['partner'] ?: 'Unbekannt',
-                'purpose' => mb_substr($transaction['purpose'], 0, 50) . (\mb_strlen($transaction['purpose']) > 50 ? '...' : ''),
+                'purpose' => mb_substr($transaction['purpose'], 0, 50) . (mb_strlen($transaction['purpose']) > 50 ? '...' : ''),
                 'amount' => $this->formatAmount($transaction['amount']),
                 'amountClass' => $isIncome ? 'text-green-600' : 'text-red-600',
                 'status' => $isDuplicate ? 'Duplikat' : 'Neu',
@@ -477,7 +477,7 @@ class BankStatementParsingService
     private function calculateSimilarity(string $str1, string $str2): float
     {
         // Use Levenshtein distance for similarity
-        $maxLen = max(\mb_strlen($str1), \mb_strlen($str2));
+        $maxLen = max(mb_strlen($str1), mb_strlen($str2));
         if (0 === $maxLen) {
             return 1.0;
         }
@@ -536,12 +536,12 @@ class BankStatementParsingService
 
         // Check how many words from name1 appear in name2
         foreach ($words1 as $word1) {
-            if (\mb_strlen($word1) < 3) {
+            if (mb_strlen($word1) < 3) {
                 continue; // Skip short words
             }
 
             foreach ($words2 as $word2) {
-                if (\mb_strlen($word2) < 3) {
+                if (mb_strlen($word2) < 3) {
                     continue;
                 }
 
