@@ -295,11 +295,15 @@ systemctl reload nginx
 
 # Setup SSL with Certbot
 echo "[11/13] Setting up SSL certificate..."
-if [ ! -d /etc/letsencrypt/live/$DOMAIN ]; then
+# Check if HTTPS is configured in Nginx (not just if certificate exists)
+if ! grep -q "listen 443 ssl" /etc/nginx/sites-available/homeadmin24-demo 2>/dev/null; then
+    echo "Configuring HTTPS with certbot..."
     certbot --nginx -d $DOMAIN --email $EMAIL --agree-tos --non-interactive --redirect
 else
-    echo "SSL certificate already exists for $DOMAIN"
-    certbot renew --dry-run
+    echo "SSL certificate already configured in Nginx"
+    if [ -d /etc/letsencrypt/live/$DOMAIN ]; then
+        certbot renew --dry-run
+    fi
 fi
 
 # Setup auto-reset cron job
