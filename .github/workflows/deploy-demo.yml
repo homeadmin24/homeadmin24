@@ -51,11 +51,21 @@ jobs:
 
       - name: Deploy to server
         run: |
-          DEPLOY_MODE="${{ github.event.inputs.full_rebuild == 'true' && '' || '--quick' }}"
+          # Debug: Show input values
+          echo "DEBUG: full_rebuild input = '${{ github.event.inputs.full_rebuild }}'"
+          echo "DEBUG: Event name = '${{ github.event_name }}'"
+
+          # When full_rebuild is true, omit --quick flag (empty = full deployment)
+          # When full_rebuild is false/unset, use --quick flag (for push events or when explicitly set to false)
+          if [ "${{ github.event.inputs.full_rebuild }}" = "true" ]; then
+            DEPLOY_MODE=""
+          else
+            DEPLOY_MODE="--quick"
+          fi
 
           echo "=========================================="
           if [ -z "$DEPLOY_MODE" ]; then
-            echo "Full Deployment (Docker + dependencies)"
+            echo "Full Deployment (Docker + dependencies + swap)"
           else
             echo "Quick Deployment (code + cache only)"
           fi
