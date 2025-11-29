@@ -308,8 +308,8 @@ fi
 
 # Setup auto-reset cron job
 echo "[12/13] Configuring auto-reset cron job..."
-# Remove existing hausman-demo-reset jobs
-crontab -l 2>/dev/null | grep -v hausman-demo-reset | crontab - 2>/dev/null || true
+# Remove existing homeadmin24-demo-reset jobs (and legacy hausman-demo-reset)
+crontab -l 2>/dev/null | grep -v homeadmin24-demo-reset | grep -v hausman-demo-reset | crontab - 2>/dev/null || true
 
 # Add new cron job (every 30 minutes: at :00 and :30 of each hour)
 (crontab -l 2>/dev/null; echo "0,30 * * * * /usr/local/bin/homeadmin24-demo-reset.sh") | crontab -
