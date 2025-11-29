@@ -176,6 +176,10 @@ if [ "$QUICK_MODE" = true ]; then
     echo "[5/8] Clearing Symfony cache..."
     docker-compose exec -T web php bin/console cache:clear
 
+    echo "[5.5/8] Restarting web container to clear PHP OPcache..."
+    docker-compose restart web
+    sleep 3  # Wait for container to be ready
+
     echo "[6/8] Rebuilding frontend assets..."
     docker-compose exec -T web npm run build
 
