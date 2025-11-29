@@ -24,6 +24,43 @@
                 </p>
             </div>
 
+            {% if is_demo %}
+                <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 px-4 py-4 rounded-lg">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-sm mb-2">Demo-System</h3>
+                            <p class="text-sm mb-3">Dies ist eine Demo-Umgebung mit Beispieldaten. Alle Daten werden automatisch alle 30 Minuten zurückgesetzt.</p>
+
+                            <div class="bg-white dark:bg-gray-800 rounded-lg p-3 mb-3">
+                                <p class="text-xs font-semibold mb-2 text-gray-700 dark:text-gray-300">Demo-Zugangsdaten:</p>
+                                <div class="space-y-1 text-xs">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600 dark:text-gray-400">E-Mail:</span>
+                                        <code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-blue-600 dark:text-blue-400">wegadmin@demo.local</code>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600 dark:text-gray-400">Passwort:</span>
+                                        <code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-blue-600 dark:text-blue-400">demo123</code>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {% if next_reset_time %}
+                                <div class="flex items-center text-xs">
+                                    <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="text-blue-700 dark:text-blue-300">Nächster Reset: {{ next_reset_time|date('H:i') }} Uhr</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
             {% if error %}
                 <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                     <div class="flex items-center">
