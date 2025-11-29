@@ -217,7 +217,19 @@ else
 
     # Wait for database to be ready
     echo "[7/13] Waiting for database to be ready..."
-    sleep 20
+    MAX_TRIES=30
+    COUNTER=0
+    until docker-compose exec -T mysql mysqladmin ping -h localhost --silent; do
+        COUNTER=$((COUNTER+1))
+        if [ $COUNTER -eq $MAX_TRIES ]; then
+            echo "❌ Database failed to become ready after ${MAX_TRIES} attempts"
+            exit 1
+        fi
+        echo "   Waiting for MySQL... (attempt $COUNTER/$MAX_TRIES)"
+        sleep 2
+    done
+    echo "✅ Database is ready!"
+    sleep 2  # Extra buffer for safety
 
     # Run database migrations
     echo "[8/13] Running database migrations..."
