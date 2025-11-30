@@ -1,4 +1,4 @@
-FROM php:8.2-fpm
+FROM php:8.4-fpm
 
 # Install minimal dependencies including Node.js for Webpack Encore
 RUN apt-get update && apt-get install -y \
@@ -22,12 +22,12 @@ RUN ln -s /etc/nginx/sites-available/hausman /etc/nginx/sites-enabled/hausman
 # Copy application (assuming assets are pre-built)
 COPY . .
 
-# Install composer dependencies (including fixtures bundle)
+# Install composer dependencies (skip auto-scripts during build)
 RUN apt-get update && apt-get install -y wget \
     && wget https://getcomposer.org/installer -O composer-setup.php \
     && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
     && rm composer-setup.php \
-    && composer install --optimize-autoloader
+    && composer install --optimize-autoloader --no-scripts
 
 # Build frontend assets with Webpack Encore
 RUN npm install && npm run build
