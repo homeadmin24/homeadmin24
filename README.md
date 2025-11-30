@@ -148,42 +148,12 @@ docker compose exec web composer quality-services
 
 ---
 
-### Cloud Deployment: DigitalOcean App Platform
+## Production Deployment
 
-Klicken Sie auf den "Deploy to DigitalOcean" Button oben für One-Click Deployment:
+Für Production-Deployments (DigitalOcean, VPS, Cloud):
 
-1. Klicken Sie auf den Deploy-Button oben im README
-2. Verbinden Sie Ihr GitHub-Repository
-3. DigitalOcean erstellt automatisch:
-   - PHP-Web-Service mit Nginx
-   - MySQL 8.0 Datenbank
-   - Automatische SSL-Zertifikate
-   - HTTPS-Zugriff mit eigener Domain
-
-4. Nach der Bereitstellung via DigitalOcean Console:
-   ```bash
-   # Systemkonfiguration laden
-   php bin/console doctrine:fixtures:load --group=system-config --no-interaction
-
-   # Admin-Benutzer erstellen
-   php bin/console app:create-admin
-   ```
-
-**Vorteile:**
-- ✅ Keine Serverkonfiguration notwendig
-- ✅ Automatische Backups
-- ✅ SSL-Zertifikate inklusive
-- ✅ Skalierbar bei Bedarf
-- ✅ Automatische Updates bei Git-Push
-
-**Kosten:** Ab ~$12/Monat (Web App: $5 + MySQL DB: $7)
-
----
-
-### Production Deployment
-
-📖 **Production Deployment Guide:** [INSTALLATION.md](INSTALLATION.md)
-- DigitalOcean Droplet (VPS) - $6/Monat mit voller Kontrolle
+📖 **[INSTALLATION.md](INSTALLATION.md)** - Production Deployment Guide
+- **DigitalOcean App Platform** - One-Click Deployment ($12/Monat, managed)
+- **DigitalOcean Droplet (VPS)** - Volle Kontrolle ($6/Monat, self-hosted)
 - Automatische Deployments via GitHub Actions
-- SSL-Zertifikate & Backups
-- Management & Troubleshooting
+- SSL-Zertifikate, Backups & Monitoring
