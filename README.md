@@ -86,207 +86,104 @@ Die Dokumentation ist in drei Hauptkategorien organisiert:
 
 ## Installation & Bereitstellung
 
-### Option 1: Mit Docker (Empfohlen für lokale Entwicklung)
+### Schnellstart: Docker (Empfohlen für lokale Entwicklung)
 
-1. Repository klonen:
+**Voraussetzungen:** Docker & Docker Compose installiert
+
+1. **Repository klonen:**
    ```bash
    git clone https://github.com/homeadmin24/homeadmin24.git
    cd homeadmin24
    ```
 
-2. Docker-Container starten:
+2. **Container starten:**
    ```bash
-   docker-compose -f docker-compose.yaml -f docker-compose.dev.yml up -d
+   docker compose -f docker-compose.yaml -f docker-compose.dev.yml up -d
    ```
 
-3. Datenbank-Migrationen ausführen:
+3. **Auf Datenbank warten (ca. 10 Sekunden):**
    ```bash
-   docker exec homeadmin24-web-1 php bin/console doctrine:migrations:migrate --no-interaction
+   # Warten bis MySQL bereit ist
+   sleep 10
    ```
 
-4. Frontend-Assets erstellen:
+4. **Datenbank-Setup:**
    ```bash
-   docker exec homeadmin24-web-1 npm run build
+   # Migrationen ausführen
+   docker compose exec web php bin/console doctrine:migrations:migrate --no-interaction
+
+   # Demo-Daten laden (identisch mit demo.homeadmin24.de)
+   docker compose exec web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
    ```
 
-5. Systemkonfiguration laden:
-   ```bash
-   docker exec homeadmin24-web-1 php bin/console doctrine:fixtures:load --group=system-config --no-interaction
-   ```
+5. **✅ Fertig! Anwendung öffnen:**
+   - 🌐 **Web:** http://127.0.0.1:8000
+   - 🔐 **Login (Demo-Admin):**
+     - E-Mail: `wegadmin@demo.local`
+     - Passwort: `demo123`
+   - 🗄️ **MySQL:** `127.0.0.1:3307` (root/rootpassword)
 
-6. Admin-Benutzer erstellen:
-   ```bash
-   docker exec homeadmin24-web-1 php bin/console app:create-admin
-   ```
-
-7. Anwendung öffnen:
-   - Web: http://localhost:8000
-   - MySQL: localhost:3307 (root/rootpassword)
-
-**Docker-Befehle:**
+**Häufige Docker-Befehle:**
 ```bash
-# Container starten (für lokale Entwicklung)
-docker-compose -f docker-compose.yaml -f docker-compose.dev.yml up -d
-
 # Container stoppen
-docker-compose down
+docker compose down
 
 # Logs anzeigen
-docker logs homeadmin24-web-1 -f
+docker compose logs -f web
 
 # In Web-Container Shell
-docker exec -it homeadmin24-web-1 bash
+docker compose exec web bash
 
-# Datenbank-Backup
-./bin/backup_db.sh "beschreibung"
+# Neuen Admin-Benutzer erstellen
+docker compose exec web php bin/console app:create-admin
+
+# Cache leeren
+docker compose exec web php bin/console cache:clear
+
+# Code-Qualität prüfen
+docker compose exec web composer quality-services
 ```
+
+**Hinweis:** Die Installation lädt automatisch Demo-Daten mit 3 WEG-Beispielen, Zahlungen und Rechnungen - identisch mit https://demo.homeadmin24.de
 
 ---
 
-### Option 2: DigitalOcean App Platform (One-Click Cloud Deployment)
+### Cloud Deployment: DigitalOcean App Platform
 
-Klicken Sie auf den Button oben, um homeadmin24 mit einem Klick auf DigitalOcean bereitzustellen:
+Klicken Sie auf den "Deploy to DigitalOcean" Button oben für One-Click Deployment:
 
-1. Klicken Sie auf den "Deploy to DO" Button oben im README
+1. Klicken Sie auf den Deploy-Button oben im README
 2. Verbinden Sie Ihr GitHub-Repository
 3. DigitalOcean erstellt automatisch:
    - PHP-Web-Service mit Nginx
    - MySQL 8.0 Datenbank
    - Automatische SSL-Zertifikate
    - HTTPS-Zugriff mit eigener Domain
+
 4. Nach der Bereitstellung via DigitalOcean Console:
    ```bash
-   # Admin-Benutzer erstellen
-   php bin/console app:create-admin
-
    # Systemkonfiguration laden
    php bin/console doctrine:fixtures:load --group=system-config --no-interaction
+
+   # Admin-Benutzer erstellen
+   php bin/console app:create-admin
    ```
 
 **Vorteile:**
 - ✅ Keine Serverkonfiguration notwendig
 - ✅ Automatische Backups
 - ✅ SSL-Zertifikate inklusive
-- ✅ Skalierbar (bei Bedarf mehr Ressourcen)
+- ✅ Skalierbar bei Bedarf
 - ✅ Automatische Updates bei Git-Push
 
-**Kosten:** Ab ~$12/Monat (App: $5 + MySQL Production DB: $7)
-
-**Konfiguration:** Die Bereitstellung verwendet das Repository `homeadmin24/homeadmin24` auf GitHub.
+**Kosten:** Ab ~$12/Monat (Web App: $5 + MySQL DB: $7)
 
 ---
 
-### Option 3: DigitalOcean Droplet (VPS - $6/Monat)
+### Production Deployment
 
-Günstigste Option für Production-Deployment mit voller Kontrolle.
-
-📖 **Detaillierte Deployment-Dokumentation:** [.droplet/DEPLOYMENT.md](.droplet/DEPLOYMENT.md)
-- Erklärung aller `.env` Dateien
-- GitHub Actions Workflow
-- Automatisierte Demo- und Production-Deployments
-
-**Schritt 1: Droplet erstellen**
-1. DigitalOcean Droplet erstellen (Ubuntu 22.04/24.04, $6/Monat Basic Droplet)
-2. Domain A-Record auf Droplet IP setzen
-3. SSH-Zugriff einrichten
-
-**Schritt 2: Server einrichten**
-```bash
-# Setup-Script herunterladen und ausführen
-wget https://raw.githubusercontent.com/homeadmin24/homeadmin24/main/.droplet/setup.sh
-chmod +x setup.sh
-sudo ./setup.sh yourdomain.com your@email.com
-```
-
-**Schritt 3: Repository klonen und konfigurieren**
-```bash
-cd /opt/homeadmin24
-git clone https://github.com/homeadmin24/homeadmin24.git .
-cp .env.example .env
-nano .env  # Datenbank-Zugangsdaten anpassen
-```
-
-**Schritt 4: Deployment ausführen**
-```bash
-sudo bash .droplet/deploy.sh yourdomain.com your@email.com
-```
-
-**Schritt 5: Admin-Benutzer erstellen**
-```bash
-docker-compose exec web php bin/console app:create-admin
-```
-
-**Vorteile:**
-- ✅ Günstigste Option ($6/Monat für unbegrenzte Apps)
-- ✅ Volle Root-Kontrolle über Server
-- ✅ Docker-basiert (identisch mit lokaler Entwicklung)
-- ✅ Automatische SSL-Zertifikate (Let's Encrypt)
-- ✅ Automatische Deployments via GitHub Actions
-
-**Automated Deployment:**
-Nach Setup GitHub Repository Secrets konfigurieren:
-- `DROPLET_HOST`: Droplet IP-Adresse
-- `DROPLET_USER`: SSH-Benutzer (meist `root`)
-- `DROPLET_SSH_KEY`: Private SSH-Key für Zugriff
-
-Dann deployed jeder Push auf `main` automatisch via GitHub Actions.
-
-**Updates:**
-```bash
-cd /opt/homeadmin24
-sudo bash .droplet/deploy.sh yourdomain.com your@email.com
-```
-
----
-
-### Option 4: Ohne Docker (Manuelle Installation)
-
-1. Repository klonen:
-   ```bash
-   git clone https://github.com/homeadmin24/homeadmin24.git
-   cd homeadmin24
-   ```
-
-2. Abhängigkeiten installieren:
-   ```bash
-   composer install
-   npm install
-   ```
-
-3. Datenbank in `.env` konfigurieren:
-   ```
-   DATABASE_URL="mysql://app:changeme@127.0.0.1:3306/homeadmin24?serverVersion=8.0.32&charset=utf8mb4"
-   ```
-
-4. Datenbank erstellen und Migrationen ausführen:
-   ```bash
-   php bin/console doctrine:database:create
-   php bin/console doctrine:migrations:migrate
-   ```
-
-5. Systemkonfiguration laden:
-   ```bash
-   php bin/console doctrine:fixtures:load --group=system-config
-   ```
-
-6. Admin-Benutzer erstellen:
-   ```bash
-   php bin/console app:create-admin
-   ```
-
-7. Frontend-Assets erstellen:
-   ```bash
-   npm run build
-   ```
-
-8. Entwicklungsserver starten:
-   ```bash
-   symfony server:start
-   ```
-
-**Voraussetzungen:**
-- PHP 8.2+
-- Composer
-- Node.js 18+
-- MySQL 8.0+
-- Symfony CLI (optional)
+📖 **Production Deployment Guide:** [INSTALLATION.md](INSTALLATION.md)
+- DigitalOcean Droplet (VPS) - $6/Monat mit voller Kontrolle
+- Automatische Deployments via GitHub Actions
+- SSL-Zertifikate & Backups
+- Management & Troubleshooting
