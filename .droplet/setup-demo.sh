@@ -134,9 +134,21 @@ docker volume rm homeadmin24-demo_mysql_data 2>/dev/null || true
 echo "Starting containers..." >> $LOG_FILE
 docker-compose -f docker-compose.yaml -f docker-compose.demo.yml up -d >> $LOG_FILE 2>&1
 
-# Wait for database to be ready
+# Wait for database to be ready with connectivity check
 echo "Waiting for database..." >> $LOG_FILE
-sleep 20
+MAX_TRIES=30
+COUNTER=0
+until docker-compose exec -T mysql mysqladmin ping -h localhost --silent >> $LOG_FILE 2>&1; do
+    COUNTER=$((COUNTER+1))
+    if [ $COUNTER -eq $MAX_TRIES ]; then
+        echo "❌ Database failed to become ready after ${MAX_TRIES} attempts" >> $LOG_FILE
+        exit 1
+    fi
+    echo "   Waiting for MySQL... (attempt $COUNTER/$MAX_TRIES)" >> $LOG_FILE
+    sleep 2
+done
+echo "✅ Database is ready!" >> $LOG_FILE
+sleep 2  # Extra buffer for safety
 
 # Run migrations
 echo "Running migrations..." >> $LOG_FILE

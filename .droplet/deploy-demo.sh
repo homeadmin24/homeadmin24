@@ -322,8 +322,83 @@ else
     fi
 fi
 
+# Update auto-reset script with latest version
+echo "[12/13] Updating auto-reset script..."
+cat > /usr/local/bin/homeadmin24-demo-reset.sh <<'RESET_SCRIPT'
+#!/bin/bash
+###############################################################################
+# homeadmin24 Demo Auto-Reset Script
+#
+# This script resets the demo database to fresh demo data.
+# Runs every 30 minutes via cron.
+###############################################################################
+
+LOG_FILE="/var/log/homeadmin24-demo-reset.log"
+APP_DIR="/opt/homeadmin24-demo"
+
+echo "========================================" >> $LOG_FILE
+echo "Demo Reset: $(date)" >> $LOG_FILE
+echo "========================================" >> $LOG_FILE
+
+cd $APP_DIR
+
+# Stop containers
+echo "Stopping containers..." >> $LOG_FILE
+docker-compose -f docker-compose.yaml -f docker-compose.demo.yml down >> $LOG_FILE 2>&1
+
+# Remove database volume (forces fresh start)
+echo "Removing database volume..." >> $LOG_FILE
+docker volume rm homeadmin24-demo_mysql_data 2>/dev/null || true
+
+# Start containers
+echo "Starting containers..." >> $LOG_FILE
+docker-compose -f docker-compose.yaml -f docker-compose.demo.yml up -d >> $LOG_FILE 2>&1
+
+# Wait for database to be ready with connectivity check
+echo "Waiting for database..." >> $LOG_FILE
+MAX_TRIES=30
+COUNTER=0
+until docker-compose exec -T mysql mysqladmin ping -h localhost --silent >> $LOG_FILE 2>&1; do
+    COUNTER=$((COUNTER+1))
+    if [ $COUNTER -eq $MAX_TRIES ]; then
+        echo "❌ Database failed to become ready after ${MAX_TRIES} attempts" >> $LOG_FILE
+        exit 1
+    fi
+    echo "   Waiting for MySQL... (attempt $COUNTER/$MAX_TRIES)" >> $LOG_FILE
+    sleep 2
+done
+echo "✅ Database is ready!" >> $LOG_FILE
+sleep 2  # Extra buffer for safety
+
+# Run migrations
+echo "Running migrations..." >> $LOG_FILE
+docker-compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction >> $LOG_FILE 2>&1
+
+# Load demo fixtures
+echo "Loading demo data..." >> $LOG_FILE
+docker-compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction >> $LOG_FILE 2>&1
+docker-compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction >> $LOG_FILE 2>&1
+
+# Clear cache
+echo "Clearing cache..." >> $LOG_FILE
+docker-compose exec -T web php bin/console cache:clear >> $LOG_FILE 2>&1
+
+echo "✅ Demo reset complete at $(date)" >> $LOG_FILE
+echo "" >> $LOG_FILE
+
+# Keep log file under 10MB
+LOG_SIZE=$(stat -f%z "$LOG_FILE" 2>/dev/null || stat -c%s "$LOG_FILE" 2>/dev/null || echo 0)
+if [ "$LOG_SIZE" -gt 10485760 ]; then
+    tail -n 1000 "$LOG_FILE" > "${LOG_FILE}.tmp"
+    mv "${LOG_FILE}.tmp" "$LOG_FILE"
+fi
+RESET_SCRIPT
+
+chmod +x /usr/local/bin/homeadmin24-demo-reset.sh
+echo "✅ Auto-reset script updated"
+
 # Setup auto-reset cron job
-echo "[12/13] Configuring auto-reset cron job..."
+echo "[13/13] Configuring auto-reset cron job..."
 # Remove existing homeadmin24-demo-reset jobs (and legacy hausman-demo-reset)
 crontab -l 2>/dev/null | grep -v homeadmin24-demo-reset | grep -v hausman-demo-reset | crontab - 2>/dev/null || true
 
@@ -333,7 +408,7 @@ crontab -l 2>/dev/null | grep -v homeadmin24-demo-reset | grep -v hausman-demo-r
 echo "✅ Auto-reset configured: Every 30 minutes (on the hour and half-hour)"
 
 # Display final system info
-echo "[13/13] Deployment summary..."
+echo "[14/14] Deployment summary..."
 echo ""
 echo "=========================================="
 echo "✅ DEMO Deployment complete!"
@@ -343,7 +418,17 @@ echo "🔒 Demo system running at: https://$DOMAIN"
 echo ""
 echo "📋 Demo System Info:"
 echo "   • Auto-resets: Every 30 minutes (:00 and :30)"
-echo "   • Next reset: $(date -d '30 min' '+%H:%M' 2>/dev/null || date -v+30M '+%H:%M')"
+# Calculate next reset time (next :00 or :30)
+CURRENT_MINUTE=$(date '+%M' | sed 's/^0//')  # Remove leading zero
+CURRENT_HOUR=$(date '+%H')
+if [ -z "$CURRENT_MINUTE" ]; then CURRENT_MINUTE=0; fi
+if [ $CURRENT_MINUTE -lt 30 ]; then
+    NEXT_RESET="${CURRENT_HOUR}:30"
+else
+    NEXT_HOUR=$(date -d '+1 hour' '+%H' 2>/dev/null || date -v+1H '+%H')
+    NEXT_RESET="${NEXT_HOUR}:00"
+fi
+echo "   • Next reset: ${NEXT_RESET}"
 echo "   • Login: admin@hausman.local / admin123"
 echo "   • Demo data: 3 fictional WEG properties (Musterhausen, Berlin, Hamburg)"
 echo ""
