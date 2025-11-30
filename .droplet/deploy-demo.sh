@@ -418,17 +418,6 @@ echo "🔒 Demo system running at: https://$DOMAIN"
 echo ""
 echo "📋 Demo System Info:"
 echo "   • Auto-resets: Every 30 minutes (:00 and :30)"
-# Calculate next reset time (next :00 or :30)
-CURRENT_MINUTE=$(date '+%M' | sed 's/^0//')  # Remove leading zero
-CURRENT_HOUR=$(date '+%H')
-if [ -z "$CURRENT_MINUTE" ]; then CURRENT_MINUTE=0; fi
-if [ $CURRENT_MINUTE -lt 30 ]; then
-    NEXT_RESET="${CURRENT_HOUR}:30"
-else
-    NEXT_HOUR=$(date -d '+1 hour' '+%H' 2>/dev/null || date -v+1H '+%H')
-    NEXT_RESET="${NEXT_HOUR}:00"
-fi
-echo "   • Next reset: ${NEXT_RESET}"
 echo "   • Login: admin@hausman.local / admin123"
 echo "   • Demo data: 3 fictional WEG properties (Musterhausen, Berlin, Hamburg)"
 echo ""
