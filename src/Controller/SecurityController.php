@@ -28,25 +28,10 @@ class SecurityController extends AbstractController
         $host = $request->getHost();
         $isDemoEnvironment = str_contains($host, 'demo.homeadmin24.de');
 
-        // Calculate next reset time (on the hour and half-hour)
-        $nextResetTime = null;
-        if ($isDemoEnvironment) {
-            $now = new \DateTime();
-            $minutes = (int) $now->format('i');
-
-            // If before :30, next reset is :30, otherwise it's next hour :00
-            if ($minutes < 30) {
-                $nextResetTime = (clone $now)->setTime((int) $now->format('H'), 30, 0);
-            } else {
-                $nextResetTime = (clone $now)->modify('+1 hour')->setTime((int) $now->format('H') + 1, 0, 0);
-            }
-        }
-
         return $this->render('security/login.html.twig', [
             'last_username' => $lastUsername,
             'error' => $error,
             'is_demo' => $isDemoEnvironment,
-            'next_reset_time' => $nextResetTime,
         ]);
     }
 
