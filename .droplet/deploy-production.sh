@@ -167,7 +167,7 @@ else
     docker-compose -f docker-compose.yaml -f docker-compose.prod.yml build --no-cache
 
     echo "[6/12] Starting Docker containers..."
-    docker-compose -f docker-compose.yaml -f docker-compose.prod.yml down
+    docker-compose -f docker-compose.yaml -f docker-compose.prod.yml down -v
     docker-compose -f docker-compose.yaml -f docker-compose.prod.yml up -d
 
     # Wait for database to be ready
