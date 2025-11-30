@@ -1,6 +1,6 @@
 # Recent Major Changes (2025)
 
-This document tracks significant architectural and data model changes made to the homeadmin24 project. For historical context and complete technical documentation, see [CLAUDE.md](../CLAUDE.md).
+This document tracks significant architectural and data model changes made to the homeadmin24 project. For historical context and complete technical documentation, see [DEVELOPMENT.md](../../DEVELOPMENT.md).
 
 ---
 
@@ -148,7 +148,7 @@ Comprehensive analysis of tax-deductible services from 2020-2024, showing evolut
 
 ## 🔗 Related Documentation
 
-- **[CLAUDE.md](../CLAUDE.md)** - Complete technical documentation
+- **[DEVELOPMENT.md](../../DEVELOPMENT.md)** - Complete technical documentation
 - **[HGA Reference Output](hga-ref.md)** - 2024 calculation reference values
 - **[Zahlungskategorie System](zahlungskategorie-system.md)** - Payment category details
 - **[Fixture Strategy](fixture_strategy.md)** - Database seeding approach

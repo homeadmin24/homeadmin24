@@ -208,7 +208,7 @@ docker-compose restart
 ## Support & Dokumentation
 
 - **Lokale Installation:** [README.md](README.md)
-- **Projektdokumentation:** [CLAUDE.md](CLAUDE.md)
+- **Developer Documentation:** [DEVELOPMENT.md](DEVELOPMENT.md)
 - **Droplet Deployment Details:** [.droplet/README.md](.droplet/README.md)
 - **Issues & Bug Reports:** [GitHub Issues](https://github.com/homeadmin24/homeadmin24/issues)
 - **Lizenz:** [GNU AGPL v3](LICENSE)

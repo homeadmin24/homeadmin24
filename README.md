@@ -77,7 +77,7 @@ Zentrale Berechnungslogik für:
 
 ## Dokumentation
 
-📚 **Vollständige Projektdokumentation**: [CLAUDE.md](CLAUDE.md)
+📚 **Developer Documentation**: [DEVELOPMENT.md](DEVELOPMENT.md)
 
 Die Dokumentation ist in drei Hauptkategorien organisiert:
 - **BusinessLogic/** - WEG-Geschäftslogik, Finanzberechnungen, Steuerrecht (Rücklagenzuführung, §35a EStG)

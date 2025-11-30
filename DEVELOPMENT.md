@@ -1,4 +1,8 @@
-# homeadmin24 Project - Technical Documentation
+# homeadmin24 - Developer Documentation
+
+**Technical Guidelines, Architecture & Development Workflow**
+
+This document serves as the comprehensive guide for developers working on homeadmin24. It contains development guidelines, technical architecture documentation, and links to detailed subsystem documentation.
 
 ## 📁 Documentation Index
 
