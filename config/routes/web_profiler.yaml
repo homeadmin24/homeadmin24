@@ -1,9 +1,8 @@
-# Removed in Symfony 8.0 - web profiler routes now auto-configured
-# when@dev:
-#     web_profiler_wdt:
-#         resource: '@WebProfilerBundle/Resources/config/routing/wdt.xml'
-#         prefix: /_wdt
-#
-#     web_profiler_profiler:
-#         resource: '@WebProfilerBundle/Resources/config/routing/profiler.xml'
-#         prefix: /_profiler
+when@dev:
+    web_profiler_wdt:
+        resource: '@WebProfilerBundle/Resources/config/routing/wdt.php'
+        prefix: /_wdt
+
+    web_profiler_profiler:
+        resource: '@WebProfilerBundle/Resources/config/routing/profiler.php'
+        prefix: /_profiler

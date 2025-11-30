@@ -1,5 +1,1 @@
-# Removed in Symfony 8.0 - error pages now handled by exception listener
-# when@dev:
-#     _errors:
-#         resource: '@FrameworkBundle/Resources/config/routing/errors.xml'
-#         prefix: /_error
+# Error routes removed in Symfony 8.0 - now handled automatically
