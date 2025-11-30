@@ -22,7 +22,7 @@
     <div class="mb-4 border-b border-gray-200">
         <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="default-styled-tab" data-tabs-toggle="#default-styled-tab-content" data-tabs-active-classes="text-purple-600 hover:text-purple-600 border-purple-600" data-tabs-inactive-classes="text-gray-500 hover:text-gray-600 hover:border-gray-300 border-transparent" role="tablist">
             <li class="me-2" role="presentation">
-                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="weg-styled-tab" data-tabs-target="#styled-weg" type="button" role="tab" aria-controls="weg" aria-selected="{{ app.request.get('tab') == 'weg' or app.request.get('tab') is empty ? 'true' : 'false' }}">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="weg-styled-tab" data-tabs-target="#styled-weg" type="button" role="tab" aria-controls="weg" aria-selected="{{ app.request.query.get('tab') == 'weg' or app.request.query.get('tab') is empty ? 'true' : 'false' }}">
                     <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 0L0 6h2v14h16V6h2L10 0zM8 18H4V8h4v10zm8 0h-4V8h4v10z"/>
                     </svg>
@@ -30,7 +30,7 @@
                 </button>
             </li>
             <li class="me-2" role="presentation">
-                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="einheiten-styled-tab" data-tabs-target="#styled-einheiten" type="button" role="tab" aria-controls="einheiten" aria-selected="{{ app.request.get('tab') == 'einheiten' ? 'true' : 'false' }}">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="einheiten-styled-tab" data-tabs-target="#styled-einheiten" type="button" role="tab" aria-controls="einheiten" aria-selected="{{ app.request.query.get('tab') == 'einheiten' ? 'true' : 'false' }}">
                     <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M5 5V.13a2.96 2.96 0 0 0-1.293.749L.879 3.707A2.96 2.96 0 0 0 .13 5H5Z"/>
                         <path d="M6.737 11.061a2.961 2.961 0 0 1 .81-1.515l6.117-6.116A4.839 4.839 0 0 1 16 2.141V2a1.97 1.97 0 0 0-1.933-2H7v5a2 2 0 0 1-2 2H0v11a1.969 1.969 0 0 0 1.933 2h12.134A1.97 1.97 0 0 0 16 18v-3.093l-1.546 1.546c-.413.413-.94.695-1.513.81l-3.4.679a2.947 2.947 0 0 1-1.85-.227 2.96 2.96 0 0 1-1.635-3.257l.681-3.397Z"/>
@@ -40,7 +40,7 @@
                 </button>
             </li>
             <li class="me-2" role="presentation">
-                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="umlageschluessel-styled-tab" data-tabs-target="#styled-umlageschluessel" type="button" role="tab" aria-controls="umlageschluessel" aria-selected="{{ app.request.get('tab') == 'umlageschluessel' ? 'true' : 'false' }}">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="umlageschluessel-styled-tab" data-tabs-target="#styled-umlageschluessel" type="button" role="tab" aria-controls="umlageschluessel" aria-selected="{{ app.request.query.get('tab') == 'umlageschluessel' ? 'true' : 'false' }}">
                     <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M18 7.5h-.423l-.452-1.09.3-.3a1.5 1.5 0 0 0 0-2.121L16.01 2.575a1.5 1.5 0 0 0-2.121 0l-.3.3-1.089-.452V2A1.5 1.5 0 0 0 11 .5H9A1.5 1.5 0 0 0 7.5 2v.423l-1.09.452-.3-.3a1.5 1.5 0 0 0-2.121 0L2.575 3.99a1.5 1.5 0 0 0 0 2.121l.3.3L2.423 7.5H2A1.5 1.5 0 0 0 .5 9v2A1.5 1.5 0 0 0 2 12.5h.423l.452 1.09-.3.3a1.5 1.5 0 0 0 0 2.121l1.415 1.413a1.5 1.5 0 0 0 2.121 0l.3-.3 1.09.452V18A1.5 1.5 0 0 0 9 19.5h2a1.5 1.5 0 0 0 1.5-1.5v-.423l1.09-.452.3.3a1.5 1.5 0 0 0 2.121 0L17.425 16.01a1.5 1.5 0 0 0 0-2.121l-.3-.3.452-1.09H18a1.5 1.5 0 0 0 1.5-1.5V9A1.5 1.5 0 0 0 18 7.5ZM10 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"/>
                     </svg>
@@ -48,7 +48,7 @@
                 </button>
             </li>
             <li class="me-2" role="presentation">
-                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="kategorien-styled-tab" data-tabs-target="#styled-kategorien" type="button" role="tab" aria-controls="kategorien" aria-selected="{{ app.request.get('tab') == 'kategorien' ? 'true' : 'false' }}">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="kategorien-styled-tab" data-tabs-target="#styled-kategorien" type="button" role="tab" aria-controls="kategorien" aria-selected="{{ app.request.query.get('tab') == 'kategorien' ? 'true' : 'false' }}">
                     <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
                     </svg>
@@ -56,7 +56,7 @@
                 </button>
             </li>
             <li class="me-2" role="presentation">
-                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="kostenkonto-styled-tab" data-tabs-target="#styled-kostenkonto" type="button" role="tab" aria-controls="kostenkonto" aria-selected="{{ app.request.get('tab') == 'kostenkonto' ? 'true' : 'false' }}">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="kostenkonto-styled-tab" data-tabs-target="#styled-kostenkonto" type="button" role="tab" aria-controls="kostenkonto" aria-selected="{{ app.request.query.get('tab') == 'kostenkonto' ? 'true' : 'false' }}">
                     <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"></path>
                     </svg>
@@ -68,7 +68,7 @@
 
     <div id="default-styled-tab-content">
         <!-- WEG Tab -->
-        <div class="{{ app.request.get('tab') == 'weg' or app.request.get('tab') is empty ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-weg" role="tabpanel" aria-labelledby="weg-tab">
+        <div class="{{ app.request.query.get('tab') == 'weg' or app.request.query.get('tab') is empty ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-weg" role="tabpanel" aria-labelledby="weg-tab">
             <div class="mb-4">
                 <h3 class="text-xl font-semibold text-gray-900 mb-4">WEG Verwaltung</h3>
             </div>
@@ -108,7 +108,7 @@
         </div>
 
         <!-- WEG-Einheiten Tab -->
-        <div class="{{ app.request.get('tab') == 'einheiten' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-einheiten" role="tabpanel" aria-labelledby="einheiten-tab">
+        <div class="{{ app.request.query.get('tab') == 'einheiten' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-einheiten" role="tabpanel" aria-labelledby="einheiten-tab">
             <div class="mb-4">
                 <h3 class="text-xl font-semibold text-gray-900 mb-4">WEG-Einheiten Verwaltung</h3>
             </div>
@@ -179,7 +179,7 @@
         </div>
 
         <!-- Umlageschlüssel Tab -->
-        <div class="{{ app.request.get('tab') == 'umlageschluessel' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-umlageschluessel" role="tabpanel" aria-labelledby="umlageschluessel-tab">
+        <div class="{{ app.request.query.get('tab') == 'umlageschluessel' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-umlageschluessel" role="tabpanel" aria-labelledby="umlageschluessel-tab">
             <div class="mb-4">
                 <h3 class="text-xl font-semibold text-gray-900 mb-4">Umlageschlüssel Verwaltung</h3>
             </div>
@@ -219,7 +219,7 @@
         </div>
 
         <!-- Kostenkonto Tab -->
-        <div class="{{ app.request.get('tab') == 'kostenkonto' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-kostenkonto" role="tabpanel" aria-labelledby="kostenkonto-tab">
+        <div class="{{ app.request.query.get('tab') == 'kostenkonto' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-kostenkonto" role="tabpanel" aria-labelledby="kostenkonto-tab">
             <div class="mb-4">
                 <h3 class="text-xl font-semibold text-gray-900 mb-4">Kostenkonto Verwaltung</h3>
                 
@@ -339,7 +339,7 @@
         </div>
 
         <!-- Zahlungskategorien Tab -->
-        <div class="{{ app.request.get('tab') == 'kategorien' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-kategorien" role="tabpanel" aria-labelledby="kategorien-tab">
+        <div class="{{ app.request.query.get('tab') == 'kategorien' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-kategorien" role="tabpanel" aria-labelledby="kategorien-tab">
             <div class="mb-4">
                 <h3 class="text-xl font-semibold text-gray-900 mb-4">Zahlungskategorien → Kostenkonto Mapping</h3>
                 <p class="text-sm text-gray-600 mb-4">Diese Tabelle zeigt, welche Kostenkontos für jede Zahlungskategorie erlaubt sind.</p>
