@@ -16,8 +16,8 @@ homeadmin24 ist ein umfassendes Immobilienverwaltungssystem für deutsche Wohnun
 
 ## Tech Stack
 
-- **Backend**: Symfony 7.2 (PHP 8.2+)
-- **Datenbank**: MySQL 8.0 
+- **Backend**: Symfony 8.0 (PHP 8.4+)
+- **Datenbank**: MySQL 9.5
 - **Frontend**: Tailwind CSS, Flowbite (UI Components), Stimulus.js (via Symfony UX), Webpack Encore
 - **PDF-Generierung**: DomPDF
 
