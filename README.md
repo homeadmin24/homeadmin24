@@ -109,19 +109,29 @@ Die Dokumentation ist in drei Hauptkategorien organisiert:
 
 4. **Datenbank-Setup:**
    ```bash
+   # Datenbank erstellen (falls nicht vorhanden)
+   docker compose exec web php bin/console doctrine:database:create --if-not-exists
+
    # Migrationen ausführen
    docker compose exec web php bin/console doctrine:migrations:migrate --no-interaction
 
-   # Demo-Daten laden (identisch mit demo.homeadmin24.de)
+   # Demo-Daten laden (3 WEG-Beispiele, Zahlungen, Dienstleister, etc.)
    docker compose exec web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
    ```
 
 5. **✅ Fertig! Anwendung öffnen:**
    - 🌐 **Web:** http://127.0.0.1:8000
-   - 🔐 **Login (Demo-Admin):**
+   - 🔐 **Login (Demo-Benutzer):**
      - E-Mail: `wegadmin@demo.local`
-     - Passwort: `demo123`
+     - Passwort: `ChangeMe123!`
    - 🗄️ **MySQL:** `127.0.0.1:3307` (root/rootpassword)
+
+   **Weitere Demo-Accounts:**
+   - `viewer@demo.local` (ROLE_VIEWER) - Nur Lesezugriff
+   - `buchhalter@demo.local` (ROLE_ACCOUNTANT) - Buchhaltung
+   - `hausverwaltung@demo.local` (ROLE_PROPERTY_MANAGER) - Hausverwaltung
+   - `admin@hausman.local` (ROLE_SUPER_ADMIN) - Voller Systemzugriff
+   - Alle Demo-Accounts: Passwort `ChangeMe123!`
 
 **Häufige Docker-Befehle:**
 ```bash
@@ -144,7 +154,13 @@ docker compose exec web php bin/console cache:clear
 docker compose exec web composer quality-services
 ```
 
-**Hinweis:** Die Installation lädt automatisch Demo-Daten mit 3 WEG-Beispielen, Zahlungen und Rechnungen - identisch mit https://demo.homeadmin24.de
+**Hinweis:** Die Demo-Daten umfassen:
+- 3 WEG-Beispielen (Musterhausen, Berlin, Hamburg)
+- 12 Wohneinheiten mit Eigentümern
+- 145 Zahlungen (Einnahmen/Ausgaben)
+- 8 Dienstleistern
+- 69 Kostenkonten
+- 6 Demo-Benutzern mit verschiedenen Rollen
 
 ---
 
