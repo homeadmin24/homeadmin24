@@ -183,8 +183,21 @@ else
         echo "   Waiting for MySQL... (attempt $COUNTER/$MAX_TRIES)"
         sleep 2
     done
+    echo "mysqld is alive"
+
+    # Additional wait: Verify MySQL is accepting TCP connections from web container
+    echo "Verifying MySQL connection from web container..."
+    COUNTER=0
+    until docker-compose exec -T web php -r "new PDO('mysql:host=mysql;dbname=homeadmin24', 'root', 'rootpassword');" 2>/dev/null; do
+        COUNTER=$((COUNTER+1))
+        if [ $COUNTER -eq $MAX_TRIES ]; then
+            echo "❌ MySQL not accepting connections from web container after ${MAX_TRIES} attempts"
+            exit 1
+        fi
+        echo "   Waiting for MySQL TCP connection... (attempt $COUNTER/$MAX_TRIES)"
+        sleep 2
+    done
     echo "✅ Database is ready!"
-    sleep 2  # Extra buffer for safety
 
     # Run database migrations
     echo "[8/12] Running database migrations..."
