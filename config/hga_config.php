@@ -10,41 +10,38 @@
 return [
     /*
      * Bank balances and assets (Vermögensstand)
+     * NOTE: These are example values for development/testing only.
+     * Production values should be managed via the admin interface.
      */
     'bank_balances' => [
-        'hausgeld_konto' => 6827.13,
+        'hausgeld_konto' => 0.00,
         'ruecklagen_konto' => 0.00,
-        'balance_date' => '16.07.2025', // Display date for balances
+        'balance_date' => date('d.m.Y'), // Current date
     ],
 
     /*
-     * Wirtschaftsplan 2025 - Planned expenses
+     * Wirtschaftsplan - Planned expenses
+     * NOTE: These are example values for development/testing only.
+     * Production values should be managed via the admin interface.
      */
     'planned_expenses' => [
         'umlagefaehig' => [
-            'Heizung und Warmwasser (ext. Abrechnung)' => 7200.00,
-            'Versicherungen' => 1300.00,
-            'Müllentsorgung (AWM)' => 700.00,
-            'Allgemeinstrom' => 600.00,
-            'Hebeanlage - Wartung' => 230.00,
-            'Hausmeisterkosten' => 3900.00,
+            // Example chargeable expenses (to be configured per WEG)
         ],
         'nicht_umlagefaehig' => [
-            'Heizungsreparatur und -wartung' => 850.00,
-            'Reparatur Sonnenschutz' => 900.00,
-            'Verwaltervergütung (Jan-Apr: 345€/Monat)' => 1380.00,
-            'Verwaltervergütung (Mai-Dez: 180€/Monat)' => 1440.00,
-            'Bankgebühren' => 100.00,
+            // Example non-chargeable expenses (to be configured per WEG)
         ],
     ],
 
     /*
-     * Wirtschaftsplan 2025 - Planned income
+     * Wirtschaftsplan - Planned income
+     * NOTE: These are example values for development/testing only.
+     * Production values should be managed via the admin interface.
      */
     'planned_income' => [
-        'monthly_total' => 1500.00,
-        'annual_total' => 18000.00,
-        'nachzahlungen_2024' => 1866.96,
+        'monthly_total' => 0.00,
+        'annual_total' => 0.00,
+        'nachzahlungen_2024' => 0.00,
     ],
 
     /*

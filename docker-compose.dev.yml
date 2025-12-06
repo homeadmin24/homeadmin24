@@ -1,5 +1,6 @@
 # Development override for docker-compose.yaml
 # Mounts local code directory for hot-reloading during development
+# Adds Ollama service for AI features (local development only)
 #
 # Usage: docker-compose -f docker-compose.yaml -f docker-compose.dev.yml up -d
 
@@ -7,3 +8,32 @@ services:
   web:
     volumes:
       - .:/var/www/html  # Mount host directory for live code changes
+    environment:
+      # Enable AI features in development
+      - AI_ENABLED=true
+      - AI_PROVIDER=ollama
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.1:8b
+
+  # Ollama LLM service (ONLY in development)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hausman-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    restart: unless-stopped
+    # Optional: Uncomment for GPU support (requires nvidia-docker)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  ollama_data:  # Volume for AI models (4-6GB per model)

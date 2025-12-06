@@ -68,3 +68,19 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
 
+    # AI Services Configuration
+    App\Service\OllamaService:
+        arguments:
+            $ollamaUrl: '%env(OLLAMA_URL)%'
+            $model: '%env(OLLAMA_MODEL)%'
+            $enabled: '%env(bool:AI_ENABLED)%'
+
+    App\Service\AI\ClaudeProvider:
+        arguments:
+            $apiKey: '%env(ANTHROPIC_API_KEY)%'
+            $enabled: '%env(bool:AI_CLAUDE_ENABLED)%'
+
+    App\Service\ZahlungKategorisierungService:
+        arguments:
+            $aiEnabled: '%env(bool:AI_ENABLED)%'
+
