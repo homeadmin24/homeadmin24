@@ -638,12 +638,29 @@ PARAMETER top_p 0.9
 # Copy training data into Ollama container
 docker cp /tmp/ollama-training.jsonl hausman-ollama:/tmp/
 
+# Copy Modelfile into container
+docker cp /tmp/Modelfile-weg-finance hausman-ollama:/tmp/
+
 # Create custom model
 docker exec -it hausman-ollama ollama create weg-finance -f /tmp/Modelfile-weg-finance
 
 # Fine-tune with training data (requires Ollama 0.2.0+)
 docker exec -it hausman-ollama ollama run weg-finance --train /tmp/ollama-training.jsonl
 ```
+
+**File Locations:**
+
+| File | Host Location | Container Location | Persistence |
+|------|---------------|-------------------|-------------|
+| Training data (JSONL) | `/tmp/ollama-training.jsonl` | `/tmp/training.jsonl` | Temporary (deleted on reboot) |
+| Modelfile | `/tmp/Modelfile-weg-finance` | `/tmp/Modelfile` | Temporary (deleted on reboot) |
+| Trained model | N/A | `/root/.ollama/models/` | **Persistent** (Docker volume: `ollama_data`) |
+
+**Important:**
+- Training files are temporary - save to `data/ollama/` if you want to keep them
+- The trained model itself is stored in the `ollama_data` Docker volume
+- Model survives container restarts
+- To backup model: `docker run -v ollama_data:/data -v $(pwd):/backup alpine tar czf /backup/ollama-backup.tar.gz /data`
 
 #### Step 4: Use Custom Model
 
@@ -652,6 +669,22 @@ Update `.env` or `docker-compose.dev.yml`:
 ```yaml
 environment:
   - OLLAMA_MODEL=weg-finance  # Use custom fine-tuned model
+```
+
+Then restart the web container:
+```bash
+docker compose restart web
+```
+
+**Verify model is available:**
+```bash
+# List all models in Ollama
+docker exec hausman-ollama ollama list
+
+# Should show:
+# NAME              ID              SIZE      MODIFIED
+# weg-finance:latest  abc123...     4.7 GB    2 minutes ago
+# llama3.1:8b         xyz789...     4.7 GB    1 week ago
 ```
 
 **Pros:**
@@ -703,21 +736,53 @@ Track these metrics to measure learning progress:
 
 ### Advanced: Continuous Learning Pipeline
 
-Future automation possibilities:
+**Automated Retraining Script:**
+
+A script is available at `bin/retrain-ollama.sh` that automates the entire process:
 
 ```bash
-# Example: Cron job for weekly model retraining
-0 0 * * 0 cd /var/www/html && docker compose exec web php bin/console app:retrain-ollama
+# Run manual retraining
+./bin/retrain-ollama.sh
 
-# This would:
-# 1. Export new good examples from last week
-# 2. Append to existing training set
-# 3. Retrain model in Ollama container
-# 4. Switch to new model version
-# 5. Send metrics report to admin
+# With options
+./bin/retrain-ollama.sh --min-examples=30 --model-name=weg-finance-v2
 ```
 
-**Note**: This automation doesn't exist yet - it's a future enhancement idea.
+**What the script does:**
+1. Checks if enough training examples are available (default: 20)
+2. Exports good Claude examples to JSONL
+3. Creates Modelfile with WEG domain system prompt
+4. Copies files to Ollama container
+5. Creates custom model
+6. Tests the new model
+7. Provides deployment instructions
+
+**File Management:**
+
+The script stores files in:
+- Host: `/tmp/ollama-training-YYYYMMDD-HHMMSS.jsonl` (temporary)
+- Host: `/tmp/Modelfile-weg-finance` (temporary)
+- Container: `/tmp/training.jsonl` (temporary)
+- Container: `/tmp/Modelfile` (temporary)
+- **Model**: Docker volume `ollama_data:/root/.ollama/models/` (persistent)
+
+**Recommended: Save training data permanently**
+```bash
+# Create directory for training history
+mkdir -p data/ollama/training-sets
+
+# Move training file after successful run
+mv /tmp/ollama-training-*.jsonl data/ollama/training-sets/
+
+# Keep Modelfile for reference
+cp /tmp/Modelfile-weg-finance data/ollama/Modelfile-weg-finance
+```
+
+**Future: Automated cron job**
+```bash
+# Example: Weekly retraining (not implemented yet)
+0 0 * * 0 cd /var/www/html && ./bin/retrain-ollama.sh --min-examples=10
+```
 
 ---
 
