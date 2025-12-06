@@ -812,7 +812,8 @@ zur automatischen Kategorisierung von Zahlungen.
 
 ### Related Documentation
 
-- [AI Integration Plan](../TechnicalArchitecture/ai_integration_plan.md)
+- [Natural Language Financial Queries](natural_language_financial_queries.md)
+- [AI Environment Configuration](ai_environment_configuration.md)
 - [Zahlungskategorie System](zahlungskategorie-system.md)
 - [CSV Import System](csv_import_system.md)
 - [Database Schema](../TechnicalArchitecture/DATABASE_SCHEMA.md)

@@ -523,12 +523,209 @@ $this->logger->error('AI query failed', [
 
 ---
 
+## Ollama Learning & Fine-tuning Strategy
+
+### Overview
+
+The system uses a two-level learning approach to improve Ollama's accuracy over time:
+
+**Level 1: Prompt Engineering** (Immediate, No Model Changes)
+- Inject good Claude examples directly into prompts
+- Works instantly, no training required
+- Examples sent with every query (increases context size)
+
+**Level 2: Model Fine-tuning** (Permanent, Model Changes)
+- Train a custom Ollama model with collected examples
+- Creates persistent improvements in the model weights
+- Reduces prompt size, faster responses
+
+---
+
+### Level 1: Prompt Engineering with Examples
+
+#### Step 1: Collect Good Claude Examples
+
+Users rate Claude responses with 👍/👎. Good examples are stored in `ai_query_response` table:
+
+```sql
+SELECT id, query, response, response_time
+FROM ai_query_response
+WHERE provider = 'claude'
+  AND user_rating = 'good'
+ORDER BY created_at DESC
+LIMIT 10;
+```
+
+#### Step 2: Inject Examples into Ollama Prompts
+
+Modify `OllamaService::answerFinancialQuery()` to include examples:
+
+```php
+// Fetch top-rated Claude examples
+$goodExamples = $this->aiQueryResponseRepository->getGoodClaudeExamples(5);
+
+$examplesText = '';
+foreach ($goodExamples as $example) {
+    $examplesText .= "\n---BEISPIEL---\n";
+    $examplesText .= "Frage: {$example->getQuery()}\n";
+    $examplesText .= "Gute Antwort: {$example->getResponse()}\n";
+}
+
+$prompt = <<<PROMPT
+Du bist ein Experte für WEG-Finanzen.
+
+{$examplesText}
+
+---AKTUELLE FRAGE---
+{$context}
+
+Frage: {$query}
+PROMPT;
+```
+
+**Pros:**
+- ✅ Immediate improvement
+- ✅ No model training needed
+- ✅ Easy to implement
+
+**Cons:**
+- ❌ Increases prompt size (costs tokens)
+- ❌ Slower response time
+- ❌ Examples sent with every query
+
+---
+
+### Level 2: Model Fine-tuning (Persistent Learning)
+
+#### Step 1: Export Training Data
+
+Create training dataset from good examples:
+
+```bash
+# Export good Claude examples as JSONL training data
+docker compose exec web php bin/console app:export-training-data \
+  --output=/tmp/ollama-training.jsonl \
+  --min-rating=good \
+  --limit=50
+```
+
+Format (JSONL):
+```json
+{"prompt": "Wie viel haben wir 2024 für Gas ausgegeben?", "response": "Im Jahr 2024 wurden 5.839,32 € für Gas ausgegeben..."}
+{"prompt": "Hat Frau Müller ihr Hausgeld bezahlt?", "response": "Ja, Frau Müller hat alle Hausgeld-Vorauszahlungen..."}
+```
+
+#### Step 2: Create Custom Modelfile
+
+```dockerfile
+# /tmp/Modelfile-weg-finance
+FROM llama3.1:8b
+
+# System prompt for WEG financial domain
+SYSTEM """
+Du bist ein Experte für deutsche Wohnungseigentümergemeinschaften (WEG) und deren Finanzverwaltung.
+Du verstehst Kostenkonto-Nummern, Hausgeldabrechnungen, und §35a EStG Steuerabzüge.
+"""
+
+# Temperature for financial accuracy
+PARAMETER temperature 0.3
+PARAMETER top_p 0.9
+```
+
+#### Step 3: Fine-tune the Model
+
+```bash
+# Copy training data into Ollama container
+docker cp /tmp/ollama-training.jsonl hausman-ollama:/tmp/
+
+# Create custom model
+docker exec -it hausman-ollama ollama create weg-finance -f /tmp/Modelfile-weg-finance
+
+# Fine-tune with training data (requires Ollama 0.2.0+)
+docker exec -it hausman-ollama ollama run weg-finance --train /tmp/ollama-training.jsonl
+```
+
+#### Step 4: Use Custom Model
+
+Update `.env` or `docker-compose.dev.yml`:
+
+```yaml
+environment:
+  - OLLAMA_MODEL=weg-finance  # Use custom fine-tuned model
+```
+
+**Pros:**
+- ✅ Permanent improvements stored in model
+- ✅ Smaller prompts, faster responses
+- ✅ No need to inject examples every time
+
+**Cons:**
+- ❌ Requires training time (10-30 min for 50 examples)
+- ❌ Model needs retraining when new examples added
+- ❌ More complex setup
+
+---
+
+### Recommended Workflow
+
+**Phase 1: Collect Data** (Weeks 1-4)
+1. Use dual-provider mode (Ollama + Claude)
+2. Users rate responses with 👍/👎
+3. Collect 20-50 good Claude examples
+4. Use Level 1 (prompt engineering) for immediate gains
+
+**Phase 2: First Fine-tune** (Week 5)
+1. Export top 20 examples
+2. Create custom `weg-finance` model
+3. A/B test: Base model vs fine-tuned model
+4. Measure accuracy improvement
+
+**Phase 3: Iterative Improvement** (Ongoing)
+1. Continue collecting ratings
+2. Retrain model monthly with new examples
+3. Track accuracy metrics over time
+4. When Ollama reaches 80% of Claude quality → disable Claude
+
+---
+
+### Success Metrics
+
+Track these metrics to measure learning progress:
+
+| Metric | Target | How to Measure |
+|--------|--------|----------------|
+| **Ollama accuracy** | >80% of Claude | User ratings (good/bad ratio) |
+| **Response time** | <3s | Average response_time from DB |
+| **User preference** | >60% prefer Ollama | Ratings comparison |
+| **Cost savings** | €0.01 → €0.00 | Claude usage reduction |
+
+---
+
+### Advanced: Continuous Learning Pipeline
+
+Future automation possibilities:
+
+```bash
+# Example: Cron job for weekly model retraining
+0 0 * * 0 cd /var/www/html && docker compose exec web php bin/console app:retrain-ollama
+
+# This would:
+# 1. Export new good examples from last week
+# 2. Append to existing training set
+# 3. Retrain model in Ollama container
+# 4. Switch to new model version
+# 5. Send metrics report to admin
+```
+
+**Note**: This automation doesn't exist yet - it's a future enhancement idea.
+
+---
+
 ## Related Documentation
 
+- [Intelligent Payment Categorization](intelligent_payment_categorization.md)
+- [AI Environment Configuration](ai_environment_configuration.md)
 - [AI Integration Plan](../TechnicalArchitecture/ai_integration_plan.md)
-- [Ollama Setup](../../AI_SETUP.md)
-- [OllamaService](../TechnicalArchitecture/ollama_learning_and_finetuning.md)
-- [API Authentication](../CoreSystem/auth_system_concept.md)
 
 ---
 
