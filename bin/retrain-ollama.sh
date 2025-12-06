@@ -18,7 +18,17 @@ MIN_EXAMPLES=${MIN_EXAMPLES:-20}
 MODEL_NAME=${MODEL_NAME:-weg-finance}
 BASE_MODEL=${BASE_MODEL:-llama3.1:8b}
 TRAINING_FILE="/tmp/ollama-training-$(date +%Y%m%d-%H%M%S).jsonl"
-MODELFILE="/tmp/Modelfile-${MODEL_NAME}"
+
+# Try to find Modelfile in AI models repo (workspace setup)
+AI_MODELS_REPO="../ai-models"
+if [ -f "${AI_MODELS_REPO}/modelfiles/Modelfile-${MODEL_NAME}" ]; then
+    MODELFILE="${AI_MODELS_REPO}/modelfiles/Modelfile-${MODEL_NAME}"
+    echo "ℹ️  Using Modelfile from AI models repo: ${MODELFILE}"
+else
+    # Fallback: create temporary Modelfile
+    MODELFILE="/tmp/Modelfile-${MODEL_NAME}"
+    echo "⚠️  AI models repo not found, will generate temporary Modelfile"
+fi
 
 # Parse command line arguments
 for arg in "$@"; do
@@ -100,10 +110,14 @@ fi
 LINES=$(wc -l < "${TRAINING_FILE}")
 echo "Training file contains ${LINES} examples"
 
-# Step 3: Create Modelfile
+# Step 3: Prepare Modelfile
 echo ""
-echo "📝 Creating Modelfile..."
-cat > "${MODELFILE}" << 'EOF'
+if [ -f "${AI_MODELS_REPO}/modelfiles/Modelfile-${MODEL_NAME}" ]; then
+    echo "📝 Using Modelfile from ${AI_MODELS_REPO}"
+    MODELFILE="${AI_MODELS_REPO}/modelfiles/Modelfile-${MODEL_NAME}"
+else
+    echo "📝 Creating temporary Modelfile..."
+    cat > "${MODELFILE}" << 'EOF'
 FROM llama3.1:8b
 
 # System prompt optimized for WEG financial queries
@@ -128,8 +142,8 @@ PARAMETER temperature 0.3
 PARAMETER top_p 0.9
 PARAMETER num_predict 512
 EOF
-
-echo "✅ Modelfile created at ${MODELFILE}"
+    echo "✅ Temporary Modelfile created at ${MODELFILE}"
+fi
 
 # Step 4: Copy files to Ollama container
 echo ""
