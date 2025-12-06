@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Zahlung;
+use App\Repository\KategorisierungCorrectionRepository;
 use App\Repository\KostenkontoRepository;
+use App\Repository\ZahlungRepository;
 use App\Repository\ZahlungskategorieRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Service for auto-categorizing Zahlung entities based on business rules.
@@ -20,6 +23,11 @@ class ZahlungKategorisierungService
         private ZahlungskategorieRepository $zahlungskategorieRepository,
         private KostenkontoRepository $kostenkontoRepository,
         private EntityManagerInterface $entityManager,
+        private ZahlungRepository $zahlungRepository,
+        private KategorisierungCorrectionRepository $correctionRepository,
+        private OllamaService $ollamaService,
+        private LoggerInterface $logger,
+        private bool $aiEnabled = false,
     ) {
     }
 
@@ -39,9 +47,43 @@ class ZahlungKategorisierungService
         $dienstleisterName = $dienstleister ? mb_strtolower($dienstleister->getBezeichnung()) : '';
         $dienstleisterArt = $dienstleister ? mb_strtolower($dienstleister->getArtDienstleister() ?? '') : '';
 
-        // Try to find matching kategorie and kostenkonto
+        // Try to find matching kategorie and kostenkonto using pattern matching
         $kategorie = $this->findKategorie($bezeichnung, $dienstleisterName, $dienstleisterArt);
         $kostenkonto = $this->findKostenkonto($bezeichnung, $dienstleisterName, $dienstleisterArt);
+
+        // If pattern matching found a kostenkonto, validate it
+        if ($kostenkonto) {
+            // Skip if kostenkonto is not active
+            if (!$kostenkonto->isActive()) {
+                $kostenkonto = null;
+            } elseif ($kategorie && !$this->isKostenkontoAllowed($kategorie, $kostenkonto)) {
+                $kostenkonto = null;
+            }
+        }
+
+        // AI fallback: If pattern matching didn't find a kostenkonto and AI is enabled
+        if (!$kostenkonto && $this->aiEnabled && $this->ollamaService->isEnabled()) {
+            $this->logger->info('Pattern matching failed, trying AI categorization', [
+                'bezeichnung' => $zahlung->getBezeichnung(),
+                'partner' => $zahlung->getBuchungspartner(),
+            ]);
+
+            $aiResult = $this->tryAiCategorization($zahlung);
+
+            if ($aiResult && isset($aiResult['kostenkonto'])) {
+                $kostenkonto = $this->kostenkontoRepository->findOneBy(['nummer' => $aiResult['kostenkonto']]);
+
+                if ($kostenkonto) {
+                    $zahlung->setAiConfidence($aiResult['confidence'] ?? null);
+                    $zahlung->setAiReasoning($aiResult['reasoning'] ?? null);
+
+                    $this->logger->info('AI categorization successful', [
+                        'kostenkonto' => $aiResult['kostenkonto'],
+                        'confidence' => $aiResult['confidence'],
+                    ]);
+                }
+            }
+        }
 
         // Set kategorie if missing
         if ($kategorie && !$zahlung->getHauptkategorie()) {
@@ -51,18 +93,9 @@ class ZahlungKategorisierungService
             $kategorie = $zahlung->getHauptkategorie();
         }
 
+        // Assign kostenkonto if found
         if ($kostenkonto) {
-            // Skip if kostenkonto is not active
-            if (!$kostenkonto->isActive()) {
-                // Inactive kostenkonto - skip it but keep the kategorie
-                $kostenkonto = null;
-            } elseif ($kategorie && !$this->isKostenkontoAllowed($kategorie, $kostenkonto)) {
-                // Kostenkonto not allowed for this kategorie - skip it but keep the kategorie
-                $kostenkonto = null;
-            } else {
-                // Valid kostenkonto - assign it
-                $zahlung->setKostenkonto($kostenkonto);
-            }
+            $zahlung->setKostenkonto($kostenkonto);
         }
 
         // Auto-assign eigentuemer for Hausgeld payments
@@ -395,5 +428,115 @@ class ZahlungKategorisierungService
         $minWords = min(\count($words1), \count($words2));
 
         return $minWords > 0 ? $matchCount / $minWords : 0.0;
+    }
+
+    /**
+     * Get historical payments similar to the current payment for AI context.
+     */
+    private function getHistoricalPayments(Zahlung $zahlung): array
+    {
+        $partner = $zahlung->getBuchungspartner();
+        if (!$partner) {
+            return [];
+        }
+
+        // Find similar payments from the last 12 months
+        $qb = $this->zahlungRepository->createQueryBuilder('z');
+        $qb->where('z.buchungspartner LIKE :partner')
+            ->andWhere('z.kostenkonto IS NOT NULL')
+            ->andWhere('z.valuta >= :since')
+            ->andWhere('z.id != :currentId')
+            ->setParameter('partner', '%' . $partner . '%')
+            ->setParameter('since', new \DateTime('-12 months'))
+            ->setParameter('currentId', $zahlung->getId() ?? 0)
+            ->orderBy('z.valuta', 'DESC')
+            ->setMaxResults(5);
+
+        $results = $qb->getQuery()->getResult();
+
+        $historicalData = [];
+        foreach ($results as $payment) {
+            $historicalData[] = [
+                'bezeichnung' => $payment->getBezeichnung(),
+                'partner' => $payment->getBuchungspartner(),
+                'betrag' => $payment->getBetrag(),
+                'kostenkonto' => $payment->getKostenkonto()?->getNummer(),
+                'kostenkonto_name' => $payment->getKostenkonto()?->getBezeichnung(),
+                'date' => $payment->getValuta()?->format('Y-m-d'),
+            ];
+        }
+
+        return $historicalData;
+    }
+
+    /**
+     * Get learning examples from user corrections for AI context.
+     */
+    private function getLearningExamples(Zahlung $zahlung): array
+    {
+        $partner = $zahlung->getBuchungspartner();
+        if (!$partner) {
+            return [];
+        }
+
+        // Find corrections for similar payments
+        $corrections = $this->correctionRepository->findByPartnerPattern($partner, 5);
+
+        $learningExamples = [];
+        foreach ($corrections as $correction) {
+            $learningExamples[] = [
+                'bezeichnung' => $correction->getZahlungBezeichnung(),
+                'partner' => $correction->getZahlungPartner(),
+                'betrag' => $correction->getZahlungBetrag(),
+                'suggested_kostenkonto' => $correction->getSuggestedKostenkonto()?->getNummer(),
+                'actual_kostenkonto' => $correction->getActualKostenkonto()->getNummer(),
+                'actual_kostenkonto_name' => $correction->getActualKostenkonto()->getBezeichnung(),
+                'correction_type' => $correction->getCorrectionType(),
+            ];
+        }
+
+        return $learningExamples;
+    }
+
+    /**
+     * Try to categorize payment using AI.
+     */
+    private function tryAiCategorization(Zahlung $zahlung): ?array
+    {
+        try {
+            // Get all active kostenkonto for AI to choose from
+            $allKostenkonto = $this->kostenkontoRepository->findBy(['active' => true]);
+            $availableKategorien = [];
+
+            foreach ($allKostenkonto as $konto) {
+                $availableKategorien[] = [
+                    'nummer' => $konto->getNummer(),
+                    'bezeichnung' => $konto->getBezeichnung(),
+                ];
+            }
+
+            // Get historical context and learning examples
+            $historicalData = $this->getHistoricalPayments($zahlung);
+            $learningExamples = $this->getLearningExamples($zahlung);
+
+            // Call AI service
+            $result = $this->ollamaService->suggestKostenkonto(
+                bezeichnung: $zahlung->getBezeichnung() ?? '',
+                partner: $zahlung->getBuchungspartner() ?? '',
+                betrag: $zahlung->getBetrag(),
+                historicalData: $historicalData,
+                learningExamples: $learningExamples,
+                availableKategorien: $availableKategorien,
+            );
+
+            return $result;
+        } catch (\Exception $e) {
+            $this->logger->error('AI categorization failed', [
+                'error' => $e->getMessage(),
+                'zahlung_id' => $zahlung->getId(),
+            ]);
+
+            return null;
+        }
     }
 }

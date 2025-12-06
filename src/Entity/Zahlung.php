@@ -56,6 +56,12 @@ class Zahlung
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $isSimulation = false;
 
+    #[ORM\Column(type: 'decimal', precision: 3, scale: 2, nullable: true)]
+    private ?string $aiConfidence = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $aiReasoning = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -203,5 +209,37 @@ class Zahlung
         $this->isSimulation = $isSimulation;
 
         return $this;
+    }
+
+    public function getAiConfidence(): ?string
+    {
+        return $this->aiConfidence;
+    }
+
+    public function setAiConfidence(?string $aiConfidence): self
+    {
+        $this->aiConfidence = $aiConfidence;
+
+        return $this;
+    }
+
+    public function getAiReasoning(): ?string
+    {
+        return $this->aiReasoning;
+    }
+
+    public function setAiReasoning(?string $aiReasoning): self
+    {
+        $this->aiReasoning = $aiReasoning;
+
+        return $this;
+    }
+
+    /**
+     * Get Buchungspartner name (for AI context)
+     */
+    public function getBuchungspartner(): ?string
+    {
+        return $this->dienstleister?->getBezeichnung();
     }
 }
