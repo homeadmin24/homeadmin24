@@ -73,7 +73,8 @@ jobs:
 
           ssh -o ConnectTimeout=30 root@${{ secrets.DEMO_DROPLET_HOST }} \
             "cd /opt/homeadmin24-demo && \
-             git pull origin main && \
+             git fetch origin main && \
+             git reset --hard origin/main && \
              bash .droplet/deploy-demo.sh ${{ secrets.DEMO_DOMAIN }} ${{ secrets.DEMO_EMAIL }} $DEPLOY_MODE"
 
           echo "✅ Deployment completed"
