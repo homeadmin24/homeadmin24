@@ -71,7 +71,8 @@ cd /opt/homeadmin24-demo
 
 # Pull latest changes
 echo "[1/11] Pulling latest code from GitHub..."
-git pull origin main
+git fetch origin main
+git reset --hard origin/main
 
 # Configure .env file
 echo "[2/11] Configuring .env file..."

@@ -46,7 +46,8 @@ cd /opt/homeadmin24
 
 # Pull latest changes
 echo "[1/9] Pulling latest code from GitHub..."
-git pull origin main
+git fetch origin main
+git reset --hard origin/main
 
 # Check if .env exists
 if [ ! -f .env ]; then
