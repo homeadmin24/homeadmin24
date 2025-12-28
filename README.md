@@ -22,13 +22,13 @@ cd homeadmin24
 **Access:** http://127.0.0.1:8000
 **Login:** `wegadmin@demo.local` / `ChangeMe123!`
 
-📖 **Ausführliche Anleitung:** [docs/local-setup.md](docs/local-setup.md)
+📖 **Ausführliche Anleitung:** [docs/setup_local.md](docs/setup_local.md)
 
 ### Production Deployment
 
 [![Deploy to DigitalOcean](https://img.shields.io/badge/Deploy%20to-DigitalOcean-0080FF?logo=digitalocean&logoColor=white)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/homeadmin24/homeadmin24/tree/main)
 
-📖 **Deployment-Optionen:** [docs/production.md](docs/production.md)
+📖 **Deployment-Optionen:** [docs/setup_production.md](docs/setup_production.md)
 - **App Platform** (Managed, $12/mo)
 - **Droplet** (VPS Self-Hosted, $6/mo)
 - **Multi-Droplet** (Production + Auto-Reset Demo)
@@ -75,14 +75,14 @@ cd homeadmin24
 ## 📚 Dokumentation
 
 ### Getting Started
-- **[Lokales Setup](docs/local-setup.md)** - Docker-Entwicklungsumgebung, Troubleshooting
-- **[Production Deployment](docs/production.md)** - App Platform, Droplets, Multi-Droplet
-- **[Developer Guide](docs/development.md)** - Dokumentationsindex, Development Workflows
+- **[Lokales Setup](docs/setup_local.md)** - Docker-Entwicklungsumgebung, Troubleshooting
+- **[Production Deployment](docs/setup_production.md)** - App Platform, Droplets, Multi-Droplet
+- **[Developer Guide](docs/setup_development.md)** - Dokumentationsindex, Development Workflows
 
 ### Detailed Documentation
-- **[docs/business-logic/](docs/business-logic/)** - WEG-Geschäftslogik, Finanzberechnungen, Rücklagenzuführung
-- **[docs/core-system/](docs/core-system/)** - CSV-Import, Zahlungskategorien, Auth-System, Fixtures
-- **[docs/technical/](docs/technical/)** - Database Schema, Parser Architecture, Migrations
+- **[Core System](docs/core_system.md)** - CSV-Import, Zahlungskategorien, Auth-System, Fixtures, Rücklagenzuführung
+- **[AI Integration](docs/ai_integration.md)** - AI-powered payment categorization and natural language queries
+- **[Technical Documentation](docs/technical.md)** - Parser Architecture, HGA Migration, Calculation Improvements
 
 ---
 
@@ -109,7 +109,7 @@ Alle Passwörter: `ChangeMe123!`
 Contributions welcome! Dieses Projekt ist Open Source unter AGPL v3.0.
 
 - **Issues**: [GitHub Issues](https://github.com/homeadmin24/homeadmin24/issues)
-- **Developer Guide**: [docs/development.md](docs/development.md)
+- **Developer Guide**: [docs/setup_development.md](docs/setup_development.md)
 - **License**: [GNU AGPL v3](LICENSE)
 
 ---
