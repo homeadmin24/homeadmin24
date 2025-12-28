@@ -108,7 +108,8 @@ services:
     environment:
       - APP_ENV=prod
     restart: unless-stopped
-    volumes: []  # Remove all volume mounts for production deployment
+    # Don't inherit volume mounts from base - use built files from Docker image
+    volumes: !reset []
 
   mysql:
     restart: unless-stopped
