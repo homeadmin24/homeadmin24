@@ -158,6 +158,7 @@ services:
       - TRUSTED_HOSTS=^demo\.homeadmin24\.de$
       - MESSENGER_TRANSPORT_DSN=doctrine://default?auto_setup=0
     restart: unless-stopped
+    volumes: []  # Remove all volume mounts for production deployment
 
   mysql:
     container_name: homeadmin24-demo-mysql

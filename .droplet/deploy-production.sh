@@ -108,6 +108,7 @@ services:
     environment:
       - APP_ENV=prod
     restart: unless-stopped
+    volumes: []  # Remove all volume mounts for production deployment
 
   mysql:
     restart: unless-stopped
