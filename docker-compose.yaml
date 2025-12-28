@@ -5,6 +5,8 @@ services:
     build: .
     ports:
       - "8000:80"
+    env_file:
+      - .env
     environment:
       - APP_ENV=dev
       - APP_SECRET=98b5f8b5c1f5a8f9a1b6c3d7e2f4g5h6i9j0k3l7m2n8o4p9q6r1s5t8u2v7w3x9
