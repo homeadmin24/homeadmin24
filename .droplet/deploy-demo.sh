@@ -146,9 +146,9 @@ if [ "$ENV_ACTION" != "validated" ]; then
     echo "   • TRUSTED_HOSTS=^demo.homeadmin24.de$ (domain restriction)"
 fi
 
-# Create demo docker-compose override
-echo "[3/11] Creating demo docker-compose configuration..."
-cat > docker-compose.demo.yml <<'DOCKER_COMPOSE'
+# Create demo docker compose override
+echo "[3/11] Creating demo docker compose configuration..."
+cat > docker compose.demo.yml <<'DOCKER_COMPOSE'
 services:
   web:
     container_name: homeadmin24-demo-web
@@ -175,20 +175,20 @@ if [ "$QUICK_MODE" = true ]; then
     echo "       Containers will continue running with new code"
 
     echo "[5/8] Clearing Symfony cache..."
-    docker-compose exec -T web php bin/console cache:clear
+    docker compose exec -T web php bin/console cache:clear
 
     echo "[5.5/8] Restarting web container to clear PHP OPcache..."
-    docker-compose restart web
+    docker compose restart web
     sleep 3  # Wait for container to be ready
 
     echo "[6/8] Rebuilding frontend assets..."
-    docker-compose exec -T web npm run build
+    docker compose exec -T web npm run build
 
     echo "[7/8] Running database migrations..."
-    docker-compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+    docker compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
 
     echo "[8/8] Reloading demo data..."
-    docker-compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
+    docker compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
 else
     # Full deployment with Docker rebuild
     echo "[4/13] Setting up swap space (if needed)..."
@@ -210,17 +210,17 @@ else
     fi
 
     echo "[5/13] Building Docker containers..."
-    docker-compose -f docker-compose.yaml -f docker-compose.demo.yml build --no-cache
+    docker compose -f docker compose.yaml -f docker compose.demo.yml build --no-cache
 
     echo "[6/13] Starting Docker containers..."
-    docker-compose -f docker-compose.yaml -f docker-compose.demo.yml down -v
-    docker-compose -f docker-compose.yaml -f docker-compose.demo.yml up -d
+    docker compose -f docker compose.yaml -f docker compose.demo.yml down -v
+    docker compose -f docker compose.yaml -f docker compose.demo.yml up -d
 
     # Wait for database to be ready
     echo "[7/13] Waiting for database to be ready..."
     MAX_TRIES=30
     COUNTER=0
-    until docker-compose exec -T mysql mysqladmin ping -h localhost --silent; do
+    until docker compose exec -T mysql mysqladmin ping -h localhost --silent; do
         COUNTER=$((COUNTER+1))
         if [ $COUNTER -eq $MAX_TRIES ]; then
             echo "❌ Database failed to become ready after ${MAX_TRIES} attempts"
@@ -234,7 +234,7 @@ else
     # Additional wait: Verify MySQL is accepting TCP connections from web container
     echo "Verifying MySQL connection from web container..."
     COUNTER=0
-    until docker-compose exec -T web php -r "new PDO('mysql:host=mysql;dbname=homeadmin24', 'root', 'rootpassword');" 2>/dev/null; do
+    until docker compose exec -T web php -r "new PDO('mysql:host=mysql;dbname=homeadmin24', 'root', 'rootpassword');" 2>/dev/null; do
         COUNTER=$((COUNTER+1))
         if [ $COUNTER -eq $MAX_TRIES ]; then
             echo "❌ MySQL not accepting connections from web container after ${MAX_TRIES} attempts"
@@ -247,12 +247,12 @@ else
 
     # Run database migrations
     echo "[8/13] Running database migrations..."
-    docker-compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+    docker compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
 
     # Load demo data
     echo "[9/13] Loading demo data..."
-    docker-compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction
-    docker-compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
+    docker compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction
+    docker compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
 fi
 
 # Configure Nginx reverse proxy with demo banner (skip in quick mode if already configured)
@@ -358,7 +358,7 @@ cd $APP_DIR
 
 # Stop containers
 echo "Stopping containers..." >> $LOG_FILE
-docker-compose -f docker-compose.yaml -f docker-compose.demo.yml down >> $LOG_FILE 2>&1
+docker compose -f docker compose.yaml -f docker compose.demo.yml down >> $LOG_FILE 2>&1
 
 # Remove database volume (forces fresh start)
 echo "Removing database volume..." >> $LOG_FILE
@@ -366,13 +366,13 @@ docker volume rm homeadmin24-demo_mysql_data 2>/dev/null || true
 
 # Start containers
 echo "Starting containers..." >> $LOG_FILE
-docker-compose -f docker-compose.yaml -f docker-compose.demo.yml up -d >> $LOG_FILE 2>&1
+docker compose -f docker compose.yaml -f docker compose.demo.yml up -d >> $LOG_FILE 2>&1
 
 # Wait for database to be ready with connectivity check
 echo "Waiting for database..." >> $LOG_FILE
 MAX_TRIES=30
 COUNTER=0
-until docker-compose exec -T mysql mysqladmin ping -h localhost --silent >> $LOG_FILE 2>&1; do
+until docker compose exec -T mysql mysqladmin ping -h localhost --silent >> $LOG_FILE 2>&1; do
     COUNTER=$((COUNTER+1))
     if [ $COUNTER -eq $MAX_TRIES ]; then
         echo "❌ Database failed to become ready after ${MAX_TRIES} attempts" >> $LOG_FILE
@@ -386,7 +386,7 @@ echo "mysqld is alive" >> $LOG_FILE
 # Additional wait: Verify MySQL is accepting TCP connections from web container
 echo "Verifying MySQL connection from web container..." >> $LOG_FILE
 COUNTER=0
-until docker-compose exec -T web php -r "new PDO('mysql:host=mysql;dbname=homeadmin24', 'root', 'rootpassword');" >> $LOG_FILE 2>&1; do
+until docker compose exec -T web php -r "new PDO('mysql:host=mysql;dbname=homeadmin24', 'root', 'rootpassword');" >> $LOG_FILE 2>&1; do
     COUNTER=$((COUNTER+1))
     if [ $COUNTER -eq $MAX_TRIES ]; then
         echo "❌ MySQL not accepting connections from web container after ${MAX_TRIES} attempts" >> $LOG_FILE
@@ -399,16 +399,16 @@ echo "✅ Database is ready!" >> $LOG_FILE
 
 # Run migrations
 echo "Running migrations..." >> $LOG_FILE
-docker-compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction >> $LOG_FILE 2>&1
+docker compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction >> $LOG_FILE 2>&1
 
 # Load demo fixtures
 echo "Loading demo data..." >> $LOG_FILE
-docker-compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction >> $LOG_FILE 2>&1
-docker-compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction >> $LOG_FILE 2>&1
+docker compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction >> $LOG_FILE 2>&1
+docker compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction >> $LOG_FILE 2>&1
 
 # Clear cache
 echo "Clearing cache..." >> $LOG_FILE
-docker-compose exec -T web php bin/console cache:clear >> $LOG_FILE 2>&1
+docker compose exec -T web php bin/console cache:clear >> $LOG_FILE 2>&1
 
 echo "✅ Demo reset complete at $(date)" >> $LOG_FILE
 echo "" >> $LOG_FILE
@@ -451,7 +451,7 @@ echo ""
 echo "🔧 Management commands:"
 echo "   • Manual reset: /usr/local/bin/homeadmin24-demo-reset.sh"
 echo "   • View reset logs: tail -f /var/log/homeadmin24-demo-reset.log"
-echo "   • View app logs: cd /opt/homeadmin24-demo && docker-compose logs -f web"
+echo "   • View app logs: cd /opt/homeadmin24-demo && docker compose logs -f web"
 echo "   • Check cron: crontab -l | grep homeadmin24"
 echo ""
 echo "⏰ Auto-reset schedule: 00:00, 00:30, 01:00, 01:30, ... (48 times/day)"

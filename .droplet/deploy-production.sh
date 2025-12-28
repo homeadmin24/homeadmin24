@@ -125,13 +125,13 @@ if [ "$QUICK_MODE" = true ]; then
     echo "       Containers will continue running with new code"
 
     echo "[5/8] Clearing Symfony cache..."
-    docker-compose exec -T web php bin/console cache:clear
+    docker compose exec -T web php bin/console cache:clear
 
     echo "[6/8] Rebuilding frontend assets..."
-    docker-compose exec -T web npm run build
+    docker compose exec -T web npm run build
 
     echo "[7/8] Running database migrations..."
-    docker-compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+    docker compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
 
     echo "[8/8] Deployment complete (skipping Nginx/SSL config in quick mode)"
     echo ""
@@ -165,17 +165,17 @@ else
 
     # Build and start Docker containers
     echo "[5/12] Building Docker containers..."
-    docker-compose -f docker-compose.yaml -f docker-compose.prod.yml build --no-cache
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml build --no-cache
 
     echo "[6/12] Starting Docker containers..."
-    docker-compose -f docker-compose.yaml -f docker-compose.prod.yml down -v
-    docker-compose -f docker-compose.yaml -f docker-compose.prod.yml up -d
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml down -v
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml up -d
 
     # Wait for database to be ready
     echo "[7/12] Waiting for database to be ready..."
     MAX_TRIES=30
     COUNTER=0
-    until docker-compose exec -T mysql mysqladmin ping -h localhost --silent; do
+    until docker compose exec -T mysql mysqladmin ping -h localhost --silent; do
         COUNTER=$((COUNTER+1))
         if [ $COUNTER -eq $MAX_TRIES ]; then
             echo "❌ Database failed to become ready after ${MAX_TRIES} attempts"
@@ -189,7 +189,7 @@ else
     # Additional wait: Verify MySQL is accepting TCP connections from web container
     echo "Verifying MySQL connection from web container..."
     COUNTER=0
-    until docker-compose exec -T web php -r "new PDO('mysql:host=mysql;dbname=homeadmin24', 'root', 'rootpassword');" 2>/dev/null; do
+    until docker compose exec -T web php -r "new PDO('mysql:host=mysql;dbname=homeadmin24', 'root', 'rootpassword');" 2>/dev/null; do
         COUNTER=$((COUNTER+1))
         if [ $COUNTER -eq $MAX_TRIES ]; then
             echo "❌ MySQL not accepting connections from web container after ${MAX_TRIES} attempts"
@@ -202,16 +202,16 @@ else
 
     # Run database migrations
     echo "[8/12] Running database migrations..."
-    docker-compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+    docker compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
 fi
 
 # Load system configuration (only if empty database)
 echo "[9/12] Checking database status..."
-TABLE_COUNT=$(docker-compose exec -T mysql mysql -uroot -prootpassword homeadmin24 -se "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='homeadmin24'")
+TABLE_COUNT=$(docker compose exec -T mysql mysql -uroot -prootpassword homeadmin24 -se "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='homeadmin24'")
 
 if [ "$TABLE_COUNT" -lt 5 ]; then
     echo "Loading system configuration..."
-    docker-compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction
+    docker compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction
 else
     echo "Database already populated, skipping fixtures"
 fi
@@ -292,12 +292,12 @@ echo "🔒 Application running at: https://$DOMAIN"
 echo ""
 echo "Next steps:"
 echo "1. Create admin user:"
-echo "   docker-compose exec web php bin/console app:create-admin"
+echo "   docker compose exec web php bin/console app:create-admin"
 echo ""
 echo "2. Test application access"
 echo ""
 echo "3. View logs:"
-echo "   docker-compose logs -f web"
+echo "   docker compose logs -f web"
 echo ""
 echo "4. Create manual backup:"
 echo "   /usr/local/bin/homeadmin24-backup.sh"

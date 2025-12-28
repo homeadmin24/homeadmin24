@@ -67,17 +67,17 @@ fi
 
 # Build and start Docker containers
 echo "[3/9] Building Docker containers..."
-docker-compose build --no-cache
+docker compose build --no-cache
 
 echo "[4/9] Starting Docker containers..."
-docker-compose down
-docker-compose up -d
+docker compose down
+docker compose up -d
 
 # Wait for database to be ready
 echo "[5/9] Waiting for database to be ready..."
 MAX_TRIES=30
 COUNTER=0
-until docker-compose exec -T mysql mysqladmin ping -h localhost --silent; do
+until docker compose exec -T mysql mysqladmin ping -h localhost --silent; do
     COUNTER=$((COUNTER+1))
     if [ $COUNTER -eq $MAX_TRIES ]; then
         echo "❌ Database failed to become ready after ${MAX_TRIES} attempts"
@@ -91,7 +91,7 @@ echo "mysqld is alive"
 # Additional wait: Verify MySQL is accepting TCP connections from web container
 echo "Verifying MySQL connection from web container..."
 COUNTER=0
-until docker-compose exec -T web php -r "new PDO('mysql:host=mysql;dbname=homeadmin24', 'root', 'rootpassword');" 2>/dev/null; do
+until docker compose exec -T web php -r "new PDO('mysql:host=mysql;dbname=homeadmin24', 'root', 'rootpassword');" 2>/dev/null; do
     COUNTER=$((COUNTER+1))
     if [ $COUNTER -eq $MAX_TRIES ]; then
         echo "❌ MySQL not accepting connections from web container after ${MAX_TRIES} attempts"
@@ -104,11 +104,11 @@ echo "✅ Database is ready!"
 
 # Run database migrations
 echo "[6/9] Running database migrations..."
-docker-compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+docker compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
 
 # Load system configuration
 echo "[7/9] Loading system configuration..."
-docker-compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction
+docker compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction
 
 # Configure Nginx reverse proxy
 echo "[8/9] Configuring Nginx..."
@@ -181,13 +181,13 @@ echo "🔒 https://$DOMAIN"
 echo ""
 echo "Next steps:"
 echo "1. Create admin user:"
-echo "   docker-compose exec web php bin/console app:create-admin"
+echo "   docker compose exec web php bin/console app:create-admin"
 echo ""
 echo "2. Load demo data (optional):"
-echo "   docker-compose exec web php bin/console doctrine:fixtures:load --group=demo-data"
+echo "   docker compose exec web php bin/console doctrine:fixtures:load --group=demo-data"
 echo ""
 echo "3. View logs:"
-echo "   docker-compose logs -f web"
+echo "   docker compose logs -f web"
 echo ""
 echo "SSL certificate auto-renewal is configured via certbot systemd timer"
 echo ""
