@@ -148,7 +148,7 @@ fi
 
 # Create demo docker compose override
 echo "[3/11] Creating demo docker compose configuration..."
-cat > docker compose.demo.yml <<'DOCKER_COMPOSE'
+cat > docker-compose.demo.yml <<'DOCKER_COMPOSE'
 services:
   web:
     container_name: homeadmin24-demo-web
@@ -211,11 +211,11 @@ else
     fi
 
     echo "[5/13] Building Docker containers..."
-    docker compose -f docker compose.yaml -f docker compose.demo.yml build --no-cache
+    docker compose -f docker-compose.yaml -f docker-compose.demo.yml build --no-cache
 
     echo "[6/13] Starting Docker containers..."
-    docker compose -f docker compose.yaml -f docker compose.demo.yml down -v
-    docker compose -f docker compose.yaml -f docker compose.demo.yml up -d
+    docker compose -f docker-compose.yaml -f docker-compose.demo.yml down -v
+    docker compose -f docker-compose.yaml -f docker-compose.demo.yml up -d
 
     # Wait for database to be ready
     echo "[7/13] Waiting for database to be ready..."
@@ -359,7 +359,7 @@ cd $APP_DIR
 
 # Stop containers
 echo "Stopping containers..." >> $LOG_FILE
-docker compose -f docker compose.yaml -f docker compose.demo.yml down >> $LOG_FILE 2>&1
+docker compose -f docker-compose.yaml -f docker-compose.demo.yml down >> $LOG_FILE 2>&1
 
 # Remove database volume (forces fresh start)
 echo "Removing database volume..." >> $LOG_FILE
@@ -367,7 +367,7 @@ docker volume rm homeadmin24-demo_mysql_data 2>/dev/null || true
 
 # Start containers
 echo "Starting containers..." >> $LOG_FILE
-docker compose -f docker compose.yaml -f docker compose.demo.yml up -d >> $LOG_FILE 2>&1
+docker compose -f docker-compose.yaml -f docker-compose.demo.yml up -d >> $LOG_FILE 2>&1
 
 # Wait for database to be ready with connectivity check
 echo "Waiting for database..." >> $LOG_FILE
