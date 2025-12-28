@@ -31,25 +31,25 @@ Das Script führt automatisch aus:
 
 ```bash
 # 1. Container starten
-docker-compose up -d
+docker compose up -d
 
 # 2. Auf MySQL warten (10 Sekunden)
 sleep 10
 
 # 3. Composer Dependencies installieren
-docker-compose exec web composer install
+docker compose exec web composer install
 
 # 4. Datenbank erstellen
-docker-compose exec web php bin/console doctrine:database:create --if-not-exists
+docker compose exec web php bin/console doctrine:database:create --if-not-exists
 
 # 5. Schema anlegen
-docker-compose exec web php bin/console doctrine:schema:update --force
+docker compose exec web php bin/console doctrine:schema:update --force
 
 # 6. Demo-Daten laden
-docker-compose exec web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
+docker compose exec web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
 
 # 7. Cache leeren
-docker-compose exec web php bin/console cache:clear
+docker compose exec web php bin/console cache:clear
 ```
 
 ## Zugriff auf die Anwendung
@@ -63,10 +63,8 @@ docker-compose exec web php bin/console cache:clear
 | E-Mail | Rolle | Passwort |
 |--------|-------|----------|
 | `wegadmin@demo.local` | ROLE_ADMIN | `ChangeMe123!` |
-| `viewer@demo.local` | ROLE_VIEWER | `ChangeMe123!` |
 | `buchhalter@demo.local` | ROLE_ACCOUNTANT | `ChangeMe123!` |
-| `hausverwaltung@demo.local` | ROLE_PROPERTY_MANAGER | `ChangeMe123!` |
-| `admin@hausman.local` | ROLE_SUPER_ADMIN | `ChangeMe123!` |
+| `viewer@demo.local` | ROLE_VIEWER | `ChangeMe123!` |
 
 ### MySQL Zugriff
 
@@ -85,7 +83,6 @@ Nach dem Setup stehen folgende Demo-Daten zur Verfügung:
 - **145 Zahlungen** (Einnahmen/Ausgaben)
 - **8 Dienstleister**
 - **22 Rechnungen**
-- **69 Kostenkonten**
 - **6 Demo-Benutzer** mit verschiedenen Rollen
 
 ## Häufige Befehle
@@ -94,48 +91,48 @@ Nach dem Setup stehen folgende Demo-Daten zur Verfügung:
 
 ```bash
 # Container starten
-docker-compose up -d
+docker compose up -d
 
 # Container stoppen
-docker-compose down
+docker compose down
 
 # Container stoppen und Datenbank löschen
-docker-compose down -v
+docker compose down -v
 
 # Logs anzeigen
-docker-compose logs -f web
+docker compose logs -f web
 
 # Shell im Web-Container öffnen
-docker-compose exec web bash
+docker compose exec web bash
 ```
 
 ### Symfony-Befehle
 
 ```bash
 # Cache leeren
-docker-compose exec web php bin/console cache:clear
+docker compose exec web php bin/console cache:clear
 
 # Routen anzeigen
-docker-compose exec web php bin/console debug:router
+docker compose exec web php bin/console debug:router
 
 # Demo-Daten neu laden (löscht alte Daten!)
-docker-compose exec web php bin/console doctrine:fixtures:load --group=demo-data
+docker compose exec web php bin/console doctrine:fixtures:load --group=demo-data
 
 # Datenbank-Schema prüfen
-docker-compose exec web php bin/console doctrine:schema:validate
+docker compose exec web php bin/console doctrine:schema:validate
 
 # Datenbank-Schema aktualisieren
-docker-compose exec web php bin/console doctrine:schema:update --force
+docker compose exec web php bin/console doctrine:schema:update --force
 ```
 
 ### Datenbank-Befehle
 
 ```bash
 # Datenbank leeren und neu aufsetzen
-docker-compose exec web php bin/console doctrine:database:drop --force
-docker-compose exec web php bin/console doctrine:database:create
-docker-compose exec web php bin/console doctrine:schema:update --force
-docker-compose exec web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
+docker compose exec web php bin/console doctrine:database:drop --force
+docker compose exec web php bin/console doctrine:database:create
+docker compose exec web php bin/console doctrine:schema:update --force
+docker compose exec web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
 
 # Backup erstellen
 docker exec homeadmin24-mysql-1 mysqldump -uroot -prootpassword homeadmin24 > backup_$(date +%Y%m%d_%H%M%S).sql
@@ -162,20 +159,20 @@ volumes:
 Nach Code-Änderungen:
 ```bash
 # Cache leeren (nur bei Config-Änderungen nötig)
-docker-compose exec web php bin/console cache:clear
+docker compose exec web php bin/console cache:clear
 ```
 
 ### Neue Entity erstellen
 
 ```bash
 # Entity generieren
-docker-compose exec web php bin/console make:entity
+docker compose exec web php bin/console make:entity
 
 # Migration erstellen (optional)
-docker-compose exec web php bin/console make:migration
+docker compose exec web php bin/console make:migration
 
 # Oder direkt Schema aktualisieren
-docker-compose exec web php bin/console doctrine:schema:update --force
+docker compose exec web php bin/console doctrine:schema:update --force
 ```
 
 ## Troubleshooting
@@ -187,10 +184,10 @@ docker-compose exec web php bin/console doctrine:schema:update --force
 **Lösung:**
 ```bash
 # Cache leeren
-docker-compose exec web php bin/console cache:clear
+docker compose exec web php bin/console cache:clear
 
 # Container neu starten
-docker-compose restart web
+docker compose restart web
 ```
 
 ### Problem: "Column not found" Fehler
@@ -200,7 +197,7 @@ docker-compose restart web
 **Lösung:**
 ```bash
 # Schema aktualisieren
-docker-compose exec web php bin/console doctrine:schema:update --force
+docker compose exec web php bin/console doctrine:schema:update --force
 ```
 
 ### Problem: Container startet nicht
@@ -220,7 +217,7 @@ ports:
 **Lösung:**
 ```bash
 # Alle Container und Volumes löschen
-docker-compose down -v
+docker compose down -v
 
 # Neu aufsetzen
 ./setup.sh
@@ -233,15 +230,15 @@ docker-compose down -v
 **Lösung:**
 ```bash
 # Rechte korrigieren
-docker-compose exec web chown -R www-data:www-data /var/www/html/var
-docker-compose exec web chmod -R 755 /var/www/html/var
+docker compose exec web chown -R www-data:www-data /var/www/html/var
+docker compose exec web chmod -R 755 /var/www/html/var
 ```
 
 ## System komplett zurücksetzen
 
 ```bash
 # 1. Container und Volumes löschen
-docker-compose down -v
+docker compose down -v
 
 # 2. Cache und Logs lokal löschen
 rm -rf var/cache/* var/log/*
@@ -252,6 +249,8 @@ rm -rf var/cache/* var/log/*
 
 ## Weiterführende Dokumentation
 
-- **Production Deployment:** [INSTALLATION.md](INSTALLATION.md)
-- **Entwickler-Dokumentation:** [DEVELOPMENT.md](DEVELOPMENT.md)
-- **API-Dokumentation:** [docs/](docs/)
+- [Core System Documentation](core_system.md) - CSV import, payment categorization, auth
+- [AI Integration](ai_integration.md) - AI-powered features
+- [Production Deployment](setup_production.md) - Deployment guides
+- [Development Guide](setup_development.md) - Developer workflows
+- [Fixture Strategy](fixture_strategy.md) - Database setup reference
