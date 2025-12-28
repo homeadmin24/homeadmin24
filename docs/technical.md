@@ -452,8 +452,8 @@ class TaxCalculator {
 
 - [Core System](core_system.md) - CSV import, payment categorization, auth
 - [AI Integration](ai_integration.md) - AI-powered features
-- [Local Setup](local-setup.md) - Development environment
-- [Production Deployment](production.md) - Deployment guides
+- [Local Setup](setup_local.md) - Development environment
+- [Production Deployment](setup_production.md) - Deployment guides
 
 ---
 

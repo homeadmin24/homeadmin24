@@ -501,8 +501,8 @@ zur automatischen Kategorisierung von Zahlungen.
 ## Related Documentation
 
 - [Core System Documentation](core_system.md) - Payment categorization, CSV import, auth system
-- [Local Setup Guide](local-setup.md) - Docker development environment
-- [Production Deployment](production.md) - Deployment options
+- [Local Setup Guide](setup_local.md) - Docker development environment
+- [Production Deployment](setup_production.md) - Deployment options
 
 ---
 

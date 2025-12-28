@@ -649,8 +649,8 @@ class Dokument
 ## Related Documentation
 
 - [AI Integration](ai_integration.md) - AI-powered payment categorization
-- [Local Setup](local-setup.md) - Docker development environment
-- [Production Deployment](production.md) - Deployment options
+- [Local Setup](setup_local.md) - Docker development environment
+- [Production Deployment](setup_production.md) - Deployment options
 
 ---
 

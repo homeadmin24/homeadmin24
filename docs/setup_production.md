@@ -1,6 +1,6 @@
 # Production Deployment Guide
 
-Complete guide for deploying homeadmin24 to production. For local development setup, see [local-setup.md](local-setup.md).
+Complete guide for deploying homeadmin24 to production. For local development setup, see [setup_local.md](setup_local.md).
 
 ## Table of Contents
 
@@ -410,7 +410,7 @@ See `.droplet/` directory for detailed script documentation.
 
 ## Support & Further Documentation
 
-- **Local Development:** [local-setup.md](local-setup.md)
-- **Developer Guide:** [development.md](development.md)
+- **Local Development:** [setup_local.md](setup_local.md)
+- **Developer Guide:** [setup_setup_development.md](setup_setup_development.md)
 - **GitHub Issues:** [homeadmin24/issues](https://github.com/homeadmin24/homeadmin24/issues)
 - **License:** [GNU AGPL v3](../LICENSE)

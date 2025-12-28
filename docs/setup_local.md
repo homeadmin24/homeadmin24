@@ -251,6 +251,6 @@ rm -rf var/cache/* var/log/*
 
 - [Core System Documentation](core_system.md) - CSV import, payment categorization, auth
 - [AI Integration](ai_integration.md) - AI-powered features
-- [Production Deployment](setup_production.md) - Deployment guides
-- [Development Guide](setup_development.md) - Developer workflows
+- [Production Deployment](setup_setup_production.md) - Deployment guides
+- [Development Guide](setup_setup_development.md) - Developer workflows
 - [Fixture Strategy](fixture_strategy.md) - Database setup reference
