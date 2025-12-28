@@ -11,6 +11,14 @@ services:
       - DATABASE_URL=mysql://root:rootpassword@mysql:3306/homeadmin24?serverVersion=8.0&charset=utf8mb4&collation=utf8mb4_unicode_ci
     depends_on:
       - mysql
+    volumes:
+      - ./src:/var/www/html/src
+      - ./config:/var/www/html/config
+      - ./templates:/var/www/html/templates
+      - ./var:/var/www/html/var
+      - ./vendor:/var/www/html/vendor
+      - ./composer.json:/var/www/html/composer.json
+      - ./composer.lock:/var/www/html/composer.lock
 
   mysql:
     image: mysql:9

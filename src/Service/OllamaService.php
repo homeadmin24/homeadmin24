@@ -14,8 +14,8 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * Ollama is an open-source tool to run large language models locally.
  * This service is only enabled in development environment.
  *
- * @see doc/CoreSystem/ai_environment_configuration.md
- * @see doc/TechnicalArchitecture/ollama_learning_and_finetuning.md
+ * @see docs/core-system/ai_environment_configuration.md
+ * @see docs/technical/ollama_learning_and_finetuning.md
  */
 class OllamaService
 {

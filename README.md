@@ -3,173 +3,124 @@
 [![Deploy to DigitalOcean](https://img.shields.io/badge/Deploy%20to-DigitalOcean-0080FF?logo=digitalocean&logoColor=white)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/homeadmin24/homeadmin24/tree/main)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-## Überblick
+Umfassendes Immobilienverwaltungssystem für deutsche Wohnungseigentümergemeinschaften (WEG) mit Finanzverfolgung, Zahlungsverwaltung, Rechnungsverarbeitung und automatisierter Hausgeldabrechnung.
 
-homeadmin24 ist ein umfassendes Immobilienverwaltungssystem für deutsche Wohnungseigentümergemeinschaften (WEG). Es bietet Finanzverfolgung, Zahlungsverwaltung, Rechnungsverarbeitung und automatisierte Erstellung von Hausgeldabrechnungen.
+**Open Source & Copyleft**: Lizenziert unter [GNU AGPL v3.0](LICENSE) - Freie Nutzung, Änderung und kommerzielle Verwendung erlaubt.
 
-**Open Source & Copyleft**: homeadmin24 ist unter der [GNU Affero General Public License v3.0](LICENSE) lizenziert. Das bedeutet:
+---
+
+## 🚀 Quick Start
+
+### Lokale Entwicklung (Docker)
+
+```bash
+git clone https://github.com/homeadmin24/homeadmin24.git
+cd homeadmin24
+./setup.sh
+```
+
+**Access:** http://127.0.0.1:8000
+**Login:** `wegadmin@demo.local` / `ChangeMe123!`
+
+📖 **Ausführliche Anleitung:** [docs/local-setup.md](docs/local-setup.md)
+
+### Production Deployment
+
+[![Deploy to DigitalOcean](https://img.shields.io/badge/Deploy%20to-DigitalOcean-0080FF?logo=digitalocean&logoColor=white)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/homeadmin24/homeadmin24/tree/main)
+
+📖 **Deployment-Optionen:** [docs/production.md](docs/production.md)
+- **App Platform** (Managed, $12/mo)
+- **Droplet** (VPS Self-Hosted, $6/mo)
+- **Multi-Droplet** (Production + Auto-Reset Demo)
+
+---
+
+## ✨ Kernfunktionen
+
+### Immobilienverwaltung
+- **WEG-Verwaltung**: Zentrale Verwaltung mehrerer Eigentumseinheiten
+- **Eigentümerverwaltung**: Details, Stimmrechte, Miteigentumsanteile
+
+### Finanzverwaltung
+- **Zahlungsverfolgung**: Einnahmen/Ausgaben mit Auto-Kategorisierung
+- **Kostenkonten**: Kontenplan mit umlagefähigen Kosten
+- **Kontostandsverwaltung**: Automatisierte Saldenberechnung
+
+### Dienstleister & Rechnungen
+- **Dienstleisterverwaltung**: Handwerker, Verträge, Kontaktdaten
+- **Rechnungsverarbeitung**: Fälligkeiten, Steuerinformationen, §35a EStG
+
+### Hausgeldabrechnungen
+- **Automatisierte PDF/TXT-Generierung**
+- **Eigentümeranteile** nach Miteigentumsanteilen (MEA)
+- **§35a EStG**: Steuerlich absetzbare Leistungen
+- **Wirtschaftsplan** für Folgejahr
+
+### CSV-Import & Automation
+- **Kontoauszug-Import** (Sparkasse SEPA-Format)
+- **Auto-Kategorisierung** mit Pattern-Matching
+- **Duplikatserkennung** (3-stufiges Fallback-System)
+
+---
+
+## 🛠️ Tech Stack
+
+- **Backend**: Symfony 8.0 (PHP 8.4+)
+- **Datenbank**: MySQL 9
+- **Frontend**: Tailwind CSS, Flowbite, Stimulus.js, Webpack Encore
+- **PDF**: DomPDF
+
+---
+
+## 📚 Dokumentation
+
+### Getting Started
+- **[Lokales Setup](docs/local-setup.md)** - Docker-Entwicklungsumgebung, Troubleshooting
+- **[Production Deployment](docs/production.md)** - App Platform, Droplets, Multi-Droplet
+- **[Developer Guide](docs/development.md)** - Dokumentationsindex, Development Workflows
+
+### Detailed Documentation
+- **[docs/business-logic/](docs/business-logic/)** - WEG-Geschäftslogik, Finanzberechnungen, Rücklagenzuführung
+- **[docs/core-system/](docs/core-system/)** - CSV-Import, Zahlungskategorien, Auth-System, Fixtures
+- **[docs/technical/](docs/technical/)** - Database Schema, Parser Architecture, Migrations
+
+---
+
+## 📦 Demo-Daten
+
+Nach `./setup.sh` verfügbar:
+- 3 WEG (Musterhausen, Berlin, Hamburg)
+- 12 Wohneinheiten mit Eigentümern
+- 145 Zahlungen (Einnahmen/Ausgaben)
+- 8 Dienstleister, 22 Rechnungen
+- 6 Demo-Benutzer mit verschiedenen Rollen
+
+**Demo-Logins:**
+- `wegadmin@demo.local` (ROLE_ADMIN)
+- `buchhalter@demo.local` (ROLE_ACCOUNTANT)
+- `viewer@demo.local` (ROLE_VIEWER)
+
+Alle Passwörter: `ChangeMe123!`
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Dieses Projekt ist Open Source unter AGPL v3.0.
+
+- **Issues**: [GitHub Issues](https://github.com/homeadmin24/homeadmin24/issues)
+- **Developer Guide**: [docs/development.md](docs/development.md)
+- **License**: [GNU AGPL v3](LICENSE)
+
+---
+
+## 📄 Lizenz
+
+homeadmin24 ist lizenziert unter der [GNU Affero General Public License v3.0](LICENSE).
+
+**Das bedeutet:**
 - ✅ Freie Nutzung, Änderung und Verteilung
 - ✅ Kommerzielle Nutzung erlaubt (Hosting, Beratung, Support)
 - ✅ Transparenz und Community-Beiträge willkommen
 - ⚠️ Änderungen müssen unter derselben Lizenz veröffentlicht werden
 - ⚠️ Netzwerk-Nutzer haben Anspruch auf den Quellcode (AGPL §13)
-
-## Tech Stack
-
-- **Backend**: Symfony 8.0 (PHP 8.4+)
-- **Datenbank**: MySQL 9.5
-- **Frontend**: Tailwind CSS, Flowbite (UI Components), Stimulus.js (via Symfony UX), Webpack Encore
-- **PDF-Generierung**: DomPDF
-
-## Kernfunktionen
-
-### 1. Immobilienverwaltung
-- **WEG (Wohnungseigentümergemeinschaft)**: Zentrale Verwaltung mehrerer Eigentumseinheiten
-- **WEG-Einheiten**: Einzelne Eigentumseinheiten mit Eigentümerdetails, Stimmrechten und Miteigentumsanteilen
-
-### 2. Finanzverwaltung
-- **Zahlungsverfolgung**: Erfassung aller Finanztransaktionen (Einnahmen/Ausgaben)
-- **Zahlungskategorien**: Klassifizierung von Zahlungen als Einnahmen oder Ausgaben
-- **Kostenkonten**: Kontenplan mit Kennzeichnung umlagefähiger Kosten
-- **Kontostandsverwaltung**: Automatisierte Saldenberechnung und Kontostandsentwicklung
-
-### 3. Dienstleisterverwaltung
-- **Dienstleister**: Verwaltung von Handwerkern und Dienstleistern mit Vertragsdetails
-- **Rechnungsverwaltung**: Verknüpfung von Rechnungen mit Dienstleistern, Fälligkeitsdaten und Steuerinformationen
-- **Arbeits-/Fahrtkosten**: Erfassung für §35a EStG Steuerabzug
-
-### 4. Dokumentenverwaltung
-- Speicherung und Organisation wichtiger Dokumente (Eigentümerdokumente, Beschlüsse, Jahresabschlüsse)
-- Kategorisierung nach Typ: eigentuemer, umlaufbeschluss, jahresabschluss
-
-### 5. Hausgeldabrechnungen
-- Automatisierte Generierung von Hausgeldabrechnungs-PDFs und TXT-Dateien
-- Berechnung der Eigentümeranteile basierend auf Miteigentumsanteilen (MEA)
-- Trennung von umlagefähigen und nicht umlagefähigen Kosten
-- Steuerlich absetzbare Leistungen nach §35a EStG
-- Wirtschaftsplan für das Folgejahr
-- Kontostandsentwicklung und Vermögensübersicht
-
-### 6. CSV-Import & Auto-Kategorisierung
-- Automatischer Import von Kontoauszügen (Sparkasse SEPA-Format)
-- Intelligente Auto-Kategorisierung mit Pattern-Matching
-- Fuzzy-Matching für Eigentümer-Zuordnung
-- Duplikatserkennung (3-stufiges Fallback-System)
-- Automatische Erstellung neuer Dienstleister
-
-### 7. Wichtige Services
-
-#### HausgeldabrechnungGenerator
-Generiert Hausgeldabrechnungen als PDF und TXT mit:
-- Gesamtkostenberechnung mit Rücklagenzuführung
-- Eigentümeranteilsberechnung basierend auf MEA
-- Trennung von umlagefähigen und nicht umlagefähigen Kosten
-- Steuerlich absetzbare Leistungen nach §35a EStG
-- Zahlungsübersicht und Kontostandsentwicklung
-- Vermögensübersicht und Wirtschaftsplan
-
-#### CalculationService
-Zentrale Berechnungslogik für:
-- Kostenverteilung nach Umlageschlüsseln
-- Dynamische Einheitenverteilung
-- Hebeanlage-Spezialverteilung
-- Externe Heiz- und Wasserkosten
-
-## Dokumentation
-
-📚 **Developer Documentation**: [DEVELOPMENT.md](DEVELOPMENT.md)
-
-Die Dokumentation ist in drei Hauptkategorien organisiert:
-- **BusinessLogic/** - WEG-Geschäftslogik, Finanzberechnungen, Steuerrecht (Rücklagenzuführung, §35a EStG)
-- **CoreSystem/** - Anwendungsfunktionen (CSV-Import, Zahlungskategorien, Authentifizierung)
-- **TechnicalArchitecture/** - Implementierung, Datenbankschema, Architektur-Entscheidungen
-
-## Installation & Bereitstellung
-
-### Schnellstart: Docker (Empfohlen für lokale Entwicklung)
-
-**Voraussetzungen:** Docker & Docker Compose installiert
-
-1. **Repository klonen:**
-   ```bash
-   git clone https://github.com/homeadmin24/homeadmin24.git
-   cd homeadmin24
-   ```
-
-2. **Container starten:**
-   ```bash
-   docker compose -f docker-compose.yaml -f docker-compose.dev.yml up -d
-   ```
-
-3. **Auf Datenbank warten (ca. 10 Sekunden):**
-   ```bash
-   # Warten bis MySQL bereit ist
-   sleep 10
-   ```
-
-4. **Datenbank-Setup:**
-   ```bash
-   # Datenbank erstellen (falls nicht vorhanden)
-   docker compose exec web php bin/console doctrine:database:create --if-not-exists
-
-   # Migrationen ausführen
-   docker compose exec web php bin/console doctrine:migrations:migrate --no-interaction
-
-   # Demo-Daten laden (3 WEG-Beispiele, Zahlungen, Dienstleister, etc.)
-   docker compose exec web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
-   ```
-
-5. **✅ Fertig! Anwendung öffnen:**
-   - 🌐 **Web:** http://127.0.0.1:8000
-   - 🔐 **Login (Demo-Benutzer):**
-     - E-Mail: `wegadmin@demo.local`
-     - Passwort: `ChangeMe123!`
-   - 🗄️ **MySQL:** `127.0.0.1:3307` (root/rootpassword)
-
-   **Weitere Demo-Accounts:**
-   - `viewer@demo.local` (ROLE_VIEWER) - Nur Lesezugriff
-   - `buchhalter@demo.local` (ROLE_ACCOUNTANT) - Buchhaltung
-   - `hausverwaltung@demo.local` (ROLE_PROPERTY_MANAGER) - Hausverwaltung
-   - `admin@hausman.local` (ROLE_SUPER_ADMIN) - Voller Systemzugriff
-   - Alle Demo-Accounts: Passwort `ChangeMe123!`
-
-**Häufige Docker-Befehle:**
-```bash
-# Container stoppen
-docker compose down
-
-# Logs anzeigen
-docker compose logs -f web
-
-# In Web-Container Shell
-docker compose exec web bash
-
-# Neuen Admin-Benutzer erstellen
-docker compose exec web php bin/console app:create-admin
-
-# Cache leeren
-docker compose exec web php bin/console cache:clear
-
-# Code-Qualität prüfen
-docker compose exec web composer quality-services
-```
-
-**Hinweis:** Die Demo-Daten umfassen:
-- 3 WEG-Beispielen (Musterhausen, Berlin, Hamburg)
-- 12 Wohneinheiten mit Eigentümern
-- 145 Zahlungen (Einnahmen/Ausgaben)
-- 8 Dienstleistern
-- 69 Kostenkonten
-- 6 Demo-Benutzern mit verschiedenen Rollen
-
----
-
-## Production Deployment
-
-Für Production-Deployments (DigitalOcean, VPS, Cloud):
-
-📖 **[INSTALLATION.md](INSTALLATION.md)** - Production Deployment Guide
-- **DigitalOcean App Platform** - One-Click Deployment ($12/Monat, managed)
-- **DigitalOcean Droplet (VPS)** - Volle Kontrolle ($6/Monat, self-hosted)
-- Automatische Deployments via GitHub Actions
-- SSL-Zertifikate, Backups & Monitoring

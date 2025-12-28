@@ -23,7 +23,7 @@ use Psr\Log\LoggerInterface;
  * - "Hat Herr Müller alle Vorauszahlungen für 2024 bezahlt?"
  * - "Welche Kostenpositionen sind 2024 am stärksten gestiegen?"
  *
- * @see doc/TechnicalArchitecture/ai_integration_plan.md
+ * @see docs/technical/ai_integration_plan.md
  */
 class AiQueryService
 {
