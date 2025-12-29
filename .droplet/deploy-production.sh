@@ -132,8 +132,8 @@ if [ "$QUICK_MODE" = true ]; then
     echo "[6/8] Rebuilding frontend assets..."
     docker compose exec -T web npm run build
 
-    echo "[7/8] Running database migrations..."
-    docker compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+    echo "[7/8] Updating database schema..."
+    docker compose exec -T web php bin/console doctrine:schema:update --force
 
     echo "[8/8] Deployment complete (skipping Nginx/SSL config in quick mode)"
     echo ""
@@ -202,9 +202,9 @@ else
     done
     echo "✅ Database is ready!"
 
-    # Run database migrations
-    echo "[8/12] Running database migrations..."
-    docker compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+    # Update database schema
+    echo "[8/12] Updating database schema..."
+    docker compose exec -T web php bin/console doctrine:schema:update --force
 fi
 
 # Load system configuration (only if empty database)
