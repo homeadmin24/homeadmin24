@@ -1,6 +1,6 @@
 # Database Backup & Restore
 
-This guide explains how to backup and restore the homeadmin24 database.
+Simple backup and restore for homeadmin24 database using Docker.
 
 ## Quick Reference
 
@@ -10,7 +10,29 @@ This guide explains how to backup and restore the homeadmin24 database.
 
 # Restore backup
 ./bin/restore_db.sh backup/backup_YYYYMMDD_HHMMSS_description.sql
+
+# After restore (REQUIRED!)
+docker compose exec web php bin/console doctrine:schema:update --force
+docker compose exec web php bin/console cache:clear
 ```
+
+## How It Works
+
+The scripts use Docker to run mysqldump/mysql inside the container:
+
+```bash
+# Backup command
+docker compose exec -T mysql mysqldump -uroot -prootpassword \
+    --set-gtid-purged=OFF \
+    --ignore-table=homeadmin24.doctrine_migration_versions \
+    homeadmin24 > backup/backup_file.sql
+
+# Restore command
+docker compose exec -T mysql mysql -uroot -prootpassword \
+    homeadmin24 < backup/backup_file.sql
+```
+
+**Note:** The `doctrine_migration_versions` table is excluded from backups to avoid conflicts when restoring to different code versions.
 
 ## Creating Backups
 
