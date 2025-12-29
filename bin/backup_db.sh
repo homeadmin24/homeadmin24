@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# homeadmin24 WEG Management - Simple & Reliable Database Backup
+# homeadmin24 WEG Management - Database Backup Script
 # Usage: ./bin/backup_db.sh [description]
+# Example: ./bin/backup_db.sh before_migration
 
 set -e
 
@@ -23,9 +24,13 @@ FILEPATH="${BACKUP_DIR}/${FILENAME}"
 echo "🔄 Creating database backup..."
 echo "📁 File: ${FILENAME}"
 
-# Create backup (suppress warnings by redirecting stderr)
+# Create backup with options that make restoration easier:
+# - Exclude doctrine_migration_versions to avoid conflicts
+# - Include routines, triggers
+# - Use single transaction for consistency
 mysqldump -h"$DB_HOST" -u"$DB_USER" \
           --routines --triggers --single-transaction \
+          --ignore-table="${DB_NAME}.doctrine_migration_versions" \
           "$DB_NAME" 2>/dev/null > "$FILEPATH"
 
 # Check if backup was successful
@@ -45,11 +50,14 @@ if [ -f "$FILEPATH" ] && [ -s "$FILEPATH" ]; then
     echo "📊 Size: ${SIZE_FORMATTED}"
     echo "💾 Saved to: ${FILEPATH}"
     echo ""
-    echo "🔧 To restore this backup:"
-    echo "   mysql -h${DB_HOST} -u${DB_USER} ${DB_NAME} < ${FILEPATH}"
+    echo "🔧 To restore this backup, use:"
+    echo "   ./bin/restore_db.sh ${FILEPATH}"
     echo ""
-    echo "🗂  Available backups:"
-    ls -la "$BACKUP_DIR"/*.sql 2>/dev/null | tail -5 || echo "   (This is your first backup)"
+    echo "📝 Note: Migration versions table excluded to avoid conflicts"
+    echo "   After restore, run: docker compose exec web php bin/console doctrine:schema:update --force"
+    echo ""
+    echo "🗂  Recent backups:"
+    ls -lah "$BACKUP_DIR"/*.sql 2>/dev/null | tail -5 || echo "   (This is your first backup)"
 else
     echo "❌ Backup failed!"
     exit 1
