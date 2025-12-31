@@ -3,13 +3,17 @@
 namespace App\Controller;
 
 use App\Entity\Dokument;
+use App\Entity\HgaQualityFeedback;
 use App\Form\DokumentType;
 use App\Repository\DokumentRepository;
+use App\Repository\WegEinheitRepository;
+use App\Service\Hga\HgaQualityCheckService;
 use App\Service\InvoiceProcessingService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -221,6 +225,95 @@ class DokumentController extends AbstractController
         }
 
         return $this->redirectToRoute('app_dokument_show', ['id' => $dokument->getId()]);
+    }
+
+    #[Route('/{id}/quality-check', name: 'app_dokument_quality_check', methods: ['POST'])]
+    public function qualityCheck(
+        int $id,
+        Request $request,
+        DokumentRepository $dokumentRepo,
+        HgaQualityCheckService $qualityService
+    ): JsonResponse {
+        $dokument = $dokumentRepo->find($id);
+
+        if (!$dokument) {
+            return $this->json(['error' => 'Dokument nicht gefunden'], 404);
+        }
+
+        if (!$dokument->isHausgeldabrechnung()) {
+            return $this->json(['error' => 'Kein HGA-Dokument'], 400);
+        }
+
+        $provider = $request->request->get('provider', 'ollama');
+
+        if (!\in_array($provider, ['ollama', 'claude'], true)) {
+            return $this->json(['error' => 'Ungültiger Provider'], 400);
+        }
+
+        try {
+            $result = $qualityService->runQualityChecks(
+                dokument: $dokument,
+                provider: $provider,
+                includeUserFeedback: true
+            );
+
+            return $this->json($result);
+        } catch (\Exception $e) {
+            return $this->json([
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    #[Route('/{id}/quality-feedback', name: 'app_dokument_quality_feedback', methods: ['POST'])]
+    public function saveFeedback(
+        int $id,
+        Request $request,
+        DokumentRepository $dokumentRepo,
+        WegEinheitRepository $einheitRepo,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        $dokument = $dokumentRepo->find($id);
+
+        if (!$dokument) {
+            return $this->json(['error' => 'Dokument nicht gefunden'], 404);
+        }
+
+        // Get einheit from document metadata
+        $einheit = $einheitRepo->findOneBy([
+            'nummer' => $dokument->getEinheitNummer(),
+        ]);
+
+        if (!$einheit) {
+            return $this->json(['error' => 'Einheit nicht gefunden'], 404);
+        }
+
+        $feedback = new HgaQualityFeedback();
+        $feedback->setDokument($dokument);
+        $feedback->setEinheit($einheit);
+        $feedback->setYear($dokument->getAbrechnungsJahr());
+        $feedback->setAiProvider($request->request->get('ai_provider'));
+
+        // Handle AI result (might be JSON string or array)
+        $aiResult = $request->request->get('ai_result');
+        if (\is_string($aiResult)) {
+            $aiResult = json_decode($aiResult, true);
+        }
+        $feedback->setAiResult($aiResult);
+
+        $feedback->setUserFeedbackType($request->request->get('type'));
+        $feedback->setUserDescription($request->request->get('description'));
+
+        // Handle helpful rating
+        $helpfulRating = $request->request->get('helpful_rating');
+        if ($helpfulRating !== null) {
+            $feedback->setHelpfulRating((bool) $helpfulRating);
+        }
+
+        $em->persist($feedback);
+        $em->flush();
+
+        return $this->json(['success' => true, 'id' => $feedback->getId()]);
     }
 
     #[Route('/{id}/download', name: 'app_dokument_download', methods: ['GET'])]

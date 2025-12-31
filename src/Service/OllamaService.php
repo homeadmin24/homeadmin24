@@ -178,6 +178,34 @@ class OllamaService
     }
 
     /**
+     * Analyze HGA quality with AI.
+     *
+     * @param string $prompt The analysis prompt with complete HGA context
+     *
+     * @return array{
+     *   overall_assessment: string,
+     *   confidence: float,
+     *   issues_found: array,
+     *   summary: string
+     * }
+     */
+    public function analyzeHgaQuality(string $prompt): array
+    {
+        if (!$this->enabled) {
+            throw new \RuntimeException('OllamaService is disabled in this environment');
+        }
+
+        if (!$this->isOllamaAvailable()) {
+            throw new \RuntimeException('Ollama service is not available at ' . $this->ollamaUrl);
+        }
+
+        // Use lower temperature for more consistent analysis
+        $response = $this->generate($prompt, temperature: 0.3);
+
+        return $this->extractJson($response);
+    }
+
+    /**
      * Extract JSON from LLM response
      */
     private function extractJson(string $response): array

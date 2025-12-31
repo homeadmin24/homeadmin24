@@ -4,6 +4,7 @@
 
 - Docker Desktop installiert und gestartet
 - Git installiert
+- Node.js 20.x installiert (für Frontend-Entwicklung)
 
 ## Schnellstart
 
@@ -14,8 +15,12 @@
 git clone https://github.com/homeadmin24/homeadmin24.git
 cd homeadmin24
 
-# Automatisches Setup ausführen
+# Backend Setup (Docker)
 ./setup.sh
+
+# Frontend Setup (LOKAL - außerhalb des Containers!)
+npm install
+npm run dev
 ```
 
 Das Script führt automatisch aus:
@@ -27,9 +32,12 @@ Das Script führt automatisch aus:
 6. Demo-Daten laden
 7. Cache leeren
 
+**WICHTIG:** Nach `./setup.sh` MUSS `npm run dev` ausgeführt werden, sonst fehlen die Frontend-Assets!
+
 ### Option 2: Manuelles Setup
 
 ```bash
+# Backend Setup (Docker)
 # 1. Container starten
 docker compose up -d
 
@@ -50,7 +58,16 @@ docker compose exec web php bin/console doctrine:fixtures:load --group=demo-data
 
 # 7. Cache leeren
 docker compose exec web php bin/console cache:clear
+
+# Frontend Setup (LOKAL - außerhalb des Containers!)
+# 8. Node.js Dependencies installieren
+npm install
+
+# 9. Frontend Assets bauen (Development Mode)
+npm run dev
 ```
+
+**WICHTIG:** Schritte 8-9 MÜSSEN lokal ausgeführt werden, NICHT im Container!
 
 ## Zugriff auf die Anwendung
 
@@ -154,12 +171,91 @@ volumes:
   - ./templates:/var/www/html/templates  # Twig-Templates
   - ./var:/var/www/html/var              # Cache, Logs
   - ./vendor:/var/www/html/vendor        # Composer Dependencies
+  - ./assets:/var/www/html/assets        # Frontend: JS, CSS
+  - ./public/build:/var/www/html/public/build  # Compiled frontend assets
 ```
 
 Nach Code-Änderungen:
 ```bash
 # Cache leeren (nur bei Config-Änderungen nötig)
 docker compose exec web php bin/console cache:clear
+```
+
+### Frontend Development (JavaScript/CSS)
+
+**WICHTIG:** Frontend-Assets (JavaScript, CSS) müssen **außerhalb des Containers** gebaut werden!
+
+#### Einmalige Setup
+
+```bash
+# 1. Node.js Dependencies installieren (lokal, NICHT im Container!)
+npm install
+
+# 2. Prüfen ob Webpack Encore funktioniert
+npm run dev
+```
+
+#### Development Workflow
+
+**Option A: Watch Mode (empfohlen für aktive Entwicklung)**
+```bash
+# Assets automatisch bei Änderungen neu bauen
+npm run watch
+
+# In separatem Terminal: Development Server mit Hot Reload
+npm run dev-server
+```
+
+**Option B: Manuelle Builds**
+```bash
+# Development Build (schnell, mit Source Maps, OHNE Versionierung)
+npm run dev
+
+# Production Build (optimiert, minified, MIT Versionierung)
+npm run build
+```
+
+**⚠️ WICHTIG: Development vs Production Build**
+- **Für lokale Entwicklung:** IMMER `npm run dev` oder `npm run watch` verwenden!
+- **`npm run build`** (production) erstellt versionierte Dateien → 404 Fehler in dev!
+
+#### Häufige Frontend-Probleme
+
+**Assets laden nicht (404 Fehler)**
+```bash
+npm run dev                                          # NICHT npm run build!
+docker compose exec web php bin/console cache:clear
+# Browser: Cmd+Shift+R (hard refresh)
+```
+
+**Stimulus Controller nicht gefunden**
+```bash
+npm run dev                   # Assets neu bauen
+# Browser: Cache leeren + hard refresh
+```
+
+**"Module not found" beim Build**
+```bash
+rm -rf node_modules package-lock.json
+npm install
+npm run dev
+```
+
+#### Stimulus Controller hinzufügen
+
+```bash
+# 1. Datei erstellen: assets/controllers/my_feature_controller.js
+# 2. Controller wird automatisch registriert als: my-feature
+# 3. Assets neu bauen: npm run dev
+# 4. Template: <div data-controller="my-feature">...</div>
+```
+
+#### Debugging Frontend
+
+```javascript
+// Browser Console (F12):
+window.Stimulus.controllers.map(c => c.identifier)  // Alle Controller
+document.querySelectorAll('script[src*="app"]')     // Geladene Scripts
 ```
 
 ### Neue Entity erstellen
@@ -177,74 +273,35 @@ docker compose exec web php bin/console doctrine:schema:update --force
 
 ## Troubleshooting
 
-### Problem: "Unable to generate a URL for the named route"
-
-**Ursache:** Routen werden nicht gefunden (meist nach Symfony-Upgrade)
-
-**Lösung:**
+**Routing-Fehler ("Unable to generate a URL")**
 ```bash
-# Cache leeren
 docker compose exec web php bin/console cache:clear
-
-# Container neu starten
 docker compose restart web
 ```
 
-### Problem: "Column not found" Fehler
-
-**Ursache:** Datenbank-Schema veraltet
-
-**Lösung:**
+**Datenbank-Fehler ("Column not found")**
 ```bash
-# Schema aktualisieren
 docker compose exec web php bin/console doctrine:schema:update --force
 ```
 
-### Problem: Container startet nicht
-
-**Ursache:** Port 8000 bereits belegt
-
-**Lösung:** Anderen Port in `docker-compose.yaml` verwenden:
-```yaml
-ports:
-  - "8001:80"  # Statt 8000:80
+**Container startet nicht**
+```bash
+# Port 8000 belegt? → docker-compose.yaml ändern: "8001:80"
+# MySQL kaputt? → docker compose down -v && ./setup.sh
 ```
 
-### Problem: MySQL-Container startet nicht
-
-**Ursache:** Volumes beschädigt
-
-**Lösung:**
+**Permission Denied**
 ```bash
-# Alle Container und Volumes löschen
-docker compose down -v
-
-# Neu aufsetzen
-./setup.sh
-```
-
-### Problem: Permission Denied Fehler
-
-**Ursache:** Falsche Dateirechte im Container
-
-**Lösung:**
-```bash
-# Rechte korrigieren
 docker compose exec web chown -R www-data:www-data /var/www/html/var
 docker compose exec web chmod -R 755 /var/www/html/var
 ```
 
-## System komplett zurücksetzen
-
+**System komplett zurücksetzen**
 ```bash
-# 1. Container und Volumes löschen
 docker compose down -v
-
-# 2. Cache und Logs lokal löschen
 rm -rf var/cache/* var/log/*
-
-# 3. Setup neu durchführen
 ./setup.sh
+npm install && npm run dev
 ```
 
 ## Weiterführende Dokumentation

@@ -3,8 +3,8 @@
 {% block title %}Dokumente{% endblock %}
 
 {% block body %}
-    <div class="antialiased bg-gray-50 dark:bg-gray-900" 
-         data-controller="dokument rechnung"
+    <div class="antialiased bg-gray-50 dark:bg-gray-900"
+         data-controller="dokument rechnung hga-quality-check"
          data-dokument-new-url-value="{{ path('app_dokument_new', {'modal': '1'}) }}"
          data-dokument-edit-url-value="{{ path('app_dokument_edit', {'id': 'DOKUMENT_ID', 'modal': '1'}) }}"
          data-dokument-delete-url-value="{{ path('app_dokument_delete', {'id': 'DOKUMENT_ID'}) }}"
@@ -123,19 +123,36 @@
                                         {% endif %}
                                     </td>
                                     <td class="flex space-x-2">
+                                        {% if dokument.kategorie == 'hausgeldabrechnung' %}
+                                        <button type="button"
+                                                data-dokument-id="{{ dokument.id }}"
+                                                data-action="{{ 'click->hga-quality-check#checkWithOllama'|raw }}"
+                                                class="text-white bg-indigo-700 hover:bg-indigo-800 focus:ring-4 focus:outline-none focus:ring-indigo-300 font-medium rounded-lg text-xs px-3 py-1.5 dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:focus:ring-indigo-800"
+                                                title="Mit Ollama prüfen">
+                                            <i class="fas fa-robot"></i>
+                                        </button>
+                                        <button type="button"
+                                                data-dokument-id="{{ dokument.id }}"
+                                                data-action="{{ 'click->hga-quality-check#checkWithClaude'|raw }}"
+                                                class="text-white bg-purple-700 hover:bg-purple-800 focus:ring-4 focus:outline-none focus:ring-purple-300 font-medium rounded-lg text-xs px-3 py-1.5 dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-800"
+                                                title="Mit Claude prüfen">
+                                            <i class="fas fa-sparkles"></i>
+                                        </button>
+                                        {% endif %}
                                         <a href="{{ path('app_dokument_download', {'id': dokument.id}) }}"
+                                           data-turbo="false"
                                            class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-xs px-3 py-1.5 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
                                            title="Download">
                                             <i class="fas fa-download"></i>
                                         </a>
-                                        <button type="button" 
+                                        <button type="button"
                                                 data-dokument-id="{{ dokument.id }}"
                                                 data-action="click->dokument#showEditForm"
                                                 class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-xs px-3 py-1.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
                                                 title="Bearbeiten">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button type="button" 
+                                        <button type="button"
                                                 data-dokument-id="{{ dokument.id }}"
                                                 data-action="click->dokument#setupDeleteModal"
                                                 class="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800"
@@ -160,6 +177,7 @@
         {% include 'dokument/_modals/create.html.twig' %}
         {% include 'dokument/_modals/edit.html.twig' %}
         {% include 'dokument/_modals/delete.html.twig' %}
+        {% include 'dokument/_modals/hga_quality_check.html.twig' %}
 
         <!-- Rechnung Modals -->
         {% include 'rechnung/_modals/view.html.twig' %}

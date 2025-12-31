@@ -53,6 +53,9 @@ class Dokument
     #[ORM\ManyToOne]
     private ?Weg $weg = null;
 
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $hgaData = null;
+
     public function __construct()
     {
         $this->uploadDatum = new \DateTime();
@@ -250,5 +253,17 @@ class Dokument
     public function isHausgeldabrechnung(): bool
     {
         return 'hausgeldabrechnung' === $this->kategorie;
+    }
+
+    public function getHgaData(): ?array
+    {
+        return $this->hgaData;
+    }
+
+    public function setHgaData(?array $hgaData): static
+    {
+        $this->hgaData = $hgaData;
+
+        return $this;
     }
 }

@@ -208,6 +208,9 @@ class AbrechnungController extends AbstractController
                         'format' => $currentFormat,
                     ]);
 
+                    // Calculate HGA data
+                    $hgaData = $this->hgaService->generateReportData($einheit, $jahr);
+
                     // Create temporary file
                     $tempDir = sys_get_temp_dir();
                     $fileName = \sprintf('hausgeldabrechnung_%d_%s_%s.%s',
@@ -220,7 +223,7 @@ class AbrechnungController extends AbstractController
                     file_put_contents($filePath, $reportContent);
 
                     // Save to dokument system
-                    $dokument = $this->saveToDocumentSystem($filePath, $weg, $einheit, $jahr, $currentFormat);
+                    $dokument = $this->saveToDocumentSystem($filePath, $weg, $einheit, $jahr, $currentFormat, $hgaData);
                     $generatedFiles[] = $dokument;
                 } catch (\Exception $e) {
                     // Log error and continue with next file
@@ -240,7 +243,7 @@ class AbrechnungController extends AbstractController
         return $generatedFiles;
     }
 
-    private function saveToDocumentSystem(string $filePath, Weg $weg, WegEinheit $einheit, int $jahr, string $format): Dokument
+    private function saveToDocumentSystem(string $filePath, Weg $weg, WegEinheit $einheit, int $jahr, string $format, array $hgaData): Dokument
     {
         $fileName = basename($filePath);
         $relativePath = 'hausgeldabrechnung/' . $fileName;
@@ -257,26 +260,39 @@ class AbrechnungController extends AbstractController
             copy($filePath, $targetPath);
         }
 
-        // Create dokument record
-        $dokument = new Dokument();
-        $dokument->setDateiname($fileName)
-            ->setDateipfad($relativePath)
-            ->setDateityp($format)
-            ->setDategroesse(filesize($targetPath) ?: 0)
-            ->setKategorie('hausgeldabrechnung')
-            ->setBeschreibung(\sprintf(
-                'Hausgeldabrechnung %d für %s %s (%s)',
-                $jahr,
-                $einheit->getNummer(),
-                $einheit->getBezeichnung(),
-                mb_strtoupper($format)
-            ))
-            ->setWeg($weg)
-            ->setAbrechnungsJahr($jahr)
-            ->setEinheitNummer($einheit->getNummer())
-            ->setFormat($format);
+        // Check if document already exists
+        $existingDokument = $this->entityManager->getRepository(Dokument::class)
+            ->findOneBy(['dateiname' => $fileName]);
 
-        $this->entityManager->persist($dokument);
+        if ($existingDokument) {
+            // Update existing document
+            $existingDokument->setHgaData($hgaData);
+            $existingDokument->setUploadDatum(new \DateTime());
+            $dokument = $existingDokument;
+        } else {
+            // Create new dokument record
+            $dokument = new Dokument();
+            $dokument->setDateiname($fileName)
+                ->setDateipfad($relativePath)
+                ->setDateityp($format)
+                ->setDategroesse(filesize($targetPath) ?: 0)
+                ->setKategorie('hausgeldabrechnung')
+                ->setBeschreibung(\sprintf(
+                    'Hausgeldabrechnung %d für %s %s (%s)',
+                    $jahr,
+                    $einheit->getNummer(),
+                    $einheit->getBezeichnung(),
+                    mb_strtoupper($format)
+                ))
+                ->setWeg($weg)
+                ->setAbrechnungsJahr($jahr)
+                ->setEinheitNummer($einheit->getNummer())
+                ->setFormat($format)
+                ->setHgaData($hgaData);
+
+            $this->entityManager->persist($dokument);
+        }
+
         $this->entityManager->flush();
 
         return $dokument;

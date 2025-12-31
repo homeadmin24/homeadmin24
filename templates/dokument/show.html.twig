@@ -91,12 +91,15 @@
 </div>
 
 <!-- Actions -->
-<div class="flex items-center space-x-4">
+<div class="flex items-center space-x-4"
+     data-controller="hga-quality-check"
+     data-hga-quality-check-dokument-id-value="{{ dokument.id }}">
     <a href="{{ path('app_dokument_download', {'id': dokument.id}) }}"
+       data-turbo="false"
        class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800">
         <i class="fas fa-download mr-2"></i>Herunterladen
     </a>
-    
+
     {% if dokument.kategorie == 'rechnungen' and dokument.dienstleister and dokument.dienstleister.parserEnabled and not dokument.rechnung %}
     <form method="post" action="{{ path('app_dokument_parse', {'id': dokument.id}) }}" style="display: inline;">
         <input type="hidden" name="_token" value="{{ csrf_token('parse') }}">
@@ -106,6 +109,19 @@
             <i class="fas fa-magic mr-2"></i>Als Rechnung parsen
         </button>
     </form>
+    {% endif %}
+
+    {% if dokument.kategorie == 'hausgeldabrechnung' %}
+    <button type="button"
+            data-action="click->hga-quality-check#checkWithOllama"
+            class="text-white bg-indigo-700 hover:bg-indigo-800 focus:ring-4 focus:outline-none focus:ring-indigo-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:focus:ring-indigo-800 inline-flex items-center">
+        <i class="fas fa-robot mr-2"></i>Mit Ollama prüfen
+    </button>
+    <button type="button"
+            data-action="click->hga-quality-check#checkWithClaude"
+            class="text-white bg-purple-700 hover:bg-purple-800 focus:ring-4 focus:outline-none focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-800 inline-flex items-center">
+        <i class="fas fa-sparkles mr-2"></i>Mit Claude prüfen
+    </button>
     {% endif %}
 
     <button type="button" 
@@ -119,4 +135,119 @@
             class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">
         Schließen
     </button>
+</div>
+
+<!-- Quality Check Results Modal -->
+<div data-hga-quality-check-target="resultsModal"
+     class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 z-50">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    <i class="fas fa-check-circle mr-2"></i>Qualitätsprüfung Ergebnisse
+                </h3>
+                <button type="button"
+                        data-action="click->hga-quality-check#closeResults"
+                        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Modal body -->
+            <div class="p-6 space-y-6" data-hga-quality-check-target="resultsContent">
+                <!-- Loading state -->
+                <div data-hga-quality-check-target="loadingState" class="text-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                    <p class="text-gray-600 dark:text-gray-400">Qualitätsprüfung läuft...</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">Dies kann bis zu 5 Sekunden dauern</p>
+                </div>
+
+                <!-- Results content will be inserted here -->
+            </div>
+
+            <!-- Modal footer -->
+            <div class="flex items-center justify-between p-6 space-x-2 border-t border-gray-200 dark:border-gray-600"
+                 data-hga-quality-check-target="resultsFooter"
+                 style="display: none;">
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">War diese Prüfung hilfreich?</span>
+                    <button type="button"
+                            data-action="click->hga-quality-check#rateHelpful"
+                            class="text-green-600 hover:text-green-700 dark:text-green-500 dark:hover:text-green-400">
+                        <i class="fas fa-thumbs-up text-xl"></i>
+                    </button>
+                    <button type="button"
+                            data-action="click->hga-quality-check#rateNotHelpful"
+                            class="text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400">
+                        <i class="fas fa-thumbs-down text-xl"></i>
+                    </button>
+                </div>
+                <button type="button"
+                        data-action="click->hga-quality-check#showFeedbackForm"
+                        class="text-white bg-yellow-600 hover:bg-yellow-700 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-yellow-500 dark:hover:bg-yellow-600 dark:focus:ring-yellow-800">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Problem melden
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Feedback Form Modal -->
+<div data-hga-quality-check-target="feedbackModal"
+     class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 z-50">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 max-w-2xl w-full">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Problem melden
+                </h3>
+                <button type="button"
+                        data-action="click->hga-quality-check#closeFeedback"
+                        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Modal body -->
+            <div class="p-6">
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Art des Problems
+                    </label>
+                    <select data-hga-quality-check-target="feedbackType"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                        <option value="false_negative">Fehler wurde übersehen (False Negative)</option>
+                        <option value="false_positive">Falscher Alarm (False Positive)</option>
+                        <option value="new_check">Neuer Check vorgeschlagen</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Beschreibung
+                    </label>
+                    <textarea data-hga-quality-check-target="feedbackDescription"
+                              rows="4"
+                              class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                              placeholder="Beschreiben Sie das Problem oder den gewünschten neuen Check..."></textarea>
+                </div>
+            </div>
+
+            <!-- Modal footer -->
+            <div class="flex items-center justify-end p-6 space-x-2 border-t border-gray-200 dark:border-gray-600">
+                <button type="button"
+                        data-action="click->hga-quality-check#closeFeedback"
+                        class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600">
+                    Abbrechen
+                </button>
+                <button type="button"
+                        data-action="click->hga-quality-check#submitFeedback"
+                        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                    Problem senden
+                </button>
+            </div>
+        </div>
+    </div>
 </div>

@@ -2,6 +2,7 @@
 
 namespace App\Command;
 
+use App\Entity\Dokument;
 use App\Entity\Hausgeldabrechnung;
 use App\Entity\Weg;
 use App\Repository\WegEinheitRepository;
@@ -236,6 +237,9 @@ class HgaGenerateCommand extends Command
                 // Generate report content
                 $content = $generator->generateReport($einheit, $year);
 
+                // Calculate HGA data
+                $hgaData = $this->hgaService->generateReportData($einheit, $year);
+
                 // Save to file
                 $filename = \sprintf('hausgeldabrechnung_%d_%s_%s.%s',
                     $year,
@@ -246,6 +250,9 @@ class HgaGenerateCommand extends Command
 
                 $filePath = $outputDir . '/' . $filename;
                 file_put_contents($filePath, $content);
+
+                // Create or update Dokument record with HGA data
+                $this->createDokumentRecord($einheit, $year, $filename, $filePath, $hgaData);
 
                 $io->text(\sprintf('  ✓ Saved: %s', $filename));
                 ++$successCount;
@@ -274,6 +281,40 @@ class HgaGenerateCommand extends Command
         }
 
         return $outputDir;
+    }
+
+    private function createDokumentRecord(\App\Entity\WegEinheit $einheit, int $year, string $filename, string $filePath, array $hgaData): void
+    {
+        // Get relative path from project root
+        $relativePath = str_replace($this->projectDir . '/', '', $filePath);
+
+        // Check if document already exists
+        $existingDokument = $this->entityManager->getRepository(Dokument::class)
+            ->findOneBy(['dateiname' => $filename]);
+
+        if ($existingDokument) {
+            // Update existing document
+            $existingDokument->setHgaData($hgaData);
+            $existingDokument->setUploadDatum(new \DateTime());
+        } else {
+            // Create new document
+            $dokument = new Dokument();
+            $dokument->setDateiname($filename);
+            $dokument->setDateipfad($relativePath);
+            $dokument->setDateityp(pathinfo($filename, PATHINFO_EXTENSION));
+            $dokument->setDategroesse(filesize($filePath));
+            $dokument->setUploadDatum(new \DateTime());
+            $dokument->setKategorie('hausgeldabrechnung');
+            $dokument->setAbrechnungsJahr($year);
+            $dokument->setEinheitNummer($einheit->getNummer());
+            $dokument->setWeg($einheit->getWeg());
+            $dokument->setHgaData($hgaData);
+            $dokument->setFormat(pathinfo($filename, PATHINFO_EXTENSION));
+
+            $this->entityManager->persist($dokument);
+        }
+
+        $this->entityManager->flush();
     }
 
     private function saveGenerationMetadata(Weg $weg, int $year, int $successCount, int $totalCount): void

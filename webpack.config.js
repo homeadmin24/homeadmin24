@@ -102,4 +102,17 @@ config.optimization = {
     minimize: false
 };
 
+// Fix infinite recompile loop - ignore output directory and common patterns
+config.watchOptions = {
+    ignored: [
+        '**/node_modules',
+        '**/public/build',
+        '**/.git',
+        '**/var',
+        '**/vendor'
+    ],
+    aggregateTimeout: 300,
+    poll: false
+};
+
 module.exports = config;

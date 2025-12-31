@@ -21,6 +21,8 @@ services:
       - ./vendor:/var/www/html/vendor
       - ./composer.json:/var/www/html/composer.json
       - ./composer.lock:/var/www/html/composer.lock
+      - ./assets:/var/www/html/assets
+      - ./public/build:/var/www/html/public/build
 
   mysql:
     image: mysql:9

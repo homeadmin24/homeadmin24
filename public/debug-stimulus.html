@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stimulus Debug</title>
+</head>
+<body>
+    <h1>Stimulus Controller Debug</h1>
+    <pre id="output"></pre>
+
+    <script>
+        // Wait for page to load
+        setTimeout(() => {
+            const output = document.getElementById('output');
+            let log = '';
+
+            // Check if Stimulus is loaded
+            log += '=== STIMULUS CHECK ===\n';
+            log += 'window.Stimulus exists: ' + (typeof window.Stimulus !== 'undefined') + '\n';
+
+            if (window.Stimulus) {
+                log += 'Stimulus version: ' + (window.Stimulus.version || 'unknown') + '\n';
+                log += 'Number of controllers: ' + window.Stimulus.controllers.length + '\n\n';
+
+                log += '=== REGISTERED CONTROLLERS ===\n';
+                const controllers = Array.from(window.Stimulus.controllers || []);
+                controllers.forEach(ctrl => {
+                    log += '- ' + ctrl.identifier + '\n';
+                });
+                log += '\n';
+
+                // Check specifically for hga-quality-check
+                log += '=== HGA QUALITY CHECK CONTROLLER ===\n';
+                const hgaController = controllers.find(c => c.identifier === 'hga-quality-check');
+                if (hgaController) {
+                    log += 'Controller found: YES\n';
+                    log += 'Methods:\n';
+                    Object.getOwnPropertyNames(Object.getPrototypeOf(hgaController)).forEach(method => {
+                        if (method !== 'constructor') {
+                            log += '  - ' + method + '\n';
+                        }
+                    });
+                } else {
+                    log += 'Controller found: NO\n';
+                }
+            }
+
+            // Check DOM elements
+            log += '\n=== DOM ELEMENTS ===\n';
+            const hgaButtons = document.querySelectorAll('[data-action*="hga-quality-check"]');
+            log += 'Elements with hga-quality-check actions: ' + hgaButtons.length + '\n';
+
+            if (hgaButtons.length > 0) {
+                log += 'First button data-action: ' + hgaButtons[0].getAttribute('data-action') + '\n';
+            }
+
+            const hgaControllers = document.querySelectorAll('[data-controller*="hga-quality-check"]');
+            log += 'Elements with hga-quality-check controller: ' + hgaControllers.length + '\n';
+
+            if (hgaControllers.length > 0) {
+                log += 'First element data-controller: ' + hgaControllers[0].getAttribute('data-controller') + '\n';
+                log += 'First element dokument-id: ' + hgaControllers[0].getAttribute('data-hga-quality-check-dokument-id-value') + '\n';
+            }
+
+            // Check modal elements
+            log += '\n=== MODAL ELEMENTS ===\n';
+            const resultsModal = document.querySelector('[data-hga-quality-check-target="resultsModal"]');
+            log += 'Results modal found: ' + (resultsModal !== null) + '\n';
+
+            const feedbackModal = document.querySelector('[data-hga-quality-check-target="feedbackModal"]');
+            log += 'Feedback modal found: ' + (feedbackModal !== null) + '\n';
+
+            output.textContent = log;
+            console.log(log);
+        }, 2000);
+    </script>
+</body>
+</html>

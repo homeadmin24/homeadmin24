@@ -156,6 +156,15 @@ class HgaController extends AbstractController
         foreach ($einheiten as $einheit) {
             $formats = 'both' === $format ? ['pdf', 'txt'] : [$format];
 
+            // Generate HGA data once per unit (shared across all formats)
+            $hgaData = null;
+            try {
+                $hgaData = $this->hgaService->generateReportData($einheit, $jahr);
+            } catch (\Exception $e) {
+                error_log(\sprintf('Error generating HGA data for unit %s: %s', $einheit->getNummer(), $e->getMessage()));
+                // Continue without HGA data (quality checks won't be available)
+            }
+
             foreach ($formats as $currentFormat) {
                 try {
                     // Validate inputs
@@ -174,8 +183,8 @@ class HgaController extends AbstractController
                         $filePath = $this->saveReportToFile($content, $weg, $einheit, $jahr, $currentFormat);
                     }
 
-                    // Save to document system
-                    $dokument = $this->saveToDocumentSystem($filePath, $weg, $einheit, $jahr, $currentFormat);
+                    // Save to document system with HGA data for quality checks
+                    $dokument = $this->saveToDocumentSystem($filePath, $weg, $einheit, $jahr, $currentFormat, $hgaData);
                     $generatedFiles[] = $dokument;
                 } catch (\Exception $e) {
                     // Log error and continue with next file
@@ -210,7 +219,7 @@ class HgaController extends AbstractController
         return $filePath;
     }
 
-    private function saveToDocumentSystem(string $filePath, Weg $weg, WegEinheit $einheit, int $jahr, string $format): Dokument
+    private function saveToDocumentSystem(string $filePath, Weg $weg, WegEinheit $einheit, int $jahr, string $format, ?array $hgaData = null): Dokument
     {
         $fileName = basename($filePath);
         $relativePath = 'hausgeldabrechnung/' . $fileName;
@@ -244,7 +253,8 @@ class HgaController extends AbstractController
             ->setWeg($weg)
             ->setAbrechnungsJahr($jahr)
             ->setEinheitNummer($einheit->getNummer())
-            ->setFormat($format);
+            ->setFormat($format)
+            ->setHgaData($hgaData); // Store structured HGA data for quality checks
 
         $this->entityManager->persist($dokument);
         $this->entityManager->flush();
