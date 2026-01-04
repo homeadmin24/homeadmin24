@@ -70,12 +70,14 @@ services:
 
     # AI Services Configuration
     App\Service\OllamaService:
+        public: true  # Allow direct container access for testing
         arguments:
             $ollamaUrl: '%env(OLLAMA_URL)%'
             $model: '%env(OLLAMA_MODEL)%'
             $enabled: '%env(bool:AI_ENABLED)%'
 
     App\Service\AI\ClaudeProvider:
+        public: true  # Allow direct container access for testing
         arguments:
             $apiKey: '%env(ANTHROPIC_API_KEY)%'
             $enabled: '%env(bool:AI_CLAUDE_ENABLED)%'

@@ -116,7 +116,38 @@ class CostCalculationService
                 'items' => $ruecklagen,
                 'total' => $totalRuecklagen,
             ],
-            'gesamtkosten' => $totalUmlagefaehig + $totalNichtUmlagefaehig + $totalRuecklagen,
+            // BGH V ZR 44/09: Rücklagen are not part of Gesamtkosten.
+            'gesamtkosten' => $totalUmlagefaehig + $totalNichtUmlagefaehig,
+        ];
+    }
+
+    /**
+     * Calculate WEG totals directly from payments (no unit distribution).
+     *
+     * @return array<string, float>
+     */
+    public function calculateTotalCostsForWeg(Weg $weg, int $year): array
+    {
+        $zahlungen = $this->zahlungRepository->getPaymentsByWegAndYear($weg, $year);
+
+        $totalUmlagefaehig = $this->calculateTotalsByKategorisierungsTyp(
+            $zahlungen,
+            [KategorisierungsTyp::UMLAGEFAEHIG_HEIZUNG, KategorisierungsTyp::UMLAGEFAEHIG_SONSTIGE]
+        );
+        $totalNichtUmlagefaehig = $this->calculateTotalsByKategorisierungsTyp(
+            $zahlungen,
+            [KategorisierungsTyp::NICHT_UMLAGEFAEHIG]
+        );
+        $totalRuecklagen = $this->calculateTotalsByKategorisierungsTyp(
+            $zahlungen,
+            [KategorisierungsTyp::RUECKLAGENZUFUEHRUNG]
+        );
+
+        return [
+            'umlagefaehig' => $totalUmlagefaehig,
+            'nicht_umlagefaehig' => $totalNichtUmlagefaehig,
+            'ruecklagen' => $totalRuecklagen,
+            'gesamtkosten' => $totalUmlagefaehig + $totalNichtUmlagefaehig,
         ];
     }
 
@@ -181,6 +212,19 @@ class CostCalculationService
     }
 
     /**
+     * Sum totals by KategorisierungsTyp without unit distribution.
+     *
+     * @param array<Zahlung>             $zahlungen
+     * @param array<KategorisierungsTyp> $kategorisierungsTypen
+     */
+    private function calculateTotalsByKategorisierungsTyp(array $zahlungen, array $kategorisierungsTypen): float
+    {
+        $grouped = $this->groupZahlungenByKostenkonto($zahlungen, $kategorisierungsTypen);
+
+        return array_sum(array_column($grouped, 'total'));
+    }
+
+    /**
      * Group Zahlungen by Kostenkonto and filter by KategorisierungsTyp.
      *
      * @param array<Zahlung>             $zahlungen
@@ -204,10 +248,15 @@ class CostCalculationService
                 continue;
             }
 
-            // Skip externally calculated kostenkonto (01* Heizung, 02* Wasser)
+            // Skip income accounts - they are shown in payment overview instead
+            if (KategorisierungsTyp::EINNAHMEN === $kostenkonto->getKategorisierungsTyp()) {
+                continue;
+            }
+
+            // Skip externally calculated kostenkonto (01* Heiz-/Wasserkosten)
             // These are calculated by ExternalCostService instead
             $verteilungsschluessel = $kostenkonto->getUmlageschluessel()?->getSchluessel() ?? '05*';
-            if (\in_array($verteilungsschluessel, ['01*', '02*'], true)) {
+            if (\in_array($verteilungsschluessel, ['01*'], true)) {
                 continue;
             }
 
@@ -250,6 +299,9 @@ class CostCalculationService
             }
             ++$grouped[$nummer]['count'];
         }
+
+        // Sort by kostenkonto number
+        ksort($grouped);
 
         return array_values($grouped);
     }

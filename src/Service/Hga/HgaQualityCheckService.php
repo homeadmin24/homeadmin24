@@ -7,6 +7,7 @@ namespace App\Service\Hga;
 use App\Entity\Dokument;
 use App\Repository\HgaQualityFeedbackRepository;
 use App\Service\OllamaService;
+use App\Service\AI\ClaudeProvider;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -17,6 +18,7 @@ class HgaQualityCheckService
     public function __construct(
         private HgaQualityFeedbackRepository $feedbackRepository,
         private OllamaService $ollamaService,
+        private ClaudeProvider $claudeProvider,
         private LoggerInterface $logger,
     ) {}
 
@@ -140,7 +142,58 @@ class HgaQualityCheckService
             ];
         }
 
-        // Check 3: All checks passed
+        // Check 3: Payment count plausibility for this single unit
+        // (12 monthly payments + optional: 1 prior year settlement + up to 2 special assessments)
+        $paymentsCount = $payments['count'] ?? 0;
+        $year = $hgaData['year'] ?? null;
+
+        if ($paymentsCount > 0 && $year) {
+            // Expected for ONE unit: 12 monthly payments + optional settlements/special assessments
+            $expectedMinPayments = 10; // At least 10 monthly payments (allow some missing)
+            $expectedMaxPayments = 16; // 12 monthly + 1 settlement + up to 2 special assessments + buffer
+
+            if ($paymentsCount < $expectedMinPayments) {
+                $checks[] = [
+                    'category' => 'data_completeness',
+                    'severity' => 'medium',
+                    'status' => 'warning',
+                    'message' => sprintf(
+                        'Zu wenige Zahlungen für diese Einheit: %d vorhanden, mindestens %d erwartet',
+                        $paymentsCount,
+                        $expectedMinPayments
+                    ),
+                    'details' => [
+                        'actual_count' => $paymentsCount,
+                        'expected_min' => $expectedMinPayments,
+                        'expected_typical' => 12,
+                        'year' => $year,
+                        'recommendation' => sprintf(
+                            'Erwartete Zahlungen für diese Einheit: 12 Monatszahlungen, plus eventuell Nachzahlungen/Sonderumlagen. Tatsächlich: %d Zahlungen gefunden.',
+                            $paymentsCount
+                        ),
+                    ],
+                ];
+            } elseif ($paymentsCount > $expectedMaxPayments) {
+                $checks[] = [
+                    'category' => 'data_completeness',
+                    'severity' => 'low',
+                    'status' => 'warning',
+                    'message' => sprintf(
+                        'Ungewöhnlich viele Zahlungen für diese Einheit: %d vorhanden, normalerweise 12-16',
+                        $paymentsCount
+                    ),
+                    'details' => [
+                        'actual_count' => $paymentsCount,
+                        'expected_max' => $expectedMaxPayments,
+                        'expected_typical' => 12,
+                        'year' => $year,
+                        'recommendation' => 'Prüfen Sie ob Doppelbuchungen vorliegen oder Zahlungen aus anderen Jahren versehentlich zugeordnet wurden',
+                    ],
+                ];
+            }
+        }
+
+        // Check 4: All checks passed
         if (empty($checks)) {
             $checks[] = [
                 'category' => 'data_completeness',
@@ -305,23 +358,65 @@ class HgaQualityCheckService
             // Build AI prompt
             $prompt = $this->buildAIPrompt($hgaData, $checks, $userFeedback);
 
-            // For now, only Ollama is implemented
-            // Claude will be added in next step
+            // Log the prompt for debugging
+            $this->logger->info('HGA Quality Check - AI Prompt', [
+                'provider' => $provider,
+                'prompt_length' => strlen($prompt),
+                'prompt' => $prompt,
+                'einheit' => $hgaData['einheit']['nummer'] ?? 'unknown',
+                'year' => $hgaData['year'] ?? 'unknown',
+            ]);
+
+            // Ollama (local LLM)
             if ($provider === 'ollama') {
                 $response = $this->ollamaService->analyzeHgaQuality($prompt);
+
+                // Log the response
+                $this->logger->info('HGA Quality Check - AI Response', [
+                    'provider' => $provider,
+                    'response' => $response,
+                ]);
 
                 return $response;
             }
 
-            // Claude not yet implemented
-            $this->logger->warning('Claude provider not yet implemented for HGA quality checks');
+            // Claude (Anthropic API)
+            if ($provider === 'claude') {
+                if (!$this->claudeProvider->isAvailable()) {
+                    $this->logger->warning('Claude provider is not available (check AI_CLAUDE_ENABLED and ANTHROPIC_API_KEY)');
+                    throw new \RuntimeException('Claude provider is not available. Please check your configuration.');
+                }
 
-            return null;
+                $response = $this->claudeProvider->analyzeHgaQuality($prompt);
+
+                // Log the response
+                $this->logger->info('HGA Quality Check - AI Response', [
+                    'provider' => $provider,
+                    'response' => $response,
+                ]);
+
+                return $response;
+            }
+
+            // Helpful error for typos
+            if ($provider === 'olama') {
+                $this->logger->warning('Provider name typo detected: "olama" should be "ollama"');
+                throw new \InvalidArgumentException('Invalid provider "olama". Did you mean "ollama"?');
+            }
+
+            // Unknown provider
+            throw new \InvalidArgumentException(sprintf('Unknown AI provider "%s". Supported: ollama, claude', $provider));
         } catch (\Exception $e) {
             $this->logger->error('AI analysis failed', [
                 'provider' => $provider,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
+
+            // Re-throw in debug mode to see what's happening
+            if ($_ENV['APP_DEBUG'] ?? false) {
+                throw $e;
+            }
 
             return null;
         }
@@ -332,14 +427,42 @@ class HgaQualityCheckService
      */
     private function buildAIPrompt(array $hgaData, array $checks, array $userFeedback): string
     {
-        // Extract key data
+        // Extract key data with fallbacks for different HGA data structures
         $einheit = $hgaData['einheit'] ?? [];
         $costs = $hgaData['costs'] ?? [];
         $payments = $hgaData['payments'] ?? [];
         $externalCosts = $hgaData['external_costs'] ?? [];
         $taxDeductible = $hgaData['tax_deductible'] ?? [];
         $wegTotals = $hgaData['weg_totals'] ?? [];
+
+        // Handle nested cost structure
+        $gesamtkosten = $costs['gesamtkosten'] ?? $costs['total'] ?? 0.0;
+        $umlagefaehig = $costs['umlagefaehig']['total'] ?? $costs['umlagefaehig'] ?? 0.0;
+        $nichtUmlagefaehig = $costs['nicht_umlagefaehig']['total'] ?? $costs['nicht_umlagefaehig'] ?? 0.0;
+        $ruecklagen = $costs['ruecklagen']['total'] ?? $costs['ruecklagenzufuehrung'] ?? 0.0;
         $year = $hgaData['year'] ?? date('Y');
+
+        // Handle external costs (may not exist)
+        $heatingTotal = $externalCosts['heating']['total'] ?? 0.0;
+        $heatingUnitShare = $externalCosts['heating']['unit_share'] ?? 0.0;
+        $waterTotal = $externalCosts['water']['total'] ?? 0.0;
+        $waterUnitShare = $externalCosts['water']['unit_share'] ?? 0.0;
+
+        // Handle tax deductible (may not exist)
+        $taxDeductibleTotal = $taxDeductible['total'] ?? 0.0;
+        $taxReduction = $taxDeductible['tax_reduction'] ?? 0.0;
+
+        // Handle payments
+        $paymentsSoll = $payments['soll'] ?? 0.0;
+        $paymentsIst = $payments['ist'] ?? 0.0;
+        $paymentsDifferenz = $payments['differenz'] ?? 0.0;
+        $paymentsStatus = $payments['status'] ?? 'Unbekannt';
+
+        // Handle einheit fields
+        $einheitNummer = $einheit['nummer'] ?? 'N/A';
+        $einheitBeschreibung = $einheit['beschreibung'] ?? 'N/A';
+        $einheitEigentuemer = $einheit['eigentuemer'] ?? 'N/A';
+        $einheitMea = $einheit['mea'] ?? 'N/A';
 
         // Build failed checks list
         $failedChecks = array_filter($checks, fn ($c) => $c['status'] !== 'pass');
@@ -376,34 +499,34 @@ class HgaQualityCheckService
 Analysiere diese Hausgeldabrechnung auf Fehler und Auffälligkeiten:{$userFeedbackContext}
 
 EINHEIT:
-- Nummer: {$einheit['nummer']}
-- Beschreibung: {$einheit['beschreibung']}
-- Eigentümer: {$einheit['eigentuemer']}
-- MEA-Anteil: {$einheit['mea']} ({$einheit['mea']}%)
+- Nummer: {$einheitNummer}
+- Beschreibung: {$einheitBeschreibung}
+- Eigentümer: {$einheitEigentuemer}
+- MEA-Anteil: {$einheitMea}
 
 ABRECHNUNGSJAHR: {$year}
 
 KOSTEN-ÜBERSICHT:
-- Gesamtkosten WEG: {$wegTotals['gesamtkosten']} EUR
-- Anteil Einheit: {$costs['total']} EUR
-- Umlagefähig: {$costs['umlagefaehig']} EUR
-- Nicht umlagefähig: {$costs['nicht_umlagefaehig']} EUR
-- Rücklagenzuführung: {$costs['ruecklagenzufuehrung']} EUR
+- Gesamtkosten Einheit: {$gesamtkosten} EUR
+- Umlagefähig: {$umlagefaehig} EUR
+- Nicht umlagefähig: {$nichtUmlagefaehig} EUR
+- Rücklagenzuführung: {$ruecklagen} EUR
 
 EXTERNE KOSTEN:
-- Heizkosten gesamt: {$externalCosts['heating']['total']} EUR
-- Heizkosten Einheit: {$externalCosts['heating']['unit_share']} EUR
-- Wasserkosten gesamt: {$externalCosts['water']['total']} EUR
-- Wasserkosten Einheit: {$externalCosts['water']['unit_share']} EUR
+- Heizkosten gesamt: {$heatingTotal} EUR
+- Heizkosten Einheit: {$heatingUnitShare} EUR
+- Wasserkosten gesamt: {$waterTotal} EUR
+- Wasserkosten Einheit: {$waterUnitShare} EUR
 
 ZAHLUNGEN:
-- Soll (Vorauszahlungen): {$payments['soll']} EUR
-- Ist (tatsächlich gezahlt): {$payments['ist']} EUR
-- Differenz: {$payments['differenz']} EUR
+- Soll (Vorauszahlungen): {$paymentsSoll} EUR
+- Ist (tatsächlich gezahlt): {$paymentsIst} EUR
+- Differenz: {$paymentsDifferenz} EUR
+- Status: {$paymentsStatus}
 
 STEUERLICH ABSETZBAR (§35a EStG):
-- Gesamt absetzbar: {$taxDeductible['total']} EUR
-- Steuerermäßigung: {$taxDeductible['tax_reduction']} EUR
+- Gesamt absetzbar: {$taxDeductibleTotal} EUR
+- Steuerermäßigung: {$taxReduction} EUR
 
 BEREITS ERKANNTE PROBLEME:
 {$failedChecksList}
@@ -437,6 +560,31 @@ Antworte NUR mit gültigem JSON:
     "summary": "Zusammenfassung der Qualitätsprüfung in 2-3 Sätzen"
 }
 PROMPT;
+    }
+
+    /**
+     * Get debug prompt for a document (without running AI analysis).
+     * Useful for debugging and prompt engineering.
+     */
+    public function getDebugPrompt(Dokument $dokument): string
+    {
+        // Get structured HGA data
+        $hgaData = $dokument->getHgaData();
+        if (!$hgaData) {
+            throw new \InvalidArgumentException('Document has no HGA data');
+        }
+
+        // Run rule-based checks
+        $checks = [];
+        $checks = array_merge($checks, $this->checkDataCompleteness($hgaData));
+        $checks = array_merge($checks, $this->checkCalculationPlausibility($hgaData));
+        $checks = array_merge($checks, $this->checkCompliance($hgaData));
+
+        // Get recent user feedback
+        $userFeedback = $this->feedbackRepository->getRecentIssues(10);
+
+        // Build and return prompt
+        return $this->buildAIPrompt($hgaData, $checks, $userFeedback);
     }
 
     /**

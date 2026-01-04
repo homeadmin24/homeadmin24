@@ -87,7 +87,7 @@ class BankStatementParsingService
 
             // If no partner (bank fees), assign to KSK bank
             if (!$dienstleister && empty($transaction['partner'])) {
-                $dienstleister = $this->findOrCreateDienstleister('Kreissparkasse München Starnberg Ebersberg', true);
+                $dienstleister = $this->findOrCreateDienstleister('Kreissparkasse MSE', true);
                 error_log('Assigned bank fee to KSK bank');
             }
 
@@ -265,6 +265,15 @@ class BankStatementParsingService
                 continue;
             }
 
+            // Check known alias mappings first
+            $mappedName = $this->mapKnownAlias($partner);
+            if ($mappedName !== $partner) {
+                $existing = $this->dienstleisterRepository->findOneBy(['bezeichnung' => $mappedName]);
+                if ($existing) {
+                    continue; // Found via alias mapping
+                }
+            }
+
             // Try exact match first
             $existing = $this->dienstleisterRepository->findOneBy(['bezeichnung' => $partner]);
 
@@ -370,11 +379,17 @@ class BankStatementParsingService
             $isIncome = $transaction['amount'] > 0;
             $isDuplicate = $this->isDuplicate($transaction);
 
+            // If no partner (bank fees), show KSK bank name
+            $partner = $transaction['partner'];
+            if (empty($partner)) {
+                $partner = 'Kreissparkasse MSE';
+            }
+
             return [
                 'date' => $transaction['booking_date']->format('d.m.Y'),
                 'type' => $transaction['booking_text'],
                 'typeClass' => $this->getTypeClass($transaction['booking_text']),
-                'partner' => $transaction['partner'] ?: 'Unbekannt',
+                'partner' => $partner,
                 'purpose' => mb_substr($transaction['purpose'], 0, 50) . (mb_strlen($transaction['purpose']) > 50 ? '...' : ''),
                 'amount' => $this->formatAmount($transaction['amount']),
                 'amountClass' => $isIncome ? 'text-green-600' : 'text-red-600',
@@ -408,6 +423,15 @@ class BankStatementParsingService
             return null;
         }
 
+        // Check known alias mappings first
+        $mappedName = $this->mapKnownAlias($partnerName);
+        if ($mappedName !== $partnerName) {
+            $dienstleister = $this->dienstleisterRepository->findOneBy(['bezeichnung' => $mappedName]);
+            if ($dienstleister) {
+                return $dienstleister;
+            }
+        }
+
         // Try exact match first
         $dienstleister = $this->dienstleisterRepository->findOneBy(['bezeichnung' => $partnerName]);
 
@@ -426,6 +450,17 @@ class BankStatementParsingService
         }
 
         return $dienstleister;
+    }
+
+    private function mapKnownAlias(string $partnerName): string
+    {
+        // Map known aliases/variations to canonical names
+        $aliases = [
+            'BAY.VERSICHERUNGSVERBAND AG' => 'Versicherungskammer Bayern',
+            'BAYERISCHER VERSICHERUNGSVERBAND' => 'Versicherungskammer Bayern',
+        ];
+
+        return $aliases[$partnerName] ?? $partnerName;
     }
 
     private function findSimilarDienstleister(string $partnerName): ?Dienstleister

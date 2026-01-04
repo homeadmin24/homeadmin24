@@ -85,35 +85,14 @@ class TxtReportGenerator implements ReportGeneratorInterface
             $content[] = 'ABRECHNUNGSÜBERSICHT:';
             $content[] = '----------------------------------------';
 
-            // Calculate totals that include external costs (same as final GESAMTSUMME)
-            $heizungWasserTotal = 0.0;
-            $heizungWasserAnteil = 0.0;
-            if (isset($data['external_costs'])) {
-                $heizungWasserTotal = ($data['external_costs']['heating']['total'] ?? 0.0) +
-                                    ($data['external_costs']['water']['total'] ?? 0.0);
-                $heizungWasserAnteil = ($data['external_costs']['heating']['unit_share'] ?? 0.0) +
-                                     ($data['external_costs']['water']['unit_share'] ?? 0.0);
-            }
+            // Use centralized calculated_totals from HgaService (BGH V ZR 44/09 compliant)
+            $calc = $data['calculated_totals'];
+            $saldo = $calc['balance']['saldo'];
+            $abrechnungsspitze = $calc['balance']['abrechnungsspitze'];
+            $zahlungsdifferenz = $calc['balance']['zahlungsdifferenz'];
 
-            $sonstigeTotal = array_sum(array_column($data['costs']['umlagefaehig']['items'] ?? [], 'total'));
-            $sonstigeAnteil = array_sum(array_column($data['costs']['umlagefaehig']['items'] ?? [], 'anteil'));
-
-            $wegUmlagefaehig = $heizungWasserTotal + $sonstigeTotal;
-            $wegNichtUmlagefaehig = array_sum(array_column($data['costs']['nicht_umlagefaehig']['items'] ?? [], 'total'));
-            $wegRuecklagen = -abs(array_sum(array_column($data['costs']['ruecklagen']['items'] ?? [], 'total')));
-            $wegTotalCosts = $wegUmlagefaehig + $wegNichtUmlagefaehig + $wegRuecklagen;
-
-            $unitUmlagefaehig = $heizungWasserAnteil + $sonstigeAnteil;
-            $unitNichtUmlagefaehig = array_sum(array_column($data['costs']['nicht_umlagefaehig']['items'] ?? [], 'anteil'));
-            $unitRuecklagen = -abs(array_sum(array_column($data['costs']['ruecklagen']['items'] ?? [], 'anteil')));
-            $unitTotalCosts = $unitUmlagefaehig + $unitNichtUmlagefaehig + $unitRuecklagen;
-
-            $unitSoll = $data['payments']['soll'] ?? 0.0;
-            $unitIst = $data['payments']['ist'] ?? 0.0;
-            $abrechnungsspitze = $unitTotalCosts - $unitSoll;
-            $zahlungsdifferenz = $unitIst - $unitSoll;
-            // Simple calculation: Total costs - Actual payments = Net balance
-            $saldo = $unitTotalCosts - $unitIst;
+            $wegGesamtkosten = $calc['weg']['gesamtkosten'];
+            $unitGesamtkosten = $calc['unit']['gesamtkosten'];
 
             $content[] = \sprintf('✅ ERGEBNIS: %s von %.2f €',
                 $saldo > 0 ? 'NACHZAHLUNG' : 'GUTHABEN', abs($saldo));
@@ -126,13 +105,15 @@ class TxtReportGenerator implements ReportGeneratorInterface
 
             $wegTotalSoll = $data['weg_totals']['soll'] ?? 0.0;
             $wegTotalIst = $data['weg_totals']['ist'] ?? 0.0;
+            $unitSoll = $data['payments']['soll'] ?? 0.0;
+            $unitIst = $data['payments']['ist'] ?? 0.0;
 
-            // Calculate balance components using consistent totals
-            $wegAbrechnungsspitze = $wegTotalCosts - $wegTotalSoll;
+            // Calculate WEG balance components
+            $wegAbrechnungsspitze = $wegGesamtkosten - $wegTotalSoll;
             $wegZahlungsdifferenz = $wegTotalIst - $wegTotalSoll;
 
             $content[] = \sprintf('Gesamtkosten                     %8.2f €    %8.2f €',
-                $wegTotalCosts, $unitTotalCosts);
+                $wegGesamtkosten, $unitGesamtkosten);
             $content[] = \sprintf('- Hausgeld-Vorschuss Soll        %8.2f €    %8.2f €',
                 $wegTotalSoll, $unitSoll);
             $content[] = '--------------------------------------------------';
@@ -159,17 +140,40 @@ class TxtReportGenerator implements ReportGeneratorInterface
         $content[] = 'Nr.  Umlageschlüssel               Umlage       Zeitraum Tage  Gesamtumlage    Ihr Anteil     ';
         $content[] = '------------------------------------------------------------------------------------------------------------------------';
 
-        // Unit specific values
-        $mea = $this->extractMEAAsDecimal($data['einheit']['mea'] ?? '');
-        $unitCount = 4.0; // Fixed for this WEG
-        $hebeanlageShare = ($data['einheit']['hebeanlage'] ?? false) ? 1.0 : 0.0;
+        // Use centralized umlageschluessel data from HgaService
+        if (isset($data['umlageschluessel'])) {
+            foreach ($data['umlageschluessel'] as $schluessel) {
+                $nummer = $schluessel['nummer'];
+                $bezeichnung = $schluessel['bezeichnung'];
+                $umlageTyp = $schluessel['umlage_typ'];
+                $zeitraum = $schluessel['zeitraum'];
+                $tage = $schluessel['tage'];
+                $gesamtumlage = $schluessel['gesamtumlage'];
+                $anteil = $schluessel['anteil'];
 
-        $content[] = \sprintf('01*  ext. berechn. Heizkosten       € Festbetrag %d     365   Beträge siehe Ergebnisliste                ', $data['year']);
-        $content[] = \sprintf('02*  ext. berechn. Wasser-/sonst. Kosten € Festbetrag %d     365   Beträge siehe Ergebnisliste                ', $data['year']);
-        $content[] = \sprintf('03*  Anzahl Einheit                 Einheiten-anteilig %d     365   %.2f            %.2f           ', $data['year'], $unitCount, 1.0);
-        $content[] = \sprintf('04*  Festumlage                     € Festbetrag %d     365   Beträge siehe Ergebnisliste                ', $data['year']);
-        $content[] = \sprintf('05*  Miteigentumsanteil             Anzahl anteilig %d     365   1.000,000       %.4f       ', $data['year'], $mea * 1000);
-        $content[] = \sprintf('06*  Hebeanlage                     Spezial      %d     365   6,00            %.2f           ', $data['year'], $hebeanlageShare);
+                // Format gesamtumlage
+                if (is_string($gesamtumlage)) {
+                    $gesamtumlageStr = $gesamtumlage;
+                } elseif (is_numeric($gesamtumlage)) {
+                    $gesamtumlageStr = number_format($gesamtumlage, 2, ',', '.');
+                } else {
+                    $gesamtumlageStr = '';
+                }
+
+                // Format anteil
+                if ($anteil === null) {
+                    $anteilStr = '';
+                } elseif ($nummer === '05*') {
+                    $anteilStr = number_format($anteil, 4, ',', '.');
+                } else {
+                    $anteilStr = number_format($anteil, 2, ',', '.');
+                }
+
+                $content[] = \sprintf('%-4s %-30s %-12s %d     %d   %-15s %-15s',
+                    $nummer, $bezeichnung, $umlageTyp, $zeitraum, $tage, $gesamtumlageStr, $anteilStr);
+            }
+        }
+
         $content[] = '========================================================================================================================';
         $content[] = '';
 
@@ -189,24 +193,17 @@ class TxtReportGenerator implements ReportGeneratorInterface
             if (isset($data['external_costs'])) {
                 $content[] = 'HEIZUNG/WASSER/ABRECHNUNG:';
 
-                // External heating costs
-                if (isset($data['external_costs']['heating'])) {
+                if (isset($data['external_costs'])) {
                     $heatingTotal = $data['external_costs']['heating']['total'] ?? 0.0;
                     $heatingAnteil = $data['external_costs']['heating']['unit_share'] ?? 0.0;
-                    $content[] = \sprintf('ext. berechn. Heizkosten 01*          %8.2f €   %8.2f €',
-                        $heatingTotal, $heatingAnteil);
-                    $heizungWasserTotal += $heatingTotal;
-                    $heizungWasserAnteil += $heatingAnteil;
-                }
-
-                // External water costs
-                if (isset($data['external_costs']['water'])) {
                     $waterTotal = $data['external_costs']['water']['total'] ?? 0.0;
                     $waterAnteil = $data['external_costs']['water']['unit_share'] ?? 0.0;
-                    $content[] = \sprintf('ext. berechn. Wasser-/sonst. Kosten 02*   %8.2f €     %8.2f €',
-                        $waterTotal, $waterAnteil);
-                    $heizungWasserTotal += $waterTotal;
-                    $heizungWasserAnteil += $waterAnteil;
+
+                    $heizungWasserTotal = $heatingTotal + $waterTotal;
+                    $heizungWasserAnteil = $heatingAnteil + $waterAnteil;
+
+                    $content[] = \sprintf('ext. berechn. Heiz-/Wasserkosten 01*     %8.2f €   %8.2f €',
+                        $heizungWasserTotal, $heizungWasserAnteil);
                 }
 
                 if ($heizungWasserTotal > 0) {
@@ -273,109 +270,179 @@ class TxtReportGenerator implements ReportGeneratorInterface
             $content[] = '';
         }
 
-        // Add Rücklagenzuführung section
-        if (isset($data['costs']['ruecklagen']['items']) && !empty($data['costs']['ruecklagen']['items'])) {
-            $content[] = '3. RÜCKLAGENZUFÜHRUNG:';
-            $content[] = '--------------------------------------------------';
-            $content[] = 'Art der Rücklagenzuführung        Gesamtbetrag   Ihr Anteil';
-            $content[] = '--------------------------------------------------';
-            foreach ($data['costs']['ruecklagen']['items'] as $item) {
-                $content[] = \sprintf('%s - %s %s      %8.2f €    %8.2f €',
-                    $item['kostenkonto'],
-                    $item['beschreibung'],
-                    $item['verteilungsschluessel'] ?? '05*',
-                    -abs($item['total']),  // Show as negative (contribution TO reserves)
-                    -abs($item['anteil'])  // Show as negative (reduces owner's cost)
-                );
-            }
-            $content[] = '--------------------------------------------------';
-
-            // Calculate totals for Rücklagenzuführung
-            $ruecklagenWegTotal = array_sum(array_column($data['costs']['ruecklagen']['items'], 'total'));
-            $ruecklagenUnitTotal = array_sum(array_column($data['costs']['ruecklagen']['items'], 'anteil'));
-
-            $content[] = \sprintf('∑ SUMME: Rücklagenzuführung       %8.2f €    %8.2f €',
-                -abs($ruecklagenWegTotal), -abs($ruecklagenUnitTotal));
-            $content[] = '==================================================';
-            $content[] = '';
-            $content[] = '';
-        }
-
-        // Calculate final totals using the displayed section totals to ensure consistency
-        $finalWegUmlagefaehig = ($heizungWasserTotal + $sonstigeTotal);
-        $finalUnitUmlagefaehig = ($heizungWasserAnteil + $sonstigeAnteil);
-
-        $finalWegNichtUmlagefaehig = array_sum(array_column($data['costs']['nicht_umlagefaehig']['items'] ?? [], 'total'));
-        $finalUnitNichtUmlagefaehig = array_sum(array_column($data['costs']['nicht_umlagefaehig']['items'] ?? [], 'anteil'));
-
-        $finalWegRuecklagen = -abs(array_sum(array_column($data['costs']['ruecklagen']['items'] ?? [], 'total')));
-        $finalUnitRuecklagen = -abs(array_sum(array_column($data['costs']['ruecklagen']['items'] ?? [], 'anteil')));
-
-        $finalWegTotal = $finalWegUmlagefaehig + $finalWegNichtUmlagefaehig + $finalWegRuecklagen;
-        $finalUnitTotal = $finalUnitUmlagefaehig + $finalUnitNichtUmlagefaehig + $finalUnitRuecklagen;
+        // Use centralized calculated_totals from HgaService (BGH V ZR 44/09 compliant)
+        // Note: Rücklagen are shown in ZAHLUNGSÜBERSICHT, not here (BGH V ZR 44/09)
+        $calc = $data['calculated_totals'];
 
         $content[] = \sprintf('∑ GESAMTSUMME ALLER KOSTEN     %8.2f €   %8.2f €',
-            $finalWegTotal, $finalUnitTotal);
+            $calc['weg']['gesamtkosten'], $calc['unit']['gesamtkosten']);
         $content[] = '';
 
         // Add payment overview section
-        if (isset($data['payments']['payment_details']) && !empty($data['payments']['payment_details'])) {
+        if (isset($data['payments']['monthly_unit_payments'])) {
+            $monthlyUnitPayments = $data['payments']['monthly_unit_payments'];
+            $monthlyWegIst = $data['payments']['weg_totals']['monthly_weg_ist'] ?? [];
+
             $content[] = 'ZAHLUNGSÜBERSICHT ' . $data['year'] . ':';
             $content[] = '----------------------------------------------------------------------';
             $content[] = 'Debitor: ' . $data['einheit']['nummer'] . ' ' . $data['einheit']['beschreibung'] . ' ' . $data['einheit']['eigentuemer'];
             $content[] = 'Zeitraum: 01.01.' . $data['year'] . ' - 31.12.' . $data['year'];
             $content[] = '----------------------------------------------------------------------';
-            $content[] = 'Datum        Beschreibung                                   Betrag';
+            $content[] = \sprintf('%-12s %-20s %15s %15s', 'Datum', 'Beschreibung', 'WEG Gesamt', 'Ihre Zahlung');
             $content[] = '----------------------------------------------------------------------';
 
-            $totalPayments = 0.0;
-            foreach ($data['payments']['payment_details'] as $payment) {
-                $datum = $payment['datum']->format('d.m.Y');
+            // Show monthly wohngeld payments
+            $totalWohngeldUnit = 0.0;
+            $totalWohngeldWeg = 0.0;
+            for ($month = 1; $month <= 12; ++$month) {
+                if (isset($monthlyUnitPayments[$month]) && $monthlyUnitPayments[$month]['wohngeld'] > 0) {
+                    $wegTotal = $monthlyWegIst[$month] ?? 0.0;
+                    $unitTotal = $monthlyUnitPayments[$month]['wohngeld'];
 
-                // Clean up description for display
-                $beschreibung = $payment['beschreibung'];
-                $beschreibung = str_replace('WOHNGELD MUSTERMANN/BEISPIEL', 'Wohngeld', $beschreibung);
-                $beschreibung = str_replace('SONDERUMLAGE HEBEANLAGE BEISPIEL', 'Sonderumlage', $beschreibung);
-                $beschreibung = str_replace('Nachzahlung 2023', 'Zahlung', $beschreibung);
+                    $content[] = \sprintf('%02d.%d       %-20s %14s € %14s €',
+                        $month,
+                        $data['year'],
+                        'Wohngeld',
+                        number_format($wegTotal, 2, ',', '.'),
+                        number_format($unitTotal, 2, ',', '.')
+                    );
 
-                // Truncate if too long
-                if (mb_strlen($beschreibung) > 45) {
-                    $beschreibung = mb_substr($beschreibung, 0, 42) . '...';
+                    $totalWohngeldUnit += $unitTotal;
+                    $totalWohngeldWeg += $wegTotal;
                 }
-
-                $content[] = \sprintf('%-12s %-45s %10s €',
-                    $datum,
-                    $beschreibung,
-                    number_format($payment['betrag'], 2, ',', '.')
-                );
-
-                $totalPayments += $payment['betrag'];
             }
 
+            $content[] = '----------------------------------------------------------------';
+            $content[] = \sprintf('%-33s %14s € %14s €',
+                '',
+                number_format($totalWohngeldWeg, 2, ',', '.'),
+                number_format($totalWohngeldUnit, 2, ',', '.')
+            );
+
+            // Collect other payments from all months
+            $otherPayments = [];
+            foreach ($monthlyUnitPayments as $monthData) {
+                if (isset($monthData['other'])) {
+                    $otherPayments = array_merge($otherPayments, $monthData['other']);
+                }
+            }
+
+            // Show other payments (Nachzahlungen, Sonderumlagen)
+            $totalOtherUnit = 0.0;
+            if (!empty($otherPayments)) {
+                $content[] = '';
+                $totalOtherWeg = 0.0;
+                $wegCategoryTotals = $data['payments']['weg_category_totals'] ?? [];
+                $unitCategoryTotals = [];
+
+                foreach ($otherPayments as $payment) {
+                    $kategorie = $payment['kategorie'] ?? 'Unbekannt';
+                    $unitCategoryTotals[$kategorie] = ($unitCategoryTotals[$kategorie] ?? 0.0) + $payment['betrag'];
+                }
+
+                foreach ($unitCategoryTotals as $kategorie => $unitTotal) {
+                    $wegTotal = $wegCategoryTotals[$kategorie] ?? 0.0;
+                    $content[] = \sprintf('%-12s %-20s %14s € %14s €',
+                        (string) $data['year'],
+                        $kategorie,
+                        number_format($wegTotal, 2, ',', '.'),
+                        number_format($unitTotal, 2, ',', '.')
+                    );
+                    $totalOtherUnit += $unitTotal;
+                    $totalOtherWeg += $wegTotal;
+                }
+                $content[] = '----------------------------------------------------------------------';
+                $content[] = \sprintf('%-33s %14s € %14s €',
+                    '',
+                    number_format($totalOtherWeg, 2, ',', '.'),
+                    number_format($totalOtherUnit, 2, ',', '.')
+                );
+            }
+
+            $totalPayments = $totalWohngeldUnit + $totalOtherUnit;
+            $content[] = '';
             $content[] = '----------------------------------------------------------------------';
-            $content[] = \sprintf('JAHRESSUMME:                                            %s €',
+            $content[] = \sprintf('%-49s %14s €',
+                '',
                 number_format($totalPayments, 2, ',', '.')
             );
+
+            $content[] = '';
             $content[] = '======================================================================';
+
+            // Add WEG totals summary (only Wohngeld)
+            $wegPayments = $data['payments']['weg_totals']['ist'] ?? 0.0;
+            $content[] = '';
+            $content[] = 'WEG GESAMTSUMMEN:';
+            $content[] = \sprintf('Wohngeld gesamt (WEG):                                 %s €',
+                number_format($wegPayments, 2, ',', '.')
+            );
+            $content[] = '======================================================================';
+
+            // Add Rücklagenzuführung with WEG and Unit totals
+            $unitRuecklagen = 0.0;
+            $wegRuecklagen = $data['payments']['weg_totals']['ruecklagen'] ?? 0.0;
+            if (isset($data['costs']['ruecklagen']['items']) && !empty($data['costs']['ruecklagen']['items'])) {
+                $content[] = '';
+                $content[] = 'RÜCKLAGENZUFÜHRUNG (Einnahmen für Rücklage):';
+                $content[] = '----------------------------------------------------------------------';
+                foreach ($data['costs']['ruecklagen']['items'] as $item) {
+                    $unitRuecklagen += abs($item['anteil']);
+                }
+                $content[] = \sprintf('31.12.%d     %-26s %14s € %14s €',
+                    $data['year'],
+                    'Rücklagenzuführung',
+                    number_format(abs($wegRuecklagen), 2, ',', '.'),
+                    number_format($unitRuecklagen, 2, ',', '.')
+                );
+                $content[] = '----------------------------------------------------------------------';
+            }
+
             $content[] = '';
         }
 
         // Add balance development section
         if (isset($data['balance']) && $data['balance']['hasData']) {
             $balance = $data['balance'];
+            $wegRuecklagen = $data['payments']['weg_totals']['ruecklagen'] ?? 0.0;
+
+            // Calculate separate balances for Hausgeld and Rücklagen
+            $startTotal = $balance['startAmount'];
+            $endTotal = $balance['endAmount'];
+            $endRuecklagen = abs($wegRuecklagen);
+            $endHausgeld = $endTotal - $endRuecklagen;
+
+            // Assume all previous balance was Hausgeld
+            $startHausgeld = $startTotal;
+            $startRuecklagen = 0.0;
+
             $content[] = 'KONTOSTANDSENTWICKLUNG ' . $data['year'] . ':';
             $content[] = '----------------------------------------------------------------------';
-            $content[] = \sprintf('Kontostand 31.12.%d:                %s €',
+            $content[] = \sprintf('Kontostand Hausgeld 31.12.%d:       %s €',
                 $balance['year'] - 1,
-                number_format($balance['startAmount'], 2, ',', '.')
+                number_format($startHausgeld, 2, ',', '.')
             );
-            $content[] = \sprintf('Kontostand 31.12.%d:                %s €',
+            $content[] = \sprintf('Kontostand Rücklagen 31.12.%d:      %s €',
+                $balance['year'] - 1,
+                number_format($startRuecklagen, 2, ',', '.')
+            );
+            $content[] = '';
+            $content[] = \sprintf('Kontostand Hausgeld 31.12.%d:       %s €',
                 $balance['year'],
-                number_format($balance['endAmount'], 2, ',', '.')
+                number_format($endHausgeld, 2, ',', '.')
             );
-            $content[] = \sprintf('Veränderung:                        %s%s €',
-                $balance['change'] < 0 ? '' : '+',
-                number_format($balance['change'], 2, ',', '.')
+            $content[] = \sprintf('Kontostand Rücklagen 31.12.%d:      %s €',
+                $balance['year'],
+                number_format($endRuecklagen, 2, ',', '.')
+            );
+            $content[] = '';
+            $content[] = \sprintf('Veränderung Hausgeld:               %s%s €',
+                ($endHausgeld - $startHausgeld) < 0 ? '' : '+',
+                number_format($endHausgeld - $startHausgeld, 2, ',', '.')
+            );
+            $content[] = \sprintf('Veränderung Rücklagen:              %s%s €',
+                ($endRuecklagen - $startRuecklagen) < 0 ? '' : '+',
+                number_format($endRuecklagen - $startRuecklagen, 2, ',', '.')
             );
             $content[] = '======================================================================';
             $content[] = '';
@@ -385,8 +452,10 @@ class TxtReportGenerator implements ReportGeneratorInterface
         if (isset($data['wirtschaftsplan'])) {
             $wirtschaftsplan = $data['wirtschaftsplan'];
             $mea = $this->extractMEAAsDecimal($data['einheit']['mea'] ?? '');
+            $year = $data['year'];
+            $planYear = $year + 1; // Wirtschaftsplan is for the NEXT year
 
-            $content[] = 'VERMÖGENSÜBERSICHT UND WIRTSCHAFTSPLAN 2025';
+            $content[] = \sprintf('VERMÖGENSÜBERSICHT UND WIRTSCHAFTSPLAN %d', $planYear);
             $content[] = str_repeat('=', 80);
             $content[] = '';
 
@@ -409,15 +478,17 @@ class TxtReportGenerator implements ReportGeneratorInterface
             $content[] = '';
 
             // Wirtschaftsplan - Ausgaben
-            $content[] = 'WIRTSCHAFTSPLAN 2025 - GEPLANTE AUSGABEN:';
+            $content[] = \sprintf('WIRTSCHAFTSPLAN %d - GEPLANTE AUSGABEN:', $planYear);
             $content[] = '----------------------------------------------------------------------';
             $content[] = '1. UMLAGEFÄHIGE KOSTEN (auf Mieter umlegbar):';
             $content[] = '----------------------------------------------------------------------';
 
             $umlagefaehigTotal = 0.0;
-            foreach ($wirtschaftsplan['planned_expenses']['umlagefaehig'] as $kategorie => $betrag) {
-                $content[] = \sprintf('%-50s %15s €', $kategorie, number_format($betrag, 2, ',', '.'));
-                $umlagefaehigTotal += $betrag;
+            foreach ($wirtschaftsplan['planned_expenses']['umlagefaehig'] as $expense) {
+                $name = $expense['name'] ?? 'Unbekannt';
+                $amount = $expense['amount'] ?? 0.0;
+                $content[] = \sprintf('%-50s %15s €', $name, number_format($amount, 2, ',', '.'));
+                $umlagefaehigTotal += $amount;
             }
             $content[] = '----------------------------------------------------------------------';
             $content[] = \sprintf('Zwischensumme umlagefähig:                          %s €',
@@ -428,9 +499,11 @@ class TxtReportGenerator implements ReportGeneratorInterface
             $content[] = '----------------------------------------------------------------------';
 
             $nichtUmlagefaehigTotal = 0.0;
-            foreach ($wirtschaftsplan['planned_expenses']['nicht_umlagefaehig'] as $kategorie => $betrag) {
-                $content[] = \sprintf('%-50s %15s €', $kategorie, number_format($betrag, 2, ',', '.'));
-                $nichtUmlagefaehigTotal += $betrag;
+            foreach ($wirtschaftsplan['planned_expenses']['nicht_umlagefaehig'] as $expense) {
+                $name = $expense['name'] ?? 'Unbekannt';
+                $amount = $expense['amount'] ?? 0.0;
+                $content[] = \sprintf('%-50s %15s €', $name, number_format($amount, 2, ',', '.'));
+                $nichtUmlagefaehigTotal += $amount;
             }
             $content[] = '----------------------------------------------------------------------';
             $content[] = \sprintf('Zwischensumme nicht umlagefähig:                     %s €',
@@ -438,27 +511,29 @@ class TxtReportGenerator implements ReportGeneratorInterface
             $content[] = '';
 
             $gesamtausgaben = $umlagefaehigTotal + $nichtUmlagefaehigTotal;
-            $content[] = \sprintf('GESAMTAUSGABEN 2025:                                 %s €',
-                number_format($gesamtausgaben, 2, ',', '.'));
+            $content[] = \sprintf('GESAMTAUSGABEN %d:                                 %s €',
+                $planYear, number_format($gesamtausgaben, 2, ',', '.'));
             $content[] = '======================================================================';
             $content[] = '';
 
             // Geplante Einnahmen
-            $content[] = 'GEPLANTE EINNAHMEN 2025:';
+            $content[] = \sprintf('GEPLANTE EINNAHMEN %d:', $planYear);
             $content[] = '----------------------------------------------------------------------';
             $monthlyTotal = $wirtschaftsplan['planned_income']['monthly_total'] ?? 1500.0;
-            $nachzahlungen = $wirtschaftsplan['planned_income']['nachzahlungen_2024'] ?? 0.0;
+            $previousYear = $year; // For Wirtschaftsplan 2026, we show Nachzahlungen from 2025
+            $nachzahlungenKey = 'nachzahlungen_' . $previousYear;
+            $nachzahlungen = $wirtschaftsplan['planned_income'][$nachzahlungenKey] ?? 0.0;
             $yearlyVorschuesse = $monthlyTotal * 12;
 
             $content[] = \sprintf('Hausgeld-Vorschüsse (12 × %s €)                %s €',
                 number_format($monthlyTotal, 2, ',', '.'), number_format($yearlyVorschuesse, 2, ',', '.'));
-            $content[] = \sprintf('Nachzahlungen aus HGA 2024                                %s €',
-                number_format($nachzahlungen, 2, ',', '.'));
+            $content[] = \sprintf('Nachzahlungen aus HGA %d                                %s €',
+                $previousYear, number_format($nachzahlungen, 2, ',', '.'));
             $content[] = '----------------------------------------------------------------------';
 
             $gesamteinnahmen = $yearlyVorschuesse + $nachzahlungen;
-            $content[] = \sprintf('GESAMTEINNAHMEN 2025:                                    %s €',
-                number_format($gesamteinnahmen, 2, ',', '.'));
+            $content[] = \sprintf('GESAMTEINNAHMEN %d:                                    %s €',
+                $planYear, number_format($gesamteinnahmen, 2, ',', '.'));
             $content[] = '----------------------------------------------------------------------';
             $saldo = $gesamteinnahmen - $gesamtausgaben;
             $content[] = \sprintf('SALDO (Einnahmen - Ausgaben):                             %s €',
@@ -470,7 +545,7 @@ class TxtReportGenerator implements ReportGeneratorInterface
             $meaPercent = round($mea * 100);
             $monthlyOwnerShare = $monthlyTotal * $mea;
 
-            $content[] = 'HAUSGELD-VORSCHUSS 2025 - IHR ANTEIL:';
+            $content[] = \sprintf('HAUSGELD-VORSCHUSS %d - IHR ANTEIL:', $planYear);
             $content[] = '----------------------------------------------------------------------';
             $content[] = \sprintf('                                           Gesamt WEG Ihr Anteil (%d%%)', $meaPercent);
             $content[] = '----------------------------------------------------------------------';

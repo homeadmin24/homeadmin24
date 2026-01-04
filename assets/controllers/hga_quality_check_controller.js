@@ -168,18 +168,18 @@ export default class extends Controller {
         return checks.map(check => {
             const color = severityColors[check.severity] || 'gray';
             const icon = severityIcons[check.severity] || 'check-circle';
-            const passed = check.passed;
+            const passed = check.status === 'pass';
 
             return `
                 <div class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 mb-3">
                     <div class="flex items-start">
                         <i class="fas fa-${passed ? 'check-circle text-green-600' : icon + ' text-' + color + '-600'} dark:text-${passed ? 'green' : color}-400 mt-1 mr-3"></i>
                         <div class="flex-1">
-                            <h5 class="font-medium text-gray-900 dark:text-white mb-1">${check.name}</h5>
+                            <h5 class="font-medium text-gray-900 dark:text-white mb-1">${check.category}</h5>
                             <p class="text-sm text-gray-600 dark:text-gray-400">${check.message}</p>
-                            ${check.details ? `
+                            ${check.details && Object.keys(check.details).length > 0 ? `
                                 <div class="mt-2 text-xs text-gray-500 dark:text-gray-500">
-                                    ${check.details}
+                                    ${JSON.stringify(check.details)}
                                 </div>
                             ` : ''}
                         </div>
@@ -214,14 +214,40 @@ export default class extends Controller {
                 ` : ''}
 
                 ${aiAnalysis.issues_found && aiAnalysis.issues_found.length > 0 ? `
-                    <div class="space-y-2">
-                        ${aiAnalysis.issues_found.map(issue => `
-                            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-                                <p class="text-sm text-yellow-900 dark:text-yellow-100">
-                                    <i class="fas fa-exclamation-triangle mr-2"></i>${issue}
-                                </p>
+                    <div class="space-y-3">
+                        ${aiAnalysis.issues_found.map(issue => {
+                            const severityColors = {
+                                'critical': 'red',
+                                'high': 'orange',
+                                'medium': 'yellow',
+                                'low': 'blue'
+                            };
+                            const color = severityColors[issue.severity] || 'yellow';
+
+                            return `
+                            <div class="bg-${color}-50 dark:bg-${color}-900/20 border border-${color}-200 dark:border-${color}-800 rounded-lg p-4">
+                                <div class="flex items-start mb-2">
+                                    <i class="fas fa-exclamation-triangle text-${color}-600 dark:text-${color}-400 mt-1 mr-2"></i>
+                                    <div class="flex-1">
+                                        <h6 class="font-medium text-${color}-900 dark:text-${color}-100 mb-1">
+                                            ${issue.issue || issue.category || 'Problem gefunden'}
+                                        </h6>
+                                        ${issue.details ? `
+                                            <p class="text-sm text-${color}-800 dark:text-${color}-200 mb-2">
+                                                ${issue.details}
+                                            </p>
+                                        ` : ''}
+                                        ${issue.recommendation ? `
+                                            <div class="mt-2 pt-2 border-t border-${color}-200 dark:border-${color}-700">
+                                                <p class="text-xs text-${color}-700 dark:text-${color}-300">
+                                                    <i class="fas fa-lightbulb mr-1"></i><strong>Empfehlung:</strong> ${issue.recommendation}
+                                                </p>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
                             </div>
-                        `).join('')}
+                        `}).join('')}
                     </div>
                 ` : ''}
             </div>

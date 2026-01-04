@@ -210,12 +210,7 @@ class TxtReportGenerator extends AbstractReportGenerator
 
         // Add distribution keys
         $lines[] = \sprintf('%-4s %-30s %-20s %-12s %-4s %-15s',
-            '01*', 'ext. berechn. Heizkosten', '€ Festbetrag', $data['year'], '365',
-            'Beträge siehe Ergebnisliste'
-        );
-
-        $lines[] = \sprintf('%-4s %-30s %-20s %-12s %-4s %-15s',
-            '02*', 'ext. berechn. Wasser-/sonst. Kosten', '€ Festbetrag', $data['year'], '365',
+            '01*', 'ext. berechn. Heiz-/Wasserkosten', '€ Festbetrag', $data['year'], '365',
             'Beträge siehe Ergebnisliste'
         );
 
@@ -240,6 +235,12 @@ class TxtReportGenerator extends AbstractReportGenerator
                 '6,00', str_replace('/', ',', $data['einheit']['hebeanlage'])
             );
         }
+
+        $customDistribution = $data['einheit']['custom_distribution_02'] ?? null;
+        $lines[] = \sprintf('%-4s %-30s %-20s %-12s %-4s %-15s %-15s',
+            '02*', 'Selbstverwaltung', 'Spezial', $data['year'], '365',
+            '3,00', $customDistribution ? str_replace('/', ',', $customDistribution) : ''
+        );
 
         $lines[] = str_repeat('=', self::LINE_WIDTH);
 
@@ -313,15 +314,9 @@ class TxtReportGenerator extends AbstractReportGenerator
 
             if (isset($data['external_costs'])) {
                 $lines[] = \sprintf('%-35s %15s %15s',
-                    'ext. berechn. Heizkosten 01*',
-                    $this->formatCurrency($data['external_costs']['heating']['total']),
-                    $this->formatCurrency($data['external_costs']['heating']['unit_share'])
-                );
-
-                $lines[] = \sprintf('%-35s %15s %15s',
-                    'ext. berechn. Wasser-/sonst. Kosten 02*',
-                    $this->formatCurrency($data['external_costs']['water']['total']),
-                    $this->formatCurrency($data['external_costs']['water']['unit_share'])
+                    'ext. berechn. Heiz-/Wasserkosten 01*',
+                    $this->formatCurrency($data['external_costs']['total']),
+                    $this->formatCurrency($data['external_costs']['unit_total'])
                 );
 
                 $lines[] = \sprintf('%-35s %15s %15s',

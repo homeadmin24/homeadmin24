@@ -27,7 +27,15 @@ class HgaConfiguration implements ConfigurationInterface
         private KostenkontoRepository $kostenkontoRepository,
         string $projectDir,
     ) {
+        // Load base config
         $this->config = require $projectDir . '/config/hga_config.php';
+
+        // Override with local config if it exists
+        $localConfigPath = $projectDir . '/config/hga_config.php.local';
+        if (file_exists($localConfigPath)) {
+            $localConfig = require $localConfigPath;
+            $this->config = array_replace_recursive($this->config, $localConfig);
+        }
     }
 
     /**

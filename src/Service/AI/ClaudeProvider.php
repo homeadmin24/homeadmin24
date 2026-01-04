@@ -18,10 +18,13 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 class ClaudeProvider implements AIProviderInterface
 {
     private const API_URL = 'https://api.anthropic.com/v1/messages';
-    private const MODEL = 'claude-3-5-sonnet-20241022';
+    // Using Claude 3 Haiku (fast, affordable, widely available)
+    // Alternative: claude-3-5-sonnet-20241022 (requires higher tier access)
+    private const MODEL = 'claude-3-haiku-20240307';
     private const DEFAULT_TIMEOUT = 60; // Claude is usually fast
-    private const COST_PER_1K_INPUT = 0.003; // $3 per 1M input tokens
-    private const COST_PER_1K_OUTPUT = 0.015; // $15 per 1M output tokens
+    // Haiku pricing: $0.25 per 1M input, $1.25 per 1M output
+    private const COST_PER_1K_INPUT = 0.00025;
+    private const COST_PER_1K_OUTPUT = 0.00125;
 
     public function __construct(
         private readonly HttpClientInterface $httpClient,
@@ -39,6 +42,37 @@ class ClaudeProvider implements AIProviderInterface
 
         $prompt = $this->buildQueryPrompt($query, $context);
 
+        return $this->generateText($prompt);
+    }
+
+    /**
+     * Analyze HGA quality with Claude AI
+     *
+     * @param string $prompt The analysis prompt with complete HGA context
+     *
+     * @return array{
+     *   overall_assessment: string,
+     *   confidence: float,
+     *   issues_found: array,
+     *   summary: string
+     * }
+     */
+    public function analyzeHgaQuality(string $prompt): array
+    {
+        if (!$this->isAvailable()) {
+            throw new \RuntimeException('ClaudeProvider is not available');
+        }
+
+        $response = $this->generateText($prompt, maxTokens: 2048);
+
+        return $this->extractJson($response);
+    }
+
+    /**
+     * Core text generation method
+     */
+    private function generateText(string $prompt, int $maxTokens = 2048, int $timeout = self::DEFAULT_TIMEOUT): string
+    {
         $startTime = microtime(true);
 
         try {
@@ -50,7 +84,7 @@ class ClaudeProvider implements AIProviderInterface
                 ],
                 'json' => [
                     'model' => self::MODEL,
-                    'max_tokens' => 2048,
+                    'max_tokens' => $maxTokens,
                     'messages' => [
                         [
                             'role' => 'user',
@@ -58,7 +92,7 @@ class ClaudeProvider implements AIProviderInterface
                         ],
                     ],
                 ],
-                'timeout' => self::DEFAULT_TIMEOUT,
+                'timeout' => $timeout,
             ]);
 
             $data = $response->toArray();
@@ -66,7 +100,7 @@ class ClaudeProvider implements AIProviderInterface
 
             $duration = microtime(true) - $startTime;
 
-            $this->logger->info('Claude query completed', [
+            $this->logger->info('Claude request completed', [
                 'duration' => $duration,
                 'input_tokens' => $data['usage']['input_tokens'] ?? 0,
                 'output_tokens' => $data['usage']['output_tokens'] ?? 0,
@@ -75,11 +109,72 @@ class ClaudeProvider implements AIProviderInterface
 
             return $answer;
         } catch (\Exception $e) {
+            // Try to get more details from the API response
+            $errorDetails = $e->getMessage();
+            $userMessage = 'Claude API request failed';
+
+            if (method_exists($e, 'getResponse')) {
+                try {
+                    $responseBody = $e->getResponse()->getContent(false);
+                    $errorData = json_decode($responseBody, true);
+
+                    if (isset($errorData['error']['message'])) {
+                        $apiError = $errorData['error']['message'];
+                        $errorDetails .= ' | API Error: ' . $apiError;
+
+                        // Provide helpful user messages for common errors
+                        if (str_contains($apiError, 'credit balance')) {
+                            $userMessage = 'Claude API: Insufficient credits. Please add credits at https://console.anthropic.com/settings/plans';
+                        } elseif (str_contains($apiError, 'invalid api key')) {
+                            $userMessage = 'Claude API: Invalid API key. Please check ANTHROPIC_API_KEY in .env.local';
+                        } else {
+                            $userMessage = 'Claude API: ' . $apiError;
+                        }
+                    } else {
+                        $errorDetails .= ' | Response: ' . $responseBody;
+                    }
+                } catch (\Exception $ex) {
+                    // Couldn't parse response body
+                }
+            }
+
             $this->logger->error('Claude request failed', [
+                'error' => $errorDetails,
+                'api_key_length' => strlen($this->apiKey),
+                'model' => self::MODEL,
+            ]);
+
+            throw new \RuntimeException($userMessage, 0, $e);
+        }
+    }
+
+    /**
+     * Extract JSON from Claude response
+     */
+    private function extractJson(string $response): array
+    {
+        // Claude sometimes wraps JSON in markdown code blocks
+        $response = preg_replace('/```json\s*|\s*```/', '', $response);
+        $response = trim($response);
+
+        try {
+            return json_decode($response, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            // Fallback: try to find JSON in text
+            if (preg_match('/\{.*\}/s', $response, $matches)) {
+                try {
+                    return json_decode($matches[0], true, 512, JSON_THROW_ON_ERROR);
+                } catch (\JsonException $e2) {
+                    // Give up
+                }
+            }
+
+            $this->logger->error('Could not extract JSON from Claude response', [
+                'response' => substr($response, 0, 500),
                 'error' => $e->getMessage(),
             ]);
 
-            throw new \RuntimeException('Claude request failed: ' . $e->getMessage(), 0, $e);
+            throw new \RuntimeException('Could not extract JSON from Claude response: ' . $e->getMessage());
         }
     }
 

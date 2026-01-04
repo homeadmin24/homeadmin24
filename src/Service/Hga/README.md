@@ -58,7 +58,8 @@ Handles all distribution key calculations (01* through 06*):
 - MEA-based distribution (05*)
 - Equal distribution (03*)
 - Hebeanlage special distribution (06*)
-- External cost placeholders (01*, 02*, 04*)
+- External cost placeholders (01*, 04*)
+- Custom distribution (02*)
 
 #### CostCalculationService
 Categorizes and calculates costs:

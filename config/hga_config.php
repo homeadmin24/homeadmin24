@@ -30,6 +30,11 @@ return [
         ],
         'nicht_umlagefaehig' => [
             // Example non-chargeable expenses (to be configured per WEG)
+            [
+                'name' => 'Energieberatung (iSFP, BAFA, Eigenanteil)',
+                'amount' => 1400.00,
+                'notes' => 'Honorar 2.500 €, BAFA-Zuschuss 50% gedeckelt 850 € + 250 € WEG-Bonus => Eigenanteil 1.400 €',
+            ],
         ],
     ],
 

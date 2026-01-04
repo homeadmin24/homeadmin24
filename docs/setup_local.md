@@ -85,11 +85,23 @@ npm run dev
 
 ### MySQL Zugriff
 
+**Verbindungsdaten:**
 - **Host:** 127.0.0.1
 - **Port:** 3307
 - **User:** root
 - **Passwort:** rootpassword
 - **Datenbank:** homeadmin24
+
+**MySQL Console öffnen:**
+```bash
+cd /path/to/homeadmin24
+
+# Direkt in die homeadmin24 Datenbank einloggen
+docker compose exec mysql mysql -uroot -prootpassword homeadmin24
+
+# Vom Host aus (wenn MySQL Client installiert ist)
+mysql -h127.0.0.1 -P3307 -uroot -prootpassword homeadmin24
+```
 
 ## Demo-Daten Übersicht
 

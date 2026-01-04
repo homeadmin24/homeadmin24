@@ -12,6 +12,7 @@ enum KategorisierungsTyp: string
             self::UMLAGEFAEHIG_SONSTIGE => 'Umlagefähig - auf Mieter umlegbar (Sonstige)',
             self::NICHT_UMLAGEFAEHIG => 'Nicht umlagefähig - nur Eigentümer',
             self::RUECKLAGENZUFUEHRUNG => 'Rücklagenzuführung',
+            self::EINNAHMEN => 'Einnahmen (nicht in Kostenaufstellung)',
         };
     }
 
@@ -22,7 +23,8 @@ enum KategorisierungsTyp: string
             self::UMLAGEFAEHIG_WASSER,
             self::UMLAGEFAEHIG_SONSTIGE => true,
             self::NICHT_UMLAGEFAEHIG,
-            self::RUECKLAGENZUFUEHRUNG => false,
+            self::RUECKLAGENZUFUEHRUNG,
+            self::EINNAHMEN => false,
         };
     }
 
@@ -34,11 +36,13 @@ enum KategorisierungsTyp: string
             self::UMLAGEFAEHIG_SONSTIGE => 'SONSTIGE UMLAGEFÄHIGE KOSTEN',
             self::NICHT_UMLAGEFAEHIG => 'NICHT UMLAGEFÄHIGE KOSTEN',
             self::RUECKLAGENZUFUEHRUNG => 'RÜCKLAGENZUFÜHRUNG',
+            self::EINNAHMEN => 'EINNAHMEN',
         };
     }
     case UMLAGEFAEHIG_HEIZUNG = 'umlagefaehig_heizung';
     case UMLAGEFAEHIG_WASSER = 'umlagefaehig_wasser';
     case UMLAGEFAEHIG_SONSTIGE = 'umlagefaehig_sonstige';
     case NICHT_UMLAGEFAEHIG = 'nicht_umlagefaehig';
-    case RUECKLAGENZUFUEHRUNG = 'ruecklagenzufuehrung'; // For reserve contributions
+    case RUECKLAGENZUFUEHRUNG = 'ruecklagenzufuehrung';
+    case EINNAHMEN = 'einnahmen';
 }

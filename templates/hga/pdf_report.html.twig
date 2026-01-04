@@ -340,18 +340,10 @@
     <div class="section">
         <div class="section-title">Abrechnungsübersicht</div>
         
-        {% set totalCosts = (data.external_costs.heating.unit_share|default(0) + data.external_costs.water.unit_share|default(0)) %}
-        {% for item in data.costs.umlagefaehig.items|default([]) %}
-            {% set totalCosts = totalCosts + item.anteil %}
-        {% endfor %}
-        {% for item in data.costs.nicht_umlagefaehig.items|default([]) %}
-            {% set totalCosts = totalCosts + item.anteil %}
-        {% endfor %}
-        {% for item in data.costs.ruecklagen.items|default([]) %}
-            {% set totalCosts = totalCosts - item.anteil|abs %}
-        {% endfor %}
-        
-        {% set saldo = totalCosts - (data.payments.ist|default(0)) %}
+        {# Use centralized calculated_totals from HgaService (BGH V ZR 44/09 compliant) #}
+        {% set calc = data.calculated_totals %}
+        {% set totalCosts = calc.unit.gesamtkosten %}
+        {% set saldo = calc.balance.saldo %}
         
         <div class="result-box">
             <div class="result-text">
@@ -374,8 +366,9 @@
             <tbody>
                 <tr>
                     <td class="label">Gesamtkosten</td>
-                    <td class="amount">{{ (data.weg_totals.gesamtkosten + (data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0)) - (data.costs.ruecklagen.items[0].total|default(0)|abs))|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ totalCosts|number_format(2, ',', '.') }} €</td>
+                    {# Use centralized calculated_totals (BGH V ZR 44/09 compliant) #}
+                    <td class="amount">{{ calc.weg.gesamtkosten|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ calc.unit.gesamtkosten|number_format(2, ',', '.') }} €</td>
                 </tr>
                 <tr>
                     <td class="label">- Hausgeld-Vorschuss Soll</td>
@@ -384,8 +377,9 @@
                 </tr>
                 <tr class="subtotal">
                     <td class="label">= Abrechnungsspitze</td>
-                    <td class="amount">{{ ((data.weg_totals.gesamtkosten + (data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0)) - (data.costs.ruecklagen.items[0].total|default(0)|abs)) - (data.weg_totals.soll|default(0)))|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ (totalCosts - (data.payments.soll|default(0)))|number_format(2, ',', '.') }} € ({{ (totalCosts - (data.payments.soll|default(0))) > 0 ? 'Unterdeckung' : 'Überdeckung' }})</td>
+                    {# Use centralized calculated_totals (BGH V ZR 44/09 compliant) #}
+                    <td class="amount">{{ (calc.weg.gesamtkosten - (data.weg_totals.soll|default(0)))|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ calc.balance.abrechnungsspitze|number_format(2, ',', '.') }} € ({{ calc.balance.abrechnungsspitze > 0 ? 'Unterdeckung' : 'Überdeckung' }})</td>
                 </tr>
                 <tr>
                     <td class="label">Hausgeld-Vorschuss Soll</td>
@@ -414,15 +408,7 @@
 
     <div class="section">
         <div class="section-title">Umlageschlüssel</div>
-        {% if '/' in data.einheit.mea %}
-            {% set meaParts = data.einheit.mea|split('/') %}
-            {% set mea = (meaParts[0] + 0) / (meaParts[1] + 0) %}
-        {% else %}
-            {% set mea = (data.einheit.mea + 0) / 1000 %}
-        {% endif %}
-        {% set unitCount = 4.0 %}
-        {% set hebeanlageShare = (data.einheit.hebeanlage|default(false)) ? 1.0 : 0.0 %}
-        
+
         <table class="umlageschluessel-table">
             <thead>
                 <tr>
@@ -436,60 +422,35 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td><strong>01*</strong></td>
-                    <td class="label">ext. berechn. Heizkosten</td>
-                    <td>€ Festbetrag</td>
-                    <td>{{ data.year }}</td>
-                    <td>365</td>
-                    <td>Beträge siehe Ergebnisliste</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td><strong>02*</strong></td>
-                    <td class="label">ext. berechn. Wasser-/sonst. Kosten</td>
-                    <td>€ Festbetrag</td>
-                    <td>{{ data.year }}</td>
-                    <td>365</td>
-                    <td>Beträge siehe Ergebnisliste</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td><strong>03*</strong></td>
-                    <td class="label">Anzahl Einheit</td>
-                    <td>Einheiten-anteilig</td>
-                    <td>{{ data.year }}</td>
-                    <td>365</td>
-                    <td>{{ unitCount|number_format(2, ',', '.') }}</td>
-                    <td>1,00</td>
-                </tr>
-                <tr>
-                    <td><strong>04*</strong></td>
-                    <td class="label">Festumlage</td>
-                    <td>€ Festbetrag</td>
-                    <td>{{ data.year }}</td>
-                    <td>365</td>
-                    <td>Beträge siehe Ergebnisliste</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td><strong>05*</strong></td>
-                    <td class="label">Miteigentumsanteil</td>
-                    <td>Anzahl anteilig</td>
-                    <td>{{ data.year }}</td>
-                    <td>365</td>
-                    <td>1.000,000</td>
-                    <td>{{ (mea * 1000)|number_format(4, ',', '.') }}</td>
-                </tr>
-                <tr>
-                    <td><strong>06*</strong></td>
-                    <td class="label">Hebeanlage</td>
-                    <td>Spezial</td>
-                    <td>{{ data.year }}</td>
-                    <td>365</td>
-                    <td>6,00</td>
-                    <td>{{ hebeanlageShare|number_format(2, ',', '.') }}</td>
-                </tr>
+                {% if data.umlageschluessel|default([]) %}
+                    {% for schluessel in data.umlageschluessel %}
+                    <tr>
+                        <td><strong>{{ schluessel.nummer }}</strong></td>
+                        <td class="label">{{ schluessel.bezeichnung }}</td>
+                        <td>{{ schluessel.umlage_typ }}</td>
+                        <td>{{ schluessel.zeitraum }}</td>
+                        <td>{{ schluessel.tage }}</td>
+                        <td>
+                            {% if schluessel.gesamtumlage is same as('Beträge siehe Ergebnisliste') %}
+                                Beträge siehe Ergebnisliste
+                            {% elseif schluessel.gesamtumlage matches '/^\\d/' %}
+                                {{ schluessel.gesamtumlage }}
+                            {% else %}
+                                {{ schluessel.gesamtumlage }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if schluessel.anteil is null %}
+                                -
+                            {% elseif schluessel.nummer == '05*' %}
+                                {{ schluessel.anteil|number_format(4, ',', '.') }}
+                            {% else %}
+                                {{ schluessel.anteil|number_format(2, ',', '.') }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
             </tbody>
         </table>
     </div>
@@ -517,22 +478,12 @@
                 <tr class="subtotal">
                     <td colspan="4"><strong>HEIZUNG/WASSER/ABRECHNUNG:</strong></td>
                 </tr>
-                {% if data.external_costs.heating %}
                 <tr>
-                    <td>ext. berechn. Heizkosten</td>
+                    <td>ext. berechn. Heiz-/Wasserkosten</td>
                     <td style="text-align: center;">01*</td>
-                    <td class="amount">{{ data.external_costs.heating.total|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ data.external_costs.heating.unit_share|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ ((data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0)))|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ ((data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0)))|number_format(2, ',', '.') }} €</td>
                 </tr>
-                {% endif %}
-                {% if data.external_costs.water %}
-                <tr>
-                    <td>ext. berechn. Wasser-/sonst. Kosten</td>
-                    <td style="text-align: center;">02*</td>
-                    <td class="amount">{{ data.external_costs.water.total|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ data.external_costs.water.unit_share|number_format(2, ',', '.') }} €</td>
-                </tr>
-                {% endif %}
                 <tr class="subtotal">
                     <td colspan="2">Zwischensumme: Heizung/Wasser/Abrechnung</td>
                     <td class="amount">{{ ((data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0)))|number_format(2, ',', '.') }} €</td>
@@ -606,41 +557,8 @@
         </table>
     </div>
 
-        {% if data.costs.ruecklagen.items|default([]) %}
-        <div style="margin-top: 15px; margin-bottom: 20px;">
-            <h3>3. Rücklagenzuführung</h3>
-        <table class="cost-table">
-            <thead>
-                <tr>
-                    <th>Art der Rücklagenzuführung</th>
-                    <th style="text-align: center;">Umlageschlüssel</th>
-                    <th style="text-align: right;">Gesamtbetrag</th>
-                    <th style="text-align: right;">Ihr Anteil</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% set ruecklagenTotal = 0 %}
-                {% set ruecklagenAnteil = 0 %}
-                {% for item in data.costs.ruecklagen.items %}
-                <tr>
-                    <td>{{ item.kostenkonto }} - {{ item.beschreibung }}</td>
-                    <td style="text-align: center;">{{ item.verteilungsschluessel|default('05*') }}</td>
-                    <td class="amount negative">{{ (item.total * -1)|number_format(2, ',', '.') }} €</td>
-                    <td class="amount negative">{{ (item.anteil * -1)|number_format(2, ',', '.') }} €</td>
-                </tr>
-                {% set ruecklagenTotal = ruecklagenTotal + (item.total * -1) %}
-                {% set ruecklagenAnteil = ruecklagenAnteil + (item.anteil * -1) %}
-                {% endfor %}
-                <tr class="total">
-                    <td colspan="2">SUMME: Rücklagenzuführung</td>
-                    <td class="amount negative">{{ ruecklagenTotal|number_format(2, ',', '.') }} €</td>
-                    <td class="amount negative">{{ ruecklagenAnteil|number_format(2, ',', '.') }} €</td>
-                </tr>
-            </tbody>
-        </table>
-        </div>
-        {% endif %}
-        
+        {# Rücklagen are shown in ZAHLUNGSÜBERSICHT, not here (BGH V ZR 44/09) #}
+
         <!-- Final cost summary -->
         {% set finalWegUmlagefaehig = ((data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0))) + 0 %}
         {% for item in data.costs.umlagefaehig.items|default([]) %}
@@ -662,30 +580,22 @@
             {% set finalUnitNichtUmlagefaehig = finalUnitNichtUmlagefaehig + item.anteil %}
         {% endfor %}
         
-        {% set finalWegRuecklagen = 0 %}
-        {% for item in data.costs.ruecklagen.items|default([]) %}
-            {% set finalWegRuecklagen = finalWegRuecklagen - item.total|abs %}
-        {% endfor %}
-        
-        {% set finalUnitRuecklagen = 0 %}
-        {% for item in data.costs.ruecklagen.items|default([]) %}
-            {% set finalUnitRuecklagen = finalUnitRuecklagen - item.anteil|abs %}
-        {% endfor %}
-        
+        {# Use centralized calculated_totals from HgaService (BGH V ZR 44/09 compliant) #}
+
         <div style="margin-top: 20px; border-top: 3px solid #333; padding-top: 10px;">
             <table class="cost-table">
                 <tbody>
                     <tr class="total" style="font-size: 11pt;">
                         <td colspan="2" style="font-weight: bold; background-color: #f0f0f0;">GESAMTSUMME ALLER KOSTEN</td>
-                        <td class="amount" style="font-weight: bold; background-color: #f0f0f0;">{{ (finalWegUmlagefaehig + finalWegNichtUmlagefaehig + finalWegRuecklagen)|number_format(2, ',', '.') }} €</td>
-                        <td class="amount" style="font-weight: bold; background-color: #f0f0f0;">{{ (finalUnitUmlagefaehig + finalUnitNichtUmlagefaehig + finalUnitRuecklagen)|number_format(2, ',', '.') }} €</td>
+                        <td class="amount" style="font-weight: bold; background-color: #f0f0f0;">{{ calc.weg.gesamtkosten|number_format(2, ',', '.') }} €</td>
+                        <td class="amount" style="font-weight: bold; background-color: #f0f0f0;">{{ calc.unit.gesamtkosten|number_format(2, ',', '.') }} €</td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    {% if data.payments.payment_details|default([]) %}
+    {% if data.payments.monthly_unit_payments|default([]) %}
     <div class="section page-break">
         <div class="page-header">
             Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
@@ -701,29 +611,113 @@
                 <div class="info-value">01.01.{{ data.year }} - 31.12.{{ data.year }}</div>
             </div>
         </div>
-        
+
         <table class="payments-table">
             <thead>
                 <tr>
                     <th>Datum</th>
                     <th>Beschreibung</th>
-                    <th style="text-align: right;">Betrag</th>
+                    <th style="text-align: right;">WEG Gesamt</th>
+                    <th style="text-align: right;">Ihre Zahlung</th>
                 </tr>
             </thead>
             <tbody>
-                {% set totalPayments = 0 %}
-                {% for payment in data.payments.payment_details %}
-                <tr>
-                    <td class="date">{{ payment.datum|date('d.m.Y') }}</td>
-                    <td>{{ payment.beschreibung|replace({'WOHNGELD MUSTERMANN/BEISPIEL': 'Wohngeld', 'SONDERUMLAGE HEBEANLAGE BEISPIEL': 'Sonderumlage', 'Nachzahlung 2023': 'Zahlung'}) }}</td>
-                    <td class="amount">{{ payment.betrag|number_format(2, ',', '.') }} €</td>
-                </tr>
-                {% set totalPayments = totalPayments + payment.betrag %}
+                {# Show monthly wohngeld payments #}
+                {% set monthlyUnitPayments = data.payments.monthly_unit_payments %}
+                {% set monthlyWegIst = data.payments.weg_totals.monthly_weg_ist|default([]) %}
+                {% set totalWohngeldUnit = 0 %}
+                {% set totalWohngeldWeg = 0 %}
+                {% for month in 1..12 %}
+                    {% if monthlyUnitPayments[month] is defined and monthlyUnitPayments[month].wohngeld > 0 %}
+                        {% set wegTotal = monthlyWegIst[month]|default(0) %}
+                        <tr>
+                            <td class="date">{{ '%02d'|format(month) }}.{{ data.year }}</td>
+                            <td>Wohngeld</td>
+                            <td class="amount">{{ wegTotal|number_format(2, ',', '.') }} €</td>
+                            <td class="amount">{{ monthlyUnitPayments[month].wohngeld|number_format(2, ',', '.') }} €</td>
+                        </tr>
+                        {% set totalWohngeldUnit = totalWohngeldUnit + monthlyUnitPayments[month].wohngeld %}
+                        {% set totalWohngeldWeg = totalWohngeldWeg + wegTotal %}
+                    {% endif %}
                 {% endfor %}
-                <tr class="total">
-                    <td colspan="2"><strong>JAHRESSUMME:</strong></td>
-                    <td class="amount"><strong>{{ totalPayments|number_format(2, ',', '.') }} €</strong></td>
+                <tr style="border-top: 1px solid #999;">
+                    <td colspan="2"></td>
+                    <td class="amount"><strong>{{ totalWohngeldWeg|number_format(2, ',', '.') }} €</strong></td>
+                    <td class="amount"><strong>{{ totalWohngeldUnit|number_format(2, ',', '.') }} €</strong></td>
                 </tr>
+
+                {# Show other payments (Nachzahlungen, Sonderumlagen) #}
+                {% set otherPayments = [] %}
+                {% for monthData in monthlyUnitPayments %}
+                    {% if monthData.other is defined %}
+                        {% set otherPayments = otherPayments|merge(monthData.other) %}
+                    {% endif %}
+                {% endfor %}
+
+                {% set totalOtherUnit = 0 %}
+                {% set totalOtherWeg = 0 %}
+                {% if otherPayments|length > 0 %}
+                <tr><td colspan="4" style="height: 8px;"></td></tr>
+                {% set seenCategories = [] %}
+                {% set wegCategoryTotals = data.payments.weg_category_totals|default([]) %}
+                {% set unitCategoryTotals = {} %}
+
+                {% for payment in otherPayments %}
+                    {% set kategorie = payment.kategorie|default('Unbekannt') %}
+                    {% set currentUnitTotal = unitCategoryTotals[kategorie]|default(0) %}
+                    {% set unitCategoryTotals = unitCategoryTotals|merge({ (kategorie): (currentUnitTotal + payment.betrag) }) %}
+                {% endfor %}
+
+                {% for kategorie, unitTotal in unitCategoryTotals %}
+                    {% set wegTotal = wegCategoryTotals[kategorie]|default(0) %}
+                    <tr>
+                        <td class="date">{{ data.year }}</td>
+                        <td>{{ kategorie }}</td>
+                        <td class="amount">{{ wegTotal|number_format(2, ',', '.') }} €</td>
+                        <td class="amount">{{ unitTotal|number_format(2, ',', '.') }} €</td>
+                    </tr>
+                    {% set totalOtherUnit = totalOtherUnit + unitTotal %}
+                    {% set totalOtherWeg = totalOtherWeg + wegTotal %}
+                {% endfor %}
+                <tr style="border-top: 1px solid #999;">
+                    <td colspan="2"></td>
+                    <td class="amount"><strong>{{ totalOtherWeg|number_format(2, ',', '.') }} €</strong></td>
+                    <td class="amount"><strong>{{ totalOtherUnit|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+                {% endif %}
+
+                <tr style="border-top: 2px solid #333;">
+                    <td colspan="2"></td>
+                    <td class="amount"><strong></strong></td>
+                    <td class="amount"><strong>{{ (totalWohngeldUnit + totalOtherUnit)|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+
+                {# Add WEG totals summary #}
+                <tr style="border-top: 3px double #333;">
+                    <td colspan="4" style="padding-top: 12px; font-weight: bold; font-size: 11pt; background-color: #e8e8e8;">WEG GESAMTSUMMEN:</td>
+                </tr>
+                <tr style="background-color: #f0f0f0;">
+                    <td colspan="3" style="font-weight: bold;">Wohngeld gesamt (WEG):</td>
+                    <td class="amount" style="font-weight: bold;">{{ (data.payments.weg_totals.ist|default(0))|number_format(2, ',', '.') }} €</td>
+                </tr>
+
+                {# Add Rücklagenzuführung #}
+                {% if data.costs.ruecklagen.items|default([]) %}
+                <tr style="border-top: 2px solid #ddd;">
+                    <td colspan="4" style="padding-top: 12px; font-weight: bold; background-color: #f8f8f8;">RÜCKLAGENZUFÜHRUNG (Einnahmen für Rücklage):</td>
+                </tr>
+                {% set unitRuecklagen = 0 %}
+                {% set wegRuecklagen = data.payments.weg_totals.ruecklagen|default(0) %}
+                {% for item in data.costs.ruecklagen.items %}
+                <tr>
+                    <td class="date">31.12.{{ data.year }}</td>
+                    <td>{{ item.beschreibung }}</td>
+                    <td class="amount">{{ wegRuecklagen|abs|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ item.anteil|abs|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set unitRuecklagen = unitRuecklagen + item.anteil|abs %}
+                {% endfor %}
+                {% endif %}
             </tbody>
         </table>
     </div>
@@ -732,18 +726,38 @@
     {% if data.balance.hasData|default(false) %}
     <div class="section">
         <div class="section-title">Kontostandsentwicklung {{ data.year }}</div>
+        {% set wegRuecklagen = data.payments.weg_totals.ruecklagen|default(0) %}
+        {% set startTotal = data.balance.startAmount %}
+        {% set endTotal = data.balance.endAmount %}
+        {% set endRuecklagen = wegRuecklagen|abs %}
+        {% set endHausgeld = endTotal - endRuecklagen %}
+        {% set startHausgeld = startTotal %}
+        {% set startRuecklagen = 0 %}
+
         <div class="info-grid">
             <div class="info-row">
-                <div class="info-label">Kontostand 31.12.{{ data.balance.year - 1 }}:</div>
-                <div class="info-value">{{ data.balance.startAmount|number_format(2, ',', '.') }} €</div>
+                <div class="info-label">Kontostand Hausgeld 31.12.{{ data.balance.year - 1 }}:</div>
+                <div class="info-value">{{ startHausgeld|number_format(2, ',', '.') }} €</div>
             </div>
             <div class="info-row">
-                <div class="info-label">Kontostand 31.12.{{ data.balance.year }}:</div>
-                <div class="info-value">{{ data.balance.endAmount|number_format(2, ',', '.') }} €</div>
+                <div class="info-label">Kontostand Rücklagen 31.12.{{ data.balance.year - 1 }}:</div>
+                <div class="info-value">{{ startRuecklagen|number_format(2, ',', '.') }} €</div>
+            </div>
+            <div class="info-row" style="padding-top: 8px; border-top: 1px solid #ddd;">
+                <div class="info-label">Kontostand Hausgeld 31.12.{{ data.balance.year }}:</div>
+                <div class="info-value">{{ endHausgeld|number_format(2, ',', '.') }} €</div>
             </div>
             <div class="info-row">
-                <div class="info-label">Veränderung:</div>
-                <div class="info-value {{ data.balance.change >= 0 ? 'positive' : 'negative' }}">{{ data.balance.change >= 0 ? '+' : '' }}{{ data.balance.change|number_format(2, ',', '.') }} €</div>
+                <div class="info-label">Kontostand Rücklagen 31.12.{{ data.balance.year }}:</div>
+                <div class="info-value">{{ endRuecklagen|number_format(2, ',', '.') }} €</div>
+            </div>
+            <div class="info-row" style="padding-top: 8px; border-top: 1px solid #ddd;">
+                <div class="info-label">Veränderung Hausgeld:</div>
+                <div class="info-value {{ (endHausgeld - startHausgeld) >= 0 ? 'positive' : 'negative' }}">{{ (endHausgeld - startHausgeld) >= 0 ? '+' : '' }}{{ (endHausgeld - startHausgeld)|number_format(2, ',', '.') }} €</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Veränderung Rücklagen:</div>
+                <div class="info-value {{ (endRuecklagen - startRuecklagen) >= 0 ? 'positive' : 'negative' }}">{{ (endRuecklagen - startRuecklagen) >= 0 ? '+' : '' }}{{ (endRuecklagen - startRuecklagen)|number_format(2, ',', '.') }} €</div>
             </div>
         </div>
     </div>
@@ -754,7 +768,8 @@
         <div class="page-header">
             Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
         </div>
-        <div class="section-title">Vermögensübersicht und Wirtschaftsplan 2025</div>
+        {% set planYear = data.year + 1 %}
+        <div class="section-title">Vermögensübersicht und Wirtschaftsplan {{ planYear }}</div>
         
         <h3>Vermögensstand:</h3>
         <div class="info-grid" style="margin-bottom: 20px;">
@@ -772,7 +787,7 @@
             </div>
         </div>
         
-        <h3 style="margin-top: 20px;">Wirtschaftsplan 2025 - Geplante Ausgaben:</h3>
+        <h3 style="margin-top: 20px;">Wirtschaftsplan {{ planYear }} - Geplante Ausgaben:</h3>
         
         <h4>1. Umlagefähige Kosten (auf Mieter umlegbar):</h4>
         <table class="cost-table" style="width: 100%;">
@@ -782,12 +797,12 @@
             </colgroup>
             <tbody>
                 {% set umlagefaehigTotal = 0 %}
-                {% for kategorie, betrag in data.wirtschaftsplan.planned_expenses.umlagefaehig|default({}) %}
+                {% for expense in data.wirtschaftsplan.planned_expenses.umlagefaehig|default([]) %}
                 <tr>
-                    <td>{{ kategorie }}</td>
-                    <td class="amount">{{ betrag|number_format(2, ',', '.') }} €</td>
+                    <td>{{ expense.name|default('Unbekannt') }}</td>
+                    <td class="amount">{{ expense.amount|default(0)|number_format(2, ',', '.') }} €</td>
                 </tr>
-                {% set umlagefaehigTotal = umlagefaehigTotal + betrag %}
+                {% set umlagefaehigTotal = umlagefaehigTotal + expense.amount|default(0) %}
                 {% endfor %}
                 <tr class="subtotal">
                     <td>Zwischensumme umlagefähig:</td>
@@ -804,12 +819,12 @@
             </colgroup>
             <tbody>
                 {% set nichtUmlagefaehigTotal = 0 %}
-                {% for kategorie, betrag in data.wirtschaftsplan.planned_expenses.nicht_umlagefaehig|default({}) %}
+                {% for expense in data.wirtschaftsplan.planned_expenses.nicht_umlagefaehig|default([]) %}
                 <tr>
-                    <td>{{ kategorie }}</td>
-                    <td class="amount">{{ betrag|number_format(2, ',', '.') }} €</td>
+                    <td>{{ expense.name|default('Unbekannt') }}</td>
+                    <td class="amount">{{ expense.amount|default(0)|number_format(2, ',', '.') }} €</td>
                 </tr>
-                {% set nichtUmlagefaehigTotal = nichtUmlagefaehigTotal + betrag %}
+                {% set nichtUmlagefaehigTotal = nichtUmlagefaehigTotal + expense.amount|default(0) %}
                 {% endfor %}
                 <tr class="subtotal">
                     <td>Zwischensumme nicht umlagefähig:</td>
@@ -825,13 +840,13 @@
             </colgroup>
             <tbody>
                 <tr class="total" style="font-size: 10pt;">
-                    <td><strong>GESAMTAUSGABEN 2025:</strong></td>
+                    <td><strong>GESAMTAUSGABEN {{ planYear }}:</strong></td>
                     <td class="amount"><strong>{{ (umlagefaehigTotal + nichtUmlagefaehigTotal)|number_format(2, ',', '.') }} €</strong></td>
                 </tr>
             </tbody>
         </table>
         
-        <h3 style="margin-top: 20px;">Geplante Einnahmen 2025:</h3>
+        <h3 style="margin-top: 20px;">Geplante Einnahmen {{ planYear }}:</h3>
         <table class="cost-table" style="width: 100%;">
             <colgroup>
                 <col style="width: auto;">
@@ -839,18 +854,20 @@
             </colgroup>
             <tbody>
                 {% set monthlyTotal = data.wirtschaftsplan.planned_income.monthly_total|default(1500) %}
-                {% set nachzahlungen = data.wirtschaftsplan.planned_income.nachzahlungen_2024|default(0) %}
+                {% set previousYear = data.year %}
+                {% set nachzahlungenKey = 'nachzahlungen_' ~ previousYear %}
+                {% set nachzahlungen = attribute(data.wirtschaftsplan.planned_income, nachzahlungenKey)|default(0) %}
                 {% set yearlyVorschuesse = monthlyTotal * 12 %}
                 <tr>
                     <td>Hausgeld-Vorschüsse (12 × {{ monthlyTotal|number_format(2, ',', '.') }} €)</td>
                     <td class="amount">{{ yearlyVorschuesse|number_format(2, ',', '.') }} €</td>
                 </tr>
                 <tr>
-                    <td>Nachzahlungen aus HGA 2024</td>
+                    <td>Nachzahlungen aus HGA {{ previousYear }}</td>
                     <td class="amount">{{ nachzahlungen|number_format(2, ',', '.') }} €</td>
                 </tr>
                 <tr class="subtotal">
-                    <td><strong>GESAMTEINNAHMEN 2025:</strong></td>
+                    <td><strong>GESAMTEINNAHMEN {{ planYear }}:</strong></td>
                     <td class="amount"><strong>{{ (yearlyVorschuesse + nachzahlungen)|number_format(2, ',', '.') }} €</strong></td>
                 </tr>
                 <tr class="total" style="font-size: 10pt;">
@@ -860,7 +877,7 @@
             </tbody>
         </table>
         
-        <h3 style="margin-top: 20px;">Hausgeld-Vorschuss 2025 - Ihr Anteil:</h3>
+        <h3 style="margin-top: 20px;">Hausgeld-Vorschuss {{ planYear }} - Ihr Anteil:</h3>
         {% if '/' in data.einheit.mea %}
             {% set meaParts = data.einheit.mea|split('/') %}
             {% set mea = (meaParts[0] + 0) / (meaParts[1] + 0) %}

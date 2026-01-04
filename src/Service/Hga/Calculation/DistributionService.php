@@ -19,6 +19,7 @@ class DistributionService implements CalculationInterface
 {
     public function __construct(
         private WegEinheitRepository $wegEinheitRepository,
+        private \Doctrine\ORM\EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -38,7 +39,8 @@ class DistributionService implements CalculationInterface
         }
 
         return match ($distributionKey) {
-            '01*', '02*', '04*' => $this->calculateExternalDistribution($totalCost, $distributionKey, $einheit),
+            '01*', '04*' => $this->calculateExternalDistribution($totalCost, $distributionKey, $einheit),
+            '02*' => $this->calculateThreeUnitsDistribution($totalCost, $einheit),
             '03*' => $this->calculateEqualDistribution($totalCost, $weg),
             '05*' => $this->calculateMeaDistribution($totalCost, $mea),
             '06*' => $this->calculateHebeanlageDistribution($totalCost, $einheit),
@@ -69,7 +71,7 @@ class DistributionService implements CalculationInterface
     }
 
     /**
-     * Calculate distribution for external costs (01*, 02*, 04*).
+     * Calculate distribution for external costs (01*, 04*).
      *
      * These require specific unit data or external calculation.
      */
@@ -87,7 +89,7 @@ class DistributionService implements CalculationInterface
             return $totalCost;
         }
 
-        // For external distributions 01* and 02*, the share should be calculated based on
+        // For external distributions 01*, the share should be calculated based on
         // external data (heating costs, water costs)
         // This would typically come from HeizWasserkosten or similar entities
         return 0.0; // Placeholder - implement based on external data requirements
@@ -147,10 +149,74 @@ class DistributionService implements CalculationInterface
     }
 
     /**
+     * Calculate custom distribution (02*).
+     * Uses umlageschluessel_einheit table for flexible unit-specific distributions.
+     */
+    private function calculateThreeUnitsDistribution(float $totalCost, ?WegEinheit $einheit): float
+    {
+        if (!$einheit) {
+            return 0.0;
+        }
+
+        // Query umlageschluessel_einheit table for this unit and key 02*
+        $connection = $this->entityManager->getConnection();
+        $sql = "SELECT ue.anteil
+                FROM umlageschluessel_einheit ue
+                JOIN umlageschluessel u ON ue.umlageschluessel_id = u.id
+                WHERE u.schluessel = :key AND ue.weg_einheit_id = :einheit_id";
+
+        $result = $connection->executeQuery($sql, [
+            'key' => '02*',
+            'einheit_id' => $einheit->getId(),
+        ])->fetchOne();
+
+        if (!$result) {
+            return 0.0;
+        }
+
+        // Parse fraction from database (e.g., "1/3" -> 1/3)
+        if (preg_match('/^(\d+)\/(\d+)$/', $result, $matches)) {
+            $numerator = (float) $matches[1];
+            $denominator = (float) $matches[2];
+
+            if ($denominator > 0) {
+                return $totalCost * ($numerator / $denominator);
+            }
+        }
+
+        return 0.0;
+    }
+
+    /**
      * Count the number of units in a WEG.
      */
     private function countWegUnits(Weg $weg): int
     {
         return $this->wegEinheitRepository->count(['weg' => $weg]);
+    }
+
+    /**
+     * Get the distribution share for a unit and distribution key.
+     * Returns the fraction string (e.g., "1/3") or null if not configured.
+     */
+    public function getDistributionShare(?WegEinheit $einheit, string $distributionKey): ?string
+    {
+        if (!$einheit) {
+            return null;
+        }
+
+        // Query umlageschluessel_einheit table for this unit and key
+        $connection = $this->entityManager->getConnection();
+        $sql = "SELECT ue.anteil
+                FROM umlageschluessel_einheit ue
+                JOIN umlageschluessel u ON ue.umlageschluessel_id = u.id
+                WHERE u.schluessel = :key AND ue.weg_einheit_id = :einheit_id";
+
+        $result = $connection->executeQuery($sql, [
+            'key' => $distributionKey,
+            'einheit_id' => $einheit->getId(),
+        ])->fetchOne();
+
+        return $result ?: null;
     }
 }

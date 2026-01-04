@@ -1,5 +1,6 @@
 ###> symfony/framework-bundle ###
-/.env
+# Commit .env with safe defaults, but ignore local overrides
+# /.env  # COMMENTED OUT - we want to commit .env with safe defaults
 /.env.local
 /.env.local.php
 /.env.*.local
@@ -53,3 +54,4 @@ var/
 # Droplet deployment configuration (contains sensitive domains/IPs)
 .env.droplet
 .droplet/how-to.md
+*.local

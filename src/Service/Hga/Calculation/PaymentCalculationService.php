@@ -33,7 +33,9 @@ class PaymentCalculationService
     }
 
     /**
-     * Calculate total actual payments (Ist) for a unit and year.
+     * Calculate total actual Wohngeld payments (Ist) for a unit and year.
+     * Only includes payments with category 'Hausgeld-Zahlung'.
+     * Excludes Nachzahlungen and Sonderumlagen.
      */
     public function calculateActualPayments(WegEinheit $einheit, int $year): float
     {
@@ -41,7 +43,10 @@ class PaymentCalculationService
 
         $total = 0.0;
         foreach ($payments as $payment) {
-            $total += (float) $payment->getBetrag();
+            // Only count Hausgeld-Zahlung category
+            if ($payment->getHauptkategorie()?->getName() === 'Hausgeld-Zahlung') {
+                $total += (float) $payment->getBetrag();
+            }
         }
 
         return $total;
@@ -54,7 +59,8 @@ class PaymentCalculationService
      *   soll: float,
      *   ist: float,
      *   differenz: float,
-     *   status: string
+     *   status: string,
+     *   count: int
      * }
      */
     public function calculatePaymentBalance(WegEinheit $einheit, int $year): array
@@ -63,11 +69,16 @@ class PaymentCalculationService
         $ist = $this->calculateActualPayments($einheit, $year);
         $differenz = $ist - $soll;
 
+        // Count actual payments
+        $payments = $this->zahlungRepository->getOwnerPaymentsByYear($einheit, $year);
+        $count = count($payments);
+
         return [
             'soll' => $soll,
             'ist' => $ist,
             'differenz' => $differenz,
             'status' => $differenz >= 0 ? 'Überdeckung' : 'Unterdeckung',
+            'count' => $count,
         ];
     }
 
@@ -77,7 +88,8 @@ class PaymentCalculationService
      * @return array<array{
      *   datum: \DateTimeInterface,
      *   beschreibung: string,
-     *   betrag: float
+     *   betrag: float,
+     *   kategorie: string|null
      * }>
      */
     public function getPaymentDetails(WegEinheit $einheit, int $year): array
@@ -90,6 +102,7 @@ class PaymentCalculationService
                 'datum' => $payment->getDatum(),
                 'beschreibung' => $payment->getBezeichnung() ?? 'Zahlung',
                 'betrag' => (float) $payment->getBetrag(),
+                'kategorie' => $payment->getHauptkategorie()?->getName(),
             ];
         }
 
@@ -126,5 +139,50 @@ class PaymentCalculationService
         }
 
         return $total;
+    }
+
+    /**
+     * Get monthly advance payment for WEG (sum of all units).
+     */
+    public function getMonthlyAdvancePaymentForWeg(WegEinheit $einheit, int $year): float
+    {
+        $weg = $einheit->getWeg();
+        $units = $weg->getEinheiten();
+
+        $total = 0.0;
+        foreach ($units as $unit) {
+            $monthlyAmount = $this->configurationService->getMonthlyAmount($unit, $year);
+            $total += $monthlyAmount ?? 0.0;
+        }
+
+        return $total;
+    }
+
+    /**
+     * Get monthly actual WOHNGELD payments grouped by month for WEG.
+     * Only includes payments with category 'Hausgeld-Zahlung'.
+     *
+     * @return array<int, float> Month number => Total amount
+     */
+    public function getMonthlyActualPaymentsForWeg(WegEinheit $einheit, int $year): array
+    {
+        $weg = $einheit->getWeg();
+        $units = $weg->getEinheiten();
+
+        $monthlyTotals = array_fill(1, 12, 0.0);
+
+        foreach ($units as $unit) {
+            $payments = $this->zahlungRepository->getOwnerPaymentsByYear($unit, $year);
+
+            foreach ($payments as $payment) {
+                // Only count Hausgeld-Zahlung category
+                if ($payment->getHauptkategorie()?->getName() === 'Hausgeld-Zahlung') {
+                    $month = (int) $payment->getDatum()->format('n');
+                    $monthlyTotals[$month] += (float) $payment->getBetrag();
+                }
+            }
+        }
+
+        return $monthlyTotals;
     }
 }

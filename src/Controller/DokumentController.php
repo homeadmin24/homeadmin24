@@ -182,6 +182,14 @@ class DokumentController extends AbstractController
     public function delete(Request $request, Dokument $dokument, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete', $request->request->get('_token'))) {
+            // Delete related HGA quality feedback entries first (to avoid foreign key constraint violation)
+            $qb = $entityManager->createQueryBuilder();
+            $qb->delete('App\Entity\HgaQualityFeedback', 'f')
+                ->where('f.dokument = :dokument')
+                ->setParameter('dokument', $dokument)
+                ->getQuery()
+                ->execute();
+
             // Delete physical file
             $filePath = $dokument->getAbsoluterPfad($this->getParameter('kernel.project_dir'));
             if (file_exists($filePath)) {
@@ -262,6 +270,52 @@ class DokumentController extends AbstractController
             return $this->json([
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    #[Route('/{id}/quality-check-debug', name: 'app_dokument_quality_check_debug', methods: ['GET'])]
+    public function qualityCheckDebug(
+        int $id,
+        Request $request,
+        DokumentRepository $dokumentRepo,
+        HgaQualityCheckService $qualityService
+    ): Response {
+        $dokument = $dokumentRepo->find($id);
+
+        if (!$dokument) {
+            return new Response('Dokument nicht gefunden', 404);
+        }
+
+        if (!$dokument->isHausgeldabrechnung()) {
+            return new Response('Kein HGA-Dokument', 400);
+        }
+
+        try {
+            // Check if we want to see the full result with AI response
+            if ($request->query->get('full')) {
+                $result = $qualityService->runQualityChecks(
+                    dokument: $dokument,
+                    provider: $request->query->get('provider', 'ollama'),
+                    includeUserFeedback: true
+                );
+
+                return new Response(
+                    '<h2>Full Quality Check Result</h2><pre>' . json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . '</pre>',
+                    200,
+                    ['Content-Type' => 'text/html; charset=utf-8']
+                );
+            }
+
+            // Default: just show the prompt
+            $prompt = $qualityService->getDebugPrompt($dokument);
+
+            return new Response(
+                '<pre>' . htmlspecialchars($prompt) . '</pre>',
+                200,
+                ['Content-Type' => 'text/html']
+            );
+        } catch (\Exception $e) {
+            return new Response('Fehler: ' . $e->getMessage() . '<br><br><pre>' . $e->getTraceAsString() . '</pre>', 500);
         }
     }
 

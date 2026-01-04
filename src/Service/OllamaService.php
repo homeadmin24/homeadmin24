@@ -199,8 +199,11 @@ class OllamaService
             throw new \RuntimeException('Ollama service is not available at ' . $this->ollamaUrl);
         }
 
+        // Increase PHP execution timeout for AI analysis (can take 30-60 seconds)
+        set_time_limit(120);
+
         // Use lower temperature for more consistent analysis
-        $response = $this->generate($prompt, temperature: 0.3);
+        $response = $this->generate($prompt, ['temperature' => 0.3], timeout: 120);
 
         return $this->extractJson($response);
     }

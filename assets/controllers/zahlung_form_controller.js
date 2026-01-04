@@ -133,8 +133,27 @@ export default class extends Controller {
     filterKategoriesByBetrag() {
         // Skip filtering if no betrag target exists (e.g., in kategorisieren form)
         if (!this.hasBetragTarget) return;
-        
-        const betrag = parseFloat(this.betragTarget.value) || 0;
+
+        const betragValue = parseFloat(this.betragTarget.value) || 0;
+
+        // Don't filter if no amount entered yet
+        if (betragValue === 0) {
+            const options = this.hauptkategorieTarget.querySelectorAll('option');
+            options.forEach(option => {
+                if (!option.value) return;
+                const config = this.kategorieConfigs[option.value];
+                if (!config) return;
+
+                // Only hide categories that explicitly don't allow zero
+                option.disabled = !config.allowsZeroAmount;
+                option.hidden = !config.allowsZeroAmount;
+            });
+            return;
+        }
+
+        // For non-zero amounts, use absolute value for filtering
+        // This allows users to enter "100" for both income and expenses
+        const betrag = Math.abs(betragValue);
         const options = this.hauptkategorieTarget.querySelectorAll('option');
 
         options.forEach(option => {
@@ -143,19 +162,10 @@ export default class extends Controller {
             const config = this.kategorieConfigs[option.value];
             if (!config) return;
 
-            // Check if category allows this amount
-            let shouldHide = false;
-            
-            if (betrag === 0 && !config.allowsZeroAmount) {
-                shouldHide = true;
-            } else if (betrag > 0 && !config.isPositive) {
-                shouldHide = true;
-            } else if (betrag < 0 && config.isPositive) {
-                shouldHide = true;
-            }
-
-            option.disabled = shouldHide;
-            option.hidden = shouldHide;
+            // Show all categories that accept amounts
+            // The sign will be adjusted automatically based on the selected category
+            option.disabled = false;
+            option.hidden = false;
         });
 
         // Reset selection if current selection is invalid

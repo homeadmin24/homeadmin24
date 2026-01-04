@@ -25,6 +25,7 @@ class ZahlungController extends AbstractController
         $zahlungskategorieId = $request->query->get('zahlungskategorie');
         $dienstleisterId = $request->query->get('dienstleister');
         $wegEinheitId = $request->query->get('weg_einheit');
+        $abrechnungsjahr = $request->query->get('abrechnungsjahr');
         $onlyUncategorized = $request->query->getBoolean('only_uncategorized');
 
         // Build criteria for filtering
@@ -44,6 +45,9 @@ class ZahlungController extends AbstractController
             }
             if ($wegEinheitId) {
                 $criteria['eigentuemer'] = $wegEinheitId;
+            }
+            if ($abrechnungsjahr) {
+                $criteria['abrechnungsjahrZuordnung'] = $abrechnungsjahr;
             }
 
             // Get filtered payments
@@ -69,6 +73,7 @@ class ZahlungController extends AbstractController
             'selectedZahlungskategorie' => $zahlungskategorieId,
             'selectedDienstleister' => $dienstleisterId,
             'selectedWegEinheit' => $wegEinheitId,
+            'selectedAbrechnungsjahr' => $abrechnungsjahr,
             'onlyUncategorized' => $onlyUncategorized,
         ]);
     }

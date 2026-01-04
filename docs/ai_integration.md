@@ -6,14 +6,74 @@
 
 ---
 
+## Quick Start
+
+### Setup (5 minutes)
+
+```bash
+# 1. Copy environment template
+cp .env.local.example .env.local
+
+# 2. Get Claude API key from https://console.anthropic.com/
+#    - Create account / Sign in
+#    - Go to API Keys → Create Key
+#    - Add credits at Plans & Billing (minimum $5)
+
+# 3. Add to .env.local:
+AI_CLAUDE_ENABLED=true
+ANTHROPIC_API_KEY=sk-ant-...
+
+# 4. Start services
+docker compose down && docker compose up -d
+```
+
+### Quick Test
+
+**HGA Quality Check:**
+```bash
+# With Claude (3-5s):
+http://127.0.0.1:8000/dokument/102/quality-check-debug?full=1&provider=claude
+
+# With Ollama (60-90s):
+http://127.0.0.1:8000/dokument/102/quality-check-debug?full=1&provider=ollama
+```
+
+**Test Scripts:**
+```bash
+./tests/ai/test-ai-providers.sh           # Check provider status
+docker compose exec web php tests/ai/test-ollama-direct.php
+```
+
+### Provider Comparison
+
+| Provider | Speed | Cost | Privacy | Best For |
+|----------|-------|------|---------|----------|
+| **Ollama** | 60-90s | Free | 100% local | Regular use, privacy-critical |
+| **Claude Haiku** | 3-5s | ~€0.002/check | Cloud (Anthropic) | Quick validation, very affordable |
+
+### Security ⚠️
+
+**Safe to commit:**
+- `.env` (no secrets, only safe defaults)
+- `.env.demo`, `.env.prod` (configuration, no secrets)
+- `.env.local.example` (template)
+
+**NEVER commit:**
+- `.env.local` (contains your API key)
+- Any file with `ANTHROPIC_API_KEY=sk-ant-...`
+
+---
+
 ## Table of Contents
 
-1. [Overview](#overview)
-2. [Environment Configuration](#environment-configuration)
-3. [Payment Categorization](#payment-categorization)
-4. [Natural Language Queries](#natural-language-queries)
-5. [Ollama Learning & Fine-tuning](#ollama-learning--fine-tuning)
-6. [Privacy & Compliance](#privacy--compliance)
+1. [Quick Start](#quick-start) ⭐
+2. [Overview](#overview)
+3. [Environment Configuration](#environment-configuration)
+4. [HGA Quality Checks](#hga-quality-checks)
+5. [Payment Categorization](#payment-categorization)
+6. [Natural Language Queries](#natural-language-queries)
+7. [Ollama Learning & Fine-tuning](#ollama-learning--fine-tuning)
+8. [Privacy & Compliance](#privacy--compliance)
 
 ---
 
@@ -39,45 +99,85 @@ The homeadmin24 system provides AI-powered features for:
 
 ## Environment Configuration
 
-### Local Development (with AI)
+### Supported AI Providers
 
-AI features are **only available in local development** to avoid production overhead and maintain privacy.
+| Provider | Type | Speed | Cost | Privacy |
+|----------|------|-------|------|---------|
+| **Ollama** | Local LLM | 60-90s | Free | 100% local |
+| **Claude** | Anthropic API (Haiku) | 3-5s | ~€0.002/check | Cloud |
 
-```yaml
-# docker-compose.dev.yml
-services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: hausman-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-```
+### Configuration Files
 
-```env
-# .env (Local Development)
+| File | Purpose | Committed? | Secrets? |
+|------|---------|------------|----------|
+| `.env` | Safe defaults | ✅ Yes | ❌ No |
+| `.env.local` | Local dev secrets | ❌ No | ✅ Yes |
+| `.env.demo` | Demo config | ✅ Yes | ❌ No |
+| `.env.prod` | Prod config | ✅ Yes | ❌ No |
+
+### Local Development (Both Providers)
+
+```bash
+# .env.local (git-ignored, contains your API key)
 AI_ENABLED=true
-AI_PROVIDER=ollama
+AI_CLAUDE_ENABLED=true
+ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
 OLLAMA_URL=http://ollama:11434
 OLLAMA_MODEL=llama3.1:8b
 ```
 
-### Demo/Production (AI Disabled)
+**Setup:**
+```bash
+# 1. Copy example
+cp .env.local.example .env.local
 
-```env
-# .env.droplet / .env.demo
-AI_ENABLED=false
+# 2. Add your API key to .env.local
+
+# 3. Start services
+docker compose -f docker-compose.yaml -f docker-compose.dev.yml up -d
+
+# 4. Pull Ollama model (first time)
+docker exec -it hausman-ollama ollama pull llama3.1:8b
 ```
 
-**Why disabled on production?**
-- No AI processing overhead on demo/prod
-- No additional RAM requirements (8GB not needed)
-- No AI model storage (4-6GB per model)
-- Faster startup times
-- Pattern matching (70% accuracy) is used instead
+### Demo/Production (Current Setup)
+
+**Configuration:** Claude only for fast, reliable AI features
+
+```bash
+# .env.demo / .env.prod (committed, no secrets)
+AI_ENABLED=true
+AI_CLAUDE_ENABLED=true
+# ANTHROPIC_API_KEY set via GitHub Secrets
+```
+
+**Secrets Management:**
+1. Add GitHub Secret: `ANTHROPIC_API_KEY_DEMO` or `ANTHROPIC_API_KEY_PROD`
+2. In deployment workflow:
+   ```yaml
+   env:
+     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY_DEMO }}
+   ```
+3. Or set as environment variable on server
+
+### Demo/Production (Future Migration)
+
+**Goal:** Switch to Ollama (no API costs, full privacy)
+
+```bash
+# .env.demo / .env.prod
+AI_ENABLED=true
+AI_CLAUDE_ENABLED=false
+OLLAMA_URL=http://ollama:11434
+OLLAMA_MODEL=llama3.1:8b
+```
+
+**Migration Steps:**
+1. Add `ollama` service to production docker-compose
+2. Allocate GPU/CPU resources for Ollama
+3. Update `.env.demo`/`.env.prod` to disable Claude
+4. Deploy and test
+5. Remove `ANTHROPIC_API_KEY` from GitHub Secrets
 
 ### Setup Instructions
 
@@ -97,6 +197,121 @@ docker exec hausman-ollama ollama list
 ```bash
 docker compose exec web php bin/console app:test-ai
 ```
+
+---
+
+## HGA Quality Checks
+
+### Overview
+
+AI-powered pre-flight quality checks for Hausgeldabrechnung (HGA) documents before sending to owners.
+
+**Benefits:**
+- Catch errors before distribution
+- Ensure data completeness
+- Verify calculation accuracy
+- Save time on manual review
+
+### How It Works
+
+```
+┌──────────────────────────────┐
+│ 1. Rule-Based Checks         │  <100ms
+│ (Always run)                 │
+│ - Missing required fields    │
+│ - Negative total costs       │
+│ - Payment mismatches         │
+└──────────┬───────────────────┘
+           │
+    ┌──────┴──────┐
+    │ Run AI?     │
+    └──────┬──────┘
+           │
+    ┌──────┴──────────┐
+    │                 │
+  Ollama           Claude
+(60-90s)          (5-10s)
+    │                 │
+    ▼                 ▼
+┌──────────────────────────────┐
+│ AI Analysis Result           │
+│ - Overall assessment         │
+│ - Confidence score           │
+│ - Issues found               │
+│ - Recommendations            │
+└──────────────────────────────┘
+```
+
+### Using Quality Checks
+
+**In the UI:**
+1. Go to HGA document detail page
+2. Click quality check button:
+   - "Qualitätsprüfung mit Ollama" (slow, free, private)
+   - "Qualitätsprüfung mit Claude" (fast, paid, cloud)
+3. Wait for analysis (5-90 seconds depending on provider)
+4. Review results in modal dialog
+5. Provide feedback (👍/👎) to improve future checks
+
+**Debug Endpoint:**
+```bash
+# View prompt only (instant):
+http://127.0.0.1:8000/dokument/102/quality-check-debug
+
+# Full analysis with Ollama (60-90s):
+http://127.0.0.1:8000/dokument/102/quality-check-debug?full=1&provider=ollama
+
+# Full analysis with Claude (5-10s):
+http://127.0.0.1:8000/dokument/102/quality-check-debug?full=1&provider=claude
+```
+
+### AI Analysis Response
+
+```json
+{
+  "overall_assessment": "warning",
+  "confidence": 0.85,
+  "issues_found": [
+    {
+      "category": "calculation",
+      "severity": "high",
+      "issue": "Suspicious heating cost distribution",
+      "details": "Heating costs (€1,875) seem high for MEA 290/1000",
+      "recommendation": "Verify heating cost allocation formula"
+    }
+  ],
+  "summary": "Document is mostly complete but heating costs appear unusually high for this unit size. Recommend double-checking the allocation."
+}
+```
+
+### Provider Comparison for HGA Checks
+
+| Feature | Ollama | Claude |
+|---------|--------|--------|
+| **Speed** | 60-90s | 5-10s |
+| **Cost** | Free | ~€0.01 |
+| **Quality** | Good | Excellent |
+| **Privacy** | 100% local | Sent to Anthropic |
+| **Best for** | Regular checks | Quick validation |
+
+### Implementation
+
+See `src/Service/Hga/HgaQualityCheckService.php` for complete implementation.
+
+**Key Components:**
+- `runQualityChecks()` - Main entry point
+- `runRuleBasedChecks()` - Fast validation rules
+- `runAIAnalysis()` - Provider-agnostic AI call
+- `buildAIPrompt()` - Context-rich prompt generation
+
+**User Feedback:**
+- Stored in `hga_quality_feedback` table
+- Used to improve future AI prompts
+- Tracks false positives/negatives
+
+**Further Reading:**
+- See [HGA Quality Checks Documentation](hga-quality-checks.md) for complete implementation details
+- Test scripts available in `tests/ai/`
 
 ---
 

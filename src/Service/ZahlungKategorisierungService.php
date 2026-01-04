@@ -212,9 +212,18 @@ class ZahlungKategorisierungService
             return $this->kostenkontoRepository->findOneBy(['nummer' => '043200']); // Müllentsorgung
         }
 
-        // Insurance
+        // Insurance - distinguish between building and liability
         if (str_contains($bezeichnung, 'versicherung') || str_contains($dienstleisterArt, 'versicherung')) {
-            return $this->kostenkontoRepository->findOneBy(['nummer' => '013000']); // Beiträge für die Sach- und Haftpflichtversicherung
+            // Check for liability insurance keywords
+            if (str_contains($bezeichnung, 'haftpflicht') || str_contains($bezeichnung, 'h-38') || str_contains($bezeichnung, 'h -38')) {
+                return $this->kostenkontoRepository->findOneBy(['nummer' => '046200']); // Versicherung: Haftpflicht
+            }
+            // Check for building insurance keywords
+            if (str_contains($bezeichnung, 'gebäude') || str_contains($bezeichnung, 'wohngebäude') || str_contains($bezeichnung, 'lw-902')) {
+                return $this->kostenkontoRepository->findOneBy(['nummer' => '046000']); // Versicherung: Gebäude
+            }
+            // Default to building insurance if type is unclear
+            return $this->kostenkontoRepository->findOneBy(['nummer' => '046000']); // Versicherung: Gebäude
         }
 
         // Brandschutz (Fire Protection)
@@ -229,6 +238,11 @@ class ZahlungKategorisierungService
 
         // Measurement devices / Safety equipment testing (Messgeräte)
         if (str_contains($dienstleisterArt, 'messgeräte') || str_contains($dienstleisterArt, 'messgerat')) {
+            return $this->kostenkontoRepository->findOneBy(['nummer' => '045100']); // Laufende Instandhaltung
+        }
+
+        // Sanitary work (Sanitär)
+        if (str_contains($dienstleisterArt, 'sanitär') || str_contains($dienstleisterArt, 'sanitar')) {
             return $this->kostenkontoRepository->findOneBy(['nummer' => '045100']); // Laufende Instandhaltung
         }
 
@@ -330,15 +344,17 @@ class ZahlungKategorisierungService
     private function isKostenkontoAllowed(\App\Entity\Zahlungskategorie $kategorie, \App\Entity\Kostenkonto $kostenkonto): bool
     {
         $fieldConfig = $kategorie->getFieldConfig();
-        $allowedKostenkontoIds = $fieldConfig['kostenkonto_filter'] ?? [];
+        $allowedKostenkontos = $fieldConfig['kostenkonto_filter'] ?? [];
 
         // If no filter is set, all kostenkonto are allowed
-        if (empty($allowedKostenkontoIds)) {
+        if (empty($allowedKostenkontos)) {
             return true;
         }
 
-        // Check if the kostenkonto ID is in the allowed list
-        return \in_array($kostenkonto->getId(), $allowedKostenkontoIds, true);
+        // Check if the kostenkonto number (not ID!) is in the allowed list
+        // The filter can contain either IDs or numbers (strings like "049000")
+        return \in_array($kostenkonto->getId(), $allowedKostenkontos, true)
+            || \in_array($kostenkonto->getNummer(), $allowedKostenkontos, true);
     }
 
     /**

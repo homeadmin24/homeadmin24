@@ -14,13 +14,13 @@ class UmlageschluesselFixtures extends Fixture implements FixtureGroupInterface
         $umlageschluessel = [
             [
                 'schluessel' => '01*',
-                'bezeichnung' => 'ext. berechn. Heizkosten',
-                'beschreibung' => 'Extern berechnete Heizkosten nach Festbetrag',
+                'bezeichnung' => 'ext. berechn. Heiz-/Wasserkosten',
+                'beschreibung' => 'Extern berechnete Heiz- und Wasserkosten nach Festbetrag',
             ],
             [
                 'schluessel' => '02*',
-                'bezeichnung' => 'ext. berechn. Wasser-/sonst. Kosten',
-                'beschreibung' => 'Extern berechnete Wasser- und sonstige Kosten nach Festbetrag',
+                'bezeichnung' => 'Selbstverwaltung',
+                'beschreibung' => 'Spezialverteilung für Selbstverwaltung',
             ],
             [
                 'schluessel' => '03*',

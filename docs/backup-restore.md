@@ -249,7 +249,7 @@ You can set up automated local backups with cron:
 crontab -e
 
 # Add daily backup at 2 AM
-0 2 * * * cd /Users/nikolas.shewlakow/Public/homeadmin24-workspace/homeadmin24 && ./bin/backup_db.sh daily_auto
+0 2 * * * cd /path/to/homeadmin24 && ./bin/backup_db.sh daily_auto
 ```
 
 ## Best Practices

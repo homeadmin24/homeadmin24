@@ -70,7 +70,7 @@ class ExternalCostService
             return [
                 'total' => 0.0,
                 'unit_share' => 0.0,
-                'distribution_key' => '02*',
+                'distribution_key' => '01*',
             ];
         }
 
@@ -81,7 +81,7 @@ class ExternalCostService
         return [
             'total' => (float) $totalWater,
             'unit_share' => (float) ($cost->getWasserKosten() ?? 0.0),
-            'distribution_key' => '02*',
+            'distribution_key' => '01*',
         ];
     }
 
