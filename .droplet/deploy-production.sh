@@ -100,14 +100,17 @@ else
     echo "[2/12] .env already exists"
 fi
 
+# Create empty .env.local if it doesn't exist (required by docker-compose.yaml)
+if [ ! -f .env.local ]; then
+    echo "Creating empty .env.local..."
+    touch .env.local
+fi
+
 # Create production docker-compose override
 echo "[3/12] Creating production docker-compose configuration..."
 cat > docker-compose.prod.yml <<'DOCKER_COMPOSE'
 services:
   web:
-    # Override env_file to only use .env (not .env.local which doesn't exist in production)
-    env_file:
-      - .env
     environment:
       - APP_ENV=prod
     restart: unless-stopped

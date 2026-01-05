@@ -146,15 +146,18 @@ if [ "$ENV_ACTION" != "validated" ]; then
     echo "   • TRUSTED_HOSTS=^demo.homeadmin24.de$ (domain restriction)"
 fi
 
+# Create empty .env.local if it doesn't exist (required by docker-compose.yaml)
+if [ ! -f .env.local ]; then
+    echo "Creating empty .env.local..."
+    touch .env.local
+fi
+
 # Create demo docker compose override
 echo "[3/11] Creating demo docker compose configuration..."
 cat > docker-compose.demo.yml <<'DOCKER_COMPOSE'
 services:
   web:
     container_name: homeadmin24-demo-web
-    # Override env_file to only use .env (not .env.local which doesn't exist in demo)
-    env_file:
-      - .env
     environment:
       - APP_ENV=dev
       - TRUSTED_PROXIES=127.0.0.1
