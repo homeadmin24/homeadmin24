@@ -152,6 +152,9 @@ cat > docker-compose.demo.yml <<'DOCKER_COMPOSE'
 services:
   web:
     container_name: homeadmin24-demo-web
+    # Override env_file to only use .env (not .env.local which doesn't exist in demo)
+    env_file:
+      - .env
     environment:
       - APP_ENV=dev
       - TRUSTED_PROXIES=127.0.0.1

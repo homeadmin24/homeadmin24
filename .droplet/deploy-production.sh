@@ -105,6 +105,9 @@ echo "[3/12] Creating production docker-compose configuration..."
 cat > docker-compose.prod.yml <<'DOCKER_COMPOSE'
 services:
   web:
+    # Override env_file to only use .env (not .env.local which doesn't exist in production)
+    env_file:
+      - .env
     environment:
       - APP_ENV=prod
     restart: unless-stopped
