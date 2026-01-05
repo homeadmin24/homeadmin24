@@ -217,15 +217,23 @@ else
         echo "✅ Swap already configured: $(swapon --show | grep '/swapfile')"
     fi
 
-    echo "[5/13] Building Docker containers..."
+    echo "[5/13] Cleaning up Docker build cache..."
+    echo "   Removing old build cache to free disk space..."
+    docker builder prune -af --filter "until=24h" || true
+    echo "   Removing unused images..."
+    docker image prune -af --filter "until=24h" || true
+    DISK_AFTER=$(df -h / | awk 'NR==2 {print $5}')
+    echo "✅ Cleanup complete. Disk usage: $DISK_AFTER"
+
+    echo "[6/13] Building Docker containers..."
     docker compose -f docker-compose.yaml -f docker-compose.demo.yml build --no-cache
 
-    echo "[6/13] Starting Docker containers..."
+    echo "[7/13] Starting Docker containers..."
     docker compose -f docker-compose.yaml -f docker-compose.demo.yml down -v
     docker compose -f docker-compose.yaml -f docker-compose.demo.yml up -d
 
     # Wait for database to be ready
-    echo "[7/13] Waiting for database to be ready..."
+    echo "[8/13] Waiting for database to be ready..."
     MAX_TRIES=30
     COUNTER=0
     until docker compose exec -T mysql mysqladmin ping -h localhost --silent; do
@@ -254,11 +262,11 @@ else
     echo "✅ Database is ready!"
 
     # Run database migrations
-    echo "[8/13] Running database migrations..."
+    echo "[9/13] Running database migrations..."
     docker compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
 
     # Load demo data
-    echo "[9/13] Loading demo data..."
+    echo "[10/13] Loading demo data..."
     docker compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction
     docker compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
 fi
@@ -277,7 +285,7 @@ if [ "$QUICK_MODE" = true ] && [ -f /etc/nginx/sites-available/homeadmin24-demo 
     exit 0
 fi
 
-echo "[10/13] Configuring Nginx..."
+echo "[11/13] Configuring Nginx..."
 cat > /etc/nginx/sites-available/homeadmin24-demo <<EOF
 server {
     listen 80;
@@ -332,7 +340,7 @@ nginx -t
 systemctl reload nginx
 
 # Setup SSL with Certbot
-echo "[11/13] Setting up SSL certificate..."
+echo "[12/13] Setting up SSL certificate..."
 # Check if HTTPS is configured in Nginx (not just if certificate exists)
 if ! grep -q "listen 443 ssl" /etc/nginx/sites-available/homeadmin24-demo 2>/dev/null; then
     echo "Configuring HTTPS with certbot..."
@@ -345,7 +353,7 @@ else
 fi
 
 # Update auto-reset script with latest version
-echo "[12/13] Updating auto-reset script..."
+echo "[13/13] Updating auto-reset script..."
 cat > /usr/local/bin/homeadmin24-demo-reset.sh <<'RESET_SCRIPT'
 #!/bin/bash
 ###############################################################################
@@ -443,7 +451,7 @@ crontab -l 2>/dev/null | grep -v homeadmin24-demo-reset | grep -v hausman-demo-r
 echo "✅ Auto-reset configured: Every 30 minutes (on the hour and half-hour)"
 
 # Display final system info
-echo "[14/14] Deployment summary..."
+echo "Deployment summary..."
 echo ""
 echo "=========================================="
 echo "✅ DEMO Deployment complete!"

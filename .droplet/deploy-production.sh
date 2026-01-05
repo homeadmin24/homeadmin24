@@ -171,16 +171,25 @@ else
         echo "✅ Swap already configured: $(swapon --show | grep '/swapfile')"
     fi
 
+    # Clean up Docker build cache and images
+    echo "[5/12] Cleaning up Docker build cache..."
+    echo "   Removing old build cache to free disk space..."
+    docker builder prune -af --filter "until=24h" || true
+    echo "   Removing unused images..."
+    docker image prune -af --filter "until=24h" || true
+    DISK_AFTER=$(df -h / | awk 'NR==2 {print $5}')
+    echo "✅ Cleanup complete. Disk usage: $DISK_AFTER"
+
     # Build and start Docker containers
-    echo "[5/12] Building Docker containers..."
+    echo "[6/12] Building Docker containers..."
     docker compose -f docker-compose.yaml -f docker-compose.prod.yml build --no-cache
 
-    echo "[6/12] Starting Docker containers..."
+    echo "[7/12] Starting Docker containers..."
     docker compose -f docker-compose.yaml -f docker-compose.prod.yml down -v
     docker compose -f docker-compose.yaml -f docker-compose.prod.yml up -d
 
     # Wait for database to be ready
-    echo "[7/12] Waiting for database to be ready..."
+    echo "[8/12] Waiting for database to be ready..."
     MAX_TRIES=30
     COUNTER=0
     until docker compose exec -T mysql mysqladmin ping -h localhost --silent; do
@@ -209,12 +218,12 @@ else
     echo "✅ Database is ready!"
 
     # Update database schema
-    echo "[8/12] Updating database schema..."
+    echo "[9/12] Updating database schema..."
     docker compose exec -T web php bin/console doctrine:schema:update --force
 fi
 
 # Load system configuration (only if empty database)
-echo "[9/12] Checking database status..."
+echo "[10/12] Checking database status..."
 TABLE_COUNT=$(docker compose exec -T mysql mysql -uroot -prootpassword homeadmin24 -se "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='homeadmin24'")
 
 if [ "$TABLE_COUNT" -lt 5 ]; then
@@ -225,7 +234,7 @@ else
 fi
 
 # Configure Nginx reverse proxy
-echo "[10/12] Configuring Nginx..."
+echo "[11/12] Configuring Nginx..."
 cat > /etc/nginx/sites-available/homeadmin24-production <<EOF
 server {
     listen 80;
@@ -278,7 +287,7 @@ nginx -t
 systemctl reload nginx
 
 # Setup SSL with Certbot
-echo "[11/12] Setting up SSL certificate..."
+echo "[12/12] Setting up SSL certificate..."
 # Check if HTTPS is configured in Nginx (not just if certificate exists)
 if ! grep -q "listen 443 ssl" /etc/nginx/sites-available/homeadmin24-production 2>/dev/null; then
     echo "Configuring HTTPS with certbot..."
@@ -290,7 +299,7 @@ else
     fi
 fi
 
-echo "[12/12] Deployment summary..."
+echo "Deployment summary..."
 echo ""
 echo "=========================================="
 echo "✅ PRODUCTION Deployment complete!"
