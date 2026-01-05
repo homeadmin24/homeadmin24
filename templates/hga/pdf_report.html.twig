@@ -479,10 +479,16 @@
                     <td colspan="4"><strong>HEIZUNG/WASSER/ABRECHNUNG:</strong></td>
                 </tr>
                 <tr>
-                    <td>ext. berechn. Heiz-/Wasserkosten</td>
+                    <td>ext. berechn. Heizkosten</td>
                     <td style="text-align: center;">01*</td>
-                    <td class="amount">{{ ((data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0)))|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ ((data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0)))|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ data.external_costs.heating.total|default(0)|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ data.external_costs.heating.unit_share|default(0)|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr>
+                    <td>ext. berechn. Wasser-/sonst. Kosten</td>
+                    <td style="text-align: center;">01*</td>
+                    <td class="amount">{{ data.external_costs.water.total|default(0)|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ data.external_costs.water.unit_share|default(0)|number_format(2, ',', '.') }} €</td>
                 </tr>
                 <tr class="subtotal">
                     <td colspan="2">Zwischensumme: Heizung/Wasser/Abrechnung</td>
@@ -495,19 +501,23 @@
                 {% endif %}
                 
                 {% for item in data.costs.umlagefaehig.items|default([]) %}
+                {% if item.total|default(0) > 0 %}
                 <tr>
                     <td>{{ item.kostenkonto }} - {{ item.beschreibung }}</td>
                     <td style="text-align: center;">{{ item.verteilungsschluessel|default('05*') }}</td>
                     <td class="amount">{{ item.total|number_format(2, ',', '.') }} €</td>
                     <td class="amount">{{ item.anteil|number_format(2, ',', '.') }} €</td>
                 </tr>
+                {% endif %}
                 {% endfor %}
                 
                 {% set sonstigeTotal = 0 %}
                 {% set sonstigeAnteil = 0 %}
                 {% for item in data.costs.umlagefaehig.items|default([]) %}
+                    {% if item.total|default(0) > 0 %}
                     {% set sonstigeTotal = sonstigeTotal + item.total %}
                     {% set sonstigeAnteil = sonstigeAnteil + item.anteil %}
+                    {% endif %}
                 {% endfor %}
                 
                 <tr class="subtotal">
@@ -797,11 +807,17 @@
             </colgroup>
             <tbody>
                 {% set umlagefaehigTotal = 0 %}
+                {% set planNotes = [] %}
                 {% for expense in data.wirtschaftsplan.planned_expenses.umlagefaehig|default([]) %}
                 <tr>
                     <td>{{ expense.name|default('Unbekannt') }}</td>
                     <td class="amount">{{ expense.amount|default(0)|number_format(2, ',', '.') }} €</td>
                 </tr>
+                {% if expense.notes|default('') %}
+                    {% if expense.notes not in planNotes %}
+                        {% set planNotes = planNotes|merge([expense.notes]) %}
+                    {% endif %}
+                {% endif %}
                 {% set umlagefaehigTotal = umlagefaehigTotal + expense.amount|default(0) %}
                 {% endfor %}
                 <tr class="subtotal">
@@ -824,6 +840,11 @@
                     <td>{{ expense.name|default('Unbekannt') }}</td>
                     <td class="amount">{{ expense.amount|default(0)|number_format(2, ',', '.') }} €</td>
                 </tr>
+                {% if expense.notes|default('') %}
+                    {% if expense.notes not in planNotes %}
+                        {% set planNotes = planNotes|merge([expense.notes]) %}
+                    {% endif %}
+                {% endif %}
                 {% set nichtUmlagefaehigTotal = nichtUmlagefaehigTotal + expense.amount|default(0) %}
                 {% endfor %}
                 <tr class="subtotal">
@@ -843,6 +864,13 @@
                     <td><strong>GESAMTAUSGABEN {{ planYear }}:</strong></td>
                     <td class="amount"><strong>{{ (umlagefaehigTotal + nichtUmlagefaehigTotal)|number_format(2, ',', '.') }} €</strong></td>
                 </tr>
+                {% for note in planNotes %}
+                <tr>
+                    <td colspan="2" style="font-size: 8pt; color: #555; padding-top: 4px;">
+                        * {{ note }}
+                    </td>
+                </tr>
+                {% endfor %}
             </tbody>
         </table>
         

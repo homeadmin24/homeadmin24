@@ -199,11 +199,17 @@ class TxtReportGenerator implements ReportGeneratorInterface
                     $waterTotal = $data['external_costs']['water']['total'] ?? 0.0;
                     $waterAnteil = $data['external_costs']['water']['unit_share'] ?? 0.0;
 
+                    if ($heatingTotal !== 0.0 || $heatingAnteil !== 0.0) {
+                        $content[] = \sprintf('ext. berechn. Heizkosten 01*           %8.2f €   %8.2f €',
+                            $heatingTotal, $heatingAnteil);
+                    }
+                    if ($waterTotal !== 0.0 || $waterAnteil !== 0.0) {
+                        $content[] = \sprintf('ext. berechn. Wasser-/sonst. Kosten 01*    %8.2f €     %8.2f €',
+                            $waterTotal, $waterAnteil);
+                    }
+
                     $heizungWasserTotal = $heatingTotal + $waterTotal;
                     $heizungWasserAnteil = $heatingAnteil + $waterAnteil;
-
-                    $content[] = \sprintf('ext. berechn. Heiz-/Wasserkosten 01*     %8.2f €   %8.2f €',
-                        $heizungWasserTotal, $heizungWasserAnteil);
                 }
 
                 if ($heizungWasserTotal > 0) {
@@ -219,6 +225,9 @@ class TxtReportGenerator implements ReportGeneratorInterface
                 $content[] = 'SONSTIGE UMLAGEFÄHIGE KOSTEN:';
 
                 foreach ($data['costs']['umlagefaehig']['items'] as $item) {
+                    if (($item['total'] ?? 0.0) <= 0.0) {
+                        continue;
+                    }
                     $content[] = \sprintf('%s - %s %s      %8.2f €      %8.2f €',
                         $item['kostenkonto'],
                         $item['beschreibung'],
@@ -454,6 +463,7 @@ class TxtReportGenerator implements ReportGeneratorInterface
             $mea = $this->extractMEAAsDecimal($data['einheit']['mea'] ?? '');
             $year = $data['year'];
             $planYear = $year + 1; // Wirtschaftsplan is for the NEXT year
+            $planNotes = $this->collectWirtschaftsplanNotes($wirtschaftsplan);
 
             $content[] = \sprintf('VERMÖGENSÜBERSICHT UND WIRTSCHAFTSPLAN %d', $planYear);
             $content[] = str_repeat('=', 80);
@@ -513,6 +523,9 @@ class TxtReportGenerator implements ReportGeneratorInterface
             $gesamtausgaben = $umlagefaehigTotal + $nichtUmlagefaehigTotal;
             $content[] = \sprintf('GESAMTAUSGABEN %d:                                 %s €',
                 $planYear, number_format($gesamtausgaben, 2, ',', '.'));
+            foreach ($planNotes as $note) {
+                $content[] = \sprintf('  * %s', $note);
+            }
             $content[] = '======================================================================';
             $content[] = '';
 
@@ -632,5 +645,25 @@ class TxtReportGenerator implements ReportGeneratorInterface
         }
 
         return (float) $meaString / 1000; // Assuming 1000 as total if no fraction
+    }
+
+    /**
+     * @param array<string, mixed> $wirtschaftsplan
+     *
+     * @return array<int, string>
+     */
+    private function collectWirtschaftsplanNotes(array $wirtschaftsplan): array
+    {
+        $notes = [];
+        foreach (['umlagefaehig', 'nicht_umlagefaehig'] as $category) {
+            foreach ($wirtschaftsplan['planned_expenses'][$category] ?? [] as $expense) {
+                $note = $expense['notes'] ?? '';
+                if ('' !== $note && !\in_array($note, $notes, true)) {
+                    $notes[] = $note;
+                }
+            }
+        }
+
+        return $notes;
     }
 }
