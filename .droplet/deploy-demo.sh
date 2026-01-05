@@ -180,20 +180,20 @@ if [ "$QUICK_MODE" = true ]; then
     echo "       Containers will continue running with new code"
 
     echo "[5/8] Clearing Symfony cache..."
-    docker compose exec -T web php bin/console cache:clear
+    docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web php bin/console cache:clear
 
     echo "[5.5/8] Restarting web container to clear PHP OPcache..."
-    docker compose restart web
+    docker compose -f docker-compose.yaml -f docker-compose.demo.yml restart web
     sleep 3  # Wait for container to be ready
 
     echo "[6/8] Rebuilding frontend assets..."
-    docker compose exec -T web npm run build
+    docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web npm run build
 
     echo "[7/8] Running database migrations..."
-    docker compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+    docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web php bin/console doctrine:migrations:migrate --no-interaction
 
     echo "[8/8] Reloading demo data..."
-    docker compose exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
+    docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
 else
     # Full deployment with Docker rebuild
     echo "[4/13] Setting up swap space (if needed)..."

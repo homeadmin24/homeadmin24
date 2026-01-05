@@ -130,13 +130,13 @@ if [ "$QUICK_MODE" = true ]; then
     echo "       Containers will continue running with new code"
 
     echo "[5/8] Clearing Symfony cache..."
-    docker compose exec -T web php bin/console cache:clear
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web php bin/console cache:clear
 
     echo "[6/8] Rebuilding frontend assets..."
-    docker compose exec -T web npm run build
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web npm run build
 
     echo "[7/8] Updating database schema..."
-    docker compose exec -T web php bin/console doctrine:schema:update --force
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web php bin/console doctrine:schema:update --force
 
     echo "[8/8] Deployment complete (skipping Nginx/SSL config in quick mode)"
     echo ""
