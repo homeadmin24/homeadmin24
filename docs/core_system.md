@@ -371,15 +371,15 @@ security:
 users:
   - email: wegadmin@demo.local
     role: ROLE_ADMIN
-    password: ChangeMe123!
+    password: demo123
 
   - email: buchhalter@demo.local
     role: ROLE_ACCOUNTANT
-    password: ChangeMe123!
+    password: demo123
 
   - email: viewer@demo.local
     role: ROLE_VIEWER
-    password: ChangeMe123!
+    password: demo123
 ```
 
 ---

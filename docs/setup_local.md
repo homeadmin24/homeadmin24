@@ -79,9 +79,9 @@ npm run dev
 
 | E-Mail | Rolle | Passwort |
 |--------|-------|----------|
-| `wegadmin@demo.local` | ROLE_ADMIN | `ChangeMe123!` |
-| `buchhalter@demo.local` | ROLE_ACCOUNTANT | `ChangeMe123!` |
-| `viewer@demo.local` | ROLE_VIEWER | `ChangeMe123!` |
+| `wegadmin@demo.local` | ROLE_ADMIN | `demo123` |
+| `buchhalter@demo.local` | ROLE_ACCOUNTANT | `demo123` |
+| `viewer@demo.local` | ROLE_VIEWER | `demo123` |
 
 ### MySQL Zugriff
 

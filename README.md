@@ -20,7 +20,7 @@ cd homeadmin24
 ```
 
 **Access:** http://127.0.0.1:8000
-**Login:** `wegadmin@demo.local` / `ChangeMe123!`
+**Login:** `wegadmin@demo.local` / `demo123`
 
 📖 **Ausführliche Anleitung:** [docs/setup_local.md](docs/setup_local.md)
 
@@ -100,7 +100,7 @@ Nach `./setup.sh` verfügbar:
 - `buchhalter@demo.local` (ROLE_ACCOUNTANT)
 - `viewer@demo.local` (ROLE_VIEWER)
 
-Alle Passwörter: `ChangeMe123!`
+Alle Passwörter: `demo123`
 
 ---
 

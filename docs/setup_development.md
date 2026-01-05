@@ -44,7 +44,7 @@ This will automatically:
 
 **Access:**
 - Web: http://127.0.0.1:8000
-- Login: `wegadmin@demo.local` / `ChangeMe123!`
+- Login: `wegadmin@demo.local` / `demo123`
 
 ### **Development Workflow**
 

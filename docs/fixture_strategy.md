@@ -36,7 +36,7 @@ docker-compose exec web php bin/console cache:clear
 # 4. Demo business: 3 WEGs, 12 units, 145 transactions, 22 invoices
 #
 # Result: Full demo system ready to use
-# Login: wegadmin@demo.local / ChangeMe123!
+# Login: wegadmin@demo.local / demo123
 # Access: http://127.0.0.1:8000
 ```
 

@@ -19,8 +19,8 @@ class DemoUserFixtures extends Fixture implements FixtureGroupInterface, Depende
 
     public function load(ObjectManager $manager): void
     {
-        // Use environment variable for demo password, fallback to secure default
-        $demoPassword = $_ENV['DEMO_PASSWORD'] ?? 'ChangeMe123!';
+        // Use environment variable for demo password, fallback to demo default
+        $demoPassword = $_ENV['DEMO_PASSWORD'] ?? 'demo123';
 
         $demoUsers = [
             [
