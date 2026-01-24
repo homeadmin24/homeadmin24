@@ -1,7 +1,7 @@
 # AI Invoice Data Extraction
 
-**Document Version**: 2.0
-**Date**: 2026-01-15
+**Document Version**: 2.1
+**Date**: 2026-01-16
 **Status**: Reference
 
 ---
@@ -39,7 +39,7 @@ This document describes the invoice data extraction feature (PDF -> Rechnung), i
 | `src/Service/Parser/GenericRegexParser.php` | Regex-based extraction |
 | `src/Service/Parser/MaassParser.php` | Custom parser for Maaß invoices |
 | `src/Service/Parser/LlmParser.php` | **LLM-based extraction (Ollama/Claude)** |
-| `src/Service/AI/DocIntelProvider.php` | OCR + LayoutLM service client (planned integration) |
+| `src/Service/AI/DocIntelProvider.php` | OCR + LayoutLM service client (DocIntel) |
 | `src/Service/AI/DocIntelInterface.php` | Vision provider contract |
 
 ### Supported Fields in Rechnung
@@ -240,7 +240,7 @@ Handle scanned PDFs and complex layouts by combining OCR, layout detection, and 
 - **Input:** rendered page images (base64)
 - **Output:** structured invoice fields + confidence + reasoning
 
-### Planned Flow
+### Flow
 
 1. Render PDF pages to images (`PdfRenderService`)
 2. OCR + layout detection (PaddleOCR)
@@ -267,7 +267,7 @@ Handle scanned PDFs and complex layouts by combining OCR, layout detection, and 
 | Phase 2: Parser Factory | ✅ Done | Priority-based parser selection |
 | Phase 3: LLM Integration | ✅ Done | LlmParser with Ollama/Claude support |
 | Phase 4: Confidence Scoring | ✅ Done | Low-confidence marked as pending |
-| Phase 5: OCR + LayoutLM Service | 🟡 In Progress | PHP client added, service + OCR pending |
+| Phase 5: OCR + LayoutLM Service | ✅ Done | DocIntel service + OCR wired, LayoutLM hooks present |
 | Phase 6: Auto-parsing on upload | ⏳ Planned | Messenger queue for async processing |
 | Phase 7: Admin UI | ⏳ Planned | Web interface for parser configuration |
 | Phase 8: Learning Loop | ⏳ Planned | User corrections improve future extractions |
@@ -292,6 +292,16 @@ ANTHROPIC_API_KEY=sk-ant-...
 DOCINTEL_ENABLED=false
 DOCINTEL_URL=http://doc-intel:8000
 ```
+
+---
+
+## Next Steps
+
+1. **LayoutLM**: Add a fine-tuned LayoutLM model and map labels to invoice fields.
+2. **Field post-processing**: Normalize EUR amounts, dates, and VAT rates; parse labor/material costs from OCR text.
+3. **DocIntel warmup**: Preload OCR and model weights on container start to reduce first-request latency.
+4. **Vendor hints**: Support Dienstleister-specific hints/patterns to improve LLM and OCR extraction.
+5. **Async pipeline**: Move DocIntel calls to Symfony Messenger to avoid request timeouts.
 
 ### Service Configuration
 
@@ -340,9 +350,8 @@ docker compose logs web | grep LlmParser
 ## Related Documentation
 
 - [AI Integration](ai_integration.md) - Payment categorization, query answering
-- [Technical Documentation](technical.md) - Parser architecture details
 - [HGA Quality Checks](hga-quality-checks.md) - Same Ollama/Claude pattern
 
 ---
 
-**Last Updated**: 2026-01-15
+**Last Updated**: 2026-01-16

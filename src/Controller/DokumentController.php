@@ -343,7 +343,7 @@ class DokumentController extends AbstractController
         try {
             $imagePaths = $pdfRenderService->renderToImages($pdfPath);
             try {
-                $result = $docIntelProvider->extractInvoiceDataFromImages($imagePaths);
+                $result = $docIntelProvider->extractInvoiceDataFromImages($imagePaths, null, true);
             } finally {
                 $pdfRenderService->cleanup($imagePaths);
             }

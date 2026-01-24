@@ -23,6 +23,7 @@ services:
       - ./config:/var/www/html/config
       - ./templates:/var/www/html/templates
       - ./var:/var/www/html/var
+      - ./data:/var/www/html/data
       - ./vendor:/var/www/html/vendor
       - ./composer.json:/var/www/html/composer.json
       - ./composer.lock:/var/www/html/composer.lock

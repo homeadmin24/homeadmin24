@@ -75,9 +75,9 @@ class DokumentType extends AbstractType
                 'mapped' => false,
                 'required' => true,
                 'constraints' => [
-                    new File([
-                        'maxSize' => '10M',
-                        'mimeTypes' => [
+                    new File(
+                        maxSize: '10M',
+                        mimeTypes: [
                             'application/pdf',
                             'application/msword',
                             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -88,9 +88,9 @@ class DokumentType extends AbstractType
                             'image/jpeg',
                             'image/png',
                         ],
-                        'mimeTypesMessage' => 'Bitte laden Sie eine gültige Datei hoch (PDF, Word, Excel, CSV, Bild oder Text)',
-                        'maxSizeMessage' => 'Die Datei ist zu groß ({{ size }} {{ suffix }}). Maximal erlaubt sind {{ limit }} {{ suffix }}.',
-                    ]),
+                        mimeTypesMessage: 'Bitte laden Sie eine gültige Datei hoch (PDF, Word, Excel, CSV, Bild oder Text)',
+                        maxSizeMessage: 'Die Datei ist zu groß ({{ size }} {{ suffix }}). Maximal erlaubt sind {{ limit }} {{ suffix }}.',
+                    ),
                 ],
                 'attr' => [
                     'class' => 'block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400',

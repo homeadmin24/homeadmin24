@@ -27,7 +27,7 @@ class DocIntelProvider implements DocIntelInterface
         return $this->enabled && '' !== $this->baseUrl;
     }
 
-    public function extractInvoiceDataFromImages(array $imagePaths, ?string $hintText = null): array
+    public function extractInvoiceDataFromImages(array $imagePaths, ?string $hintText = null, bool $debug = false): array
     {
         if (!$this->isAvailable()) {
             throw new \RuntimeException('DocIntelProvider is not available');
@@ -55,12 +55,13 @@ class DocIntelProvider implements DocIntelInterface
             'images' => $images,
             'hint_text' => $hintText,
             'output_schema' => 'invoice_v1',
+            'debug' => $debug,
         ];
 
         try {
             $response = $this->httpClient->request('POST', rtrim($this->baseUrl, '/') . '/api/invoice-extract', [
                 'json' => $payload,
-                'timeout' => 120,
+                'timeout' => 600,
             ]);
 
             $data = $response->toArray(false);
@@ -90,6 +91,7 @@ class DocIntelProvider implements DocIntelInterface
             'arbeits_fahrtkosten' => $data['fields']['arbeits_fahrtkosten'] ?? null,
             'confidence' => (float) ($data['confidence'] ?? 0.0),
             'reasoning' => (string) ($data['reasoning'] ?? ''),
+            'debug' => $data['debug'] ?? null,
         ];
     }
 }
