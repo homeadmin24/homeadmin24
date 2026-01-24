@@ -200,10 +200,8 @@ if [ "$QUICK_MODE" = true ]; then
     docker compose -f docker-compose.yaml -f docker-compose.demo.yml restart web
     sleep 3  # Wait for container to be ready
 
-    echo "[6/9] Ensuring Puppeteer is installed..."
-    if ! docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web node -e "require('puppeteer')" >/dev/null 2>&1; then
-        docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web npm install --omit=dev
-    fi
+    echo "[6/9] Installing npm dependencies..."
+    docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web npm install
 
     echo "[7/9] Rebuilding frontend assets..."
     docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web npm run build
