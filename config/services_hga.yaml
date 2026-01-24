@@ -13,7 +13,7 @@ services:
         alias: App\Service\Hga\HgaService
         
     App\Service\Hga\ReportGeneratorInterface:
-        alias: App\Service\Hga\Generator\TxtReportGenerator
+        alias: App\Service\Hga\Report\PdfReportGenerator
         
     # Auto-wire all HGA services
     App\Service\Hga\:
@@ -46,12 +46,7 @@ services:
         arguments:
             $heizWasserkostenRepository: '@App\Repository\HeizWasserkostenRepository'
             
-    App\Service\Hga\Configuration\HgaConfiguration:
-        arguments:
-            $vorauszahlungRepository: '@App\Repository\WegEinheitVorauszahlungRepository'
-            $configRepository: '@App\Repository\SystemConfigRepository'
-            $kostenkontoRepository: '@App\Repository\KostenkontoRepository'
-            $logger: '@logger'
+    App\Service\Hga\Configuration\HgaConfiguration: ~
             
     App\Service\Hga\HgaService:
         arguments:
@@ -61,10 +56,6 @@ services:
             $externalCostService: '@App\Service\Hga\Calculation\ExternalCostService'
             $configurationService: '@App\Service\Hga\ConfigurationInterface'
             $logger: '@logger'
-            
-    App\Service\Hga\Generator\TxtReportGenerator:
-        arguments:
-            $hgaService: '@App\Service\Hga\HgaServiceInterface'
             
     # PDF Report Generator
     App\Service\Hga\Report\PdfReportGenerator:

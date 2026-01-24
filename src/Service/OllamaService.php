@@ -9,7 +9,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
- * Service for interacting with local Ollama LLM
+ * Service for interacting with local Ollama LLM.
  *
  * Ollama is an open-source tool to run large language models locally.
  * This service is only enabled in development environment.
@@ -38,14 +38,14 @@ class OllamaService
     }
 
     /**
-     * Suggest Kostenkonto for payment categorization
+     * Suggest Kostenkonto for payment categorization.
      *
-     * @param string $bezeichnung Payment description
-     * @param string $partner Partner/service provider name
-     * @param float $betrag Amount
-     * @param array $historicalData Historical payments for context
-     * @param array $learningExamples User corrections to learn from
-     * @param array $availableKategorien Available cost accounts
+     * @param string $bezeichnung         Payment description
+     * @param string $partner             Partner/service provider name
+     * @param float  $betrag              Amount
+     * @param array  $historicalData      Historical payments for context
+     * @param array  $learningExamples    User corrections to learn from
+     * @param array  $availableKategorien Available cost accounts
      *
      * @return array{kostenkonto: string, confidence: float, reasoning: string}
      */
@@ -80,7 +80,7 @@ class OllamaService
     }
 
     /**
-     * Check if Ollama service is reachable
+     * Check if Ollama service is reachable.
      */
     public function isOllamaAvailable(): bool
     {
@@ -105,62 +105,7 @@ class OllamaService
     }
 
     /**
-     * Core generation method
-     */
-    private function generate(
-        string $prompt,
-        array $options = [],
-        int $timeout = self::DEFAULT_TIMEOUT
-    ): string {
-        $startTime = microtime(true);
-
-        try {
-            $response = $this->httpClient->request('POST', $this->ollamaUrl . '/api/generate', [
-                'json' => [
-                    'model' => $this->model,
-                    'prompt' => $prompt,
-                    'stream' => false,
-                    'options' => array_merge([
-                        'temperature' => self::DEFAULT_TEMPERATURE,
-                        'top_p' => 0.9,
-                    ], $options),
-                ],
-                'timeout' => $timeout,
-            ]);
-
-            $data = $response->toArray();
-            $result = $data['response'] ?? '';
-
-            $duration = microtime(true) - $startTime;
-
-            // Log slow requests
-            if ($duration > 10) {
-                $this->logger->warning('Slow Ollama request', [
-                    'duration' => $duration,
-                    'prompt_length' => \strlen($prompt),
-                    'model' => $this->model,
-                ]);
-            }
-
-            $this->logger->info('Ollama request completed', [
-                'duration' => $duration,
-                'model' => $this->model,
-            ]);
-
-            return $result;
-        } catch (\Exception $e) {
-            $this->logger->error('Ollama request failed', [
-                'error' => $e->getMessage(),
-                'model' => $this->model,
-                'url' => $this->ollamaUrl,
-            ]);
-
-            throw new \RuntimeException('Ollama request failed: ' . $e->getMessage(), 0, $e);
-        }
-    }
-
-    /**
-     * Answer natural language query with context
+     * Answer natural language query with context.
      */
     public function answerQuery(string $query, array $context): string
     {
@@ -175,6 +120,43 @@ class OllamaService
         $prompt = $this->buildQueryPrompt($query, $context);
 
         return $this->generate($prompt);
+    }
+
+    /**
+     * Extract invoice data from PDF text using AI.
+     *
+     * @param string $pdfText The extracted text from the PDF
+     *
+     * @return array{
+     *   rechnungsnummer: ?string,
+     *   betrag_mit_steuern: ?string,
+     *   gesamt_mwst: ?string,
+     *   datum_leistung: ?string,
+     *   faelligkeitsdatum: ?string,
+     *   arbeits_fahrtkosten: ?string,
+     *   confidence: float,
+     *   reasoning: string
+     * }
+     */
+    public function extractInvoiceData(string $pdfText): array
+    {
+        if (!$this->enabled) {
+            throw new \RuntimeException('OllamaService is disabled in this environment');
+        }
+
+        if (!$this->isOllamaAvailable()) {
+            throw new \RuntimeException('Ollama service is not available at ' . $this->ollamaUrl);
+        }
+
+        // Increase PHP execution timeout for AI analysis
+        set_time_limit(120);
+
+        $prompt = $this->buildInvoiceExtractionPrompt($pdfText);
+
+        // Use lower temperature for consistent extraction
+        $response = $this->generate($prompt, ['temperature' => 0.1], timeout: 120);
+
+        return $this->extractJson($response);
     }
 
     /**
@@ -209,28 +191,83 @@ class OllamaService
     }
 
     /**
-     * Extract JSON from LLM response
+     * Core generation method.
+     */
+    private function generate(
+        string $prompt,
+        array $options = [],
+        int $timeout = self::DEFAULT_TIMEOUT,
+    ): string {
+        $startTime = microtime(true);
+
+        try {
+            $response = $this->httpClient->request('POST', $this->ollamaUrl . '/api/generate', [
+                'json' => [
+                    'model' => $this->model,
+                    'prompt' => $prompt,
+                    'stream' => false,
+                    'options' => array_merge([
+                        'temperature' => self::DEFAULT_TEMPERATURE,
+                        'top_p' => 0.9,
+                    ], $options),
+                ],
+                'timeout' => $timeout,
+            ]);
+
+            $data = $response->toArray();
+            $result = $data['response'] ?? '';
+
+            $duration = microtime(true) - $startTime;
+
+            // Log slow requests
+            if ($duration > 10) {
+                $this->logger->warning('Slow Ollama request', [
+                    'duration' => $duration,
+                    'prompt_length' => mb_strlen($prompt),
+                    'model' => $this->model,
+                ]);
+            }
+
+            $this->logger->info('Ollama request completed', [
+                'duration' => $duration,
+                'model' => $this->model,
+            ]);
+
+            return $result;
+        } catch (\Exception $e) {
+            $this->logger->error('Ollama request failed', [
+                'error' => $e->getMessage(),
+                'model' => $this->model,
+                'url' => $this->ollamaUrl,
+            ]);
+
+            throw new \RuntimeException('Ollama request failed: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * Extract JSON from LLM response.
      */
     private function extractJson(string $response): array
     {
         // LLMs sometimes wrap JSON in markdown code blocks
         $response = preg_replace('/```json\s*|\s*```/', '', $response);
-        $response = trim($response);
+        $response = mb_trim($response);
 
         try {
-            return json_decode($response, true, 512, JSON_THROW_ON_ERROR);
+            return json_decode($response, true, 512, \JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
             // Fallback: try to find JSON in text
             if (preg_match('/\{.*\}/s', $response, $matches)) {
                 try {
-                    return json_decode($matches[0], true, 512, JSON_THROW_ON_ERROR);
+                    return json_decode($matches[0], true, 512, \JSON_THROW_ON_ERROR);
                 } catch (\JsonException $e2) {
                     // Give up
                 }
             }
 
             $this->logger->error('Could not extract JSON from Ollama response', [
-                'response' => substr($response, 0, 500),
+                'response' => mb_substr($response, 0, 500),
                 'error' => $e->getMessage(),
             ]);
 
@@ -239,7 +276,7 @@ class OllamaService
     }
 
     /**
-     * Build AI prompt for payment categorization
+     * Build AI prompt for payment categorization.
      */
     private function buildCategorizationPrompt(
         string $bezeichnung,
@@ -299,7 +336,7 @@ PROMPT;
 
         $str = "HISTORISCHE ZAHLUNGEN (ähnliche vergangene Buchungen):\n";
         foreach ($historicalData as $item) {
-            $str .= sprintf(
+            $str .= \sprintf(
                 "- %s: \"%s\" bei \"%s\" (%.2f EUR) → %s\n",
                 $item['date'] ?? '',
                 $item['purpose'] ?? '',
@@ -324,7 +361,7 @@ PROMPT;
                 ? " (korrigiert von {$example['was_corrected_from']})"
                 : '';
 
-            $str .= sprintf(
+            $str .= \sprintf(
                 "- \"%s\" bei \"%s\" (%.2f EUR) → %s%s\n",
                 $example['bezeichnung'] ?? '',
                 $example['partner'] ?? '',
@@ -363,22 +400,67 @@ KATEGORIEN;
 
         $str = '';
         foreach ($kategorien as $kategorie) {
-            $str .= sprintf(
+            $str .= \sprintf(
                 "%s - %s\n",
                 $kategorie['nummer'] ?? '',
                 $kategorie['bezeichnung'] ?? ''
             );
         }
 
-        return trim($str);
+        return mb_trim($str);
     }
 
     /**
-     * Build prompt for natural language query with few-shot learning
+     * Build prompt for invoice data extraction.
+     */
+    private function buildInvoiceExtractionPrompt(string $pdfText): string
+    {
+        return <<<PROMPT
+Du bist ein Experte für die Extraktion von Rechnungsdaten aus deutschen Geschäftsrechnungen.
+
+Analysiere den folgenden PDF-Text und extrahiere die Rechnungsinformationen:
+
+PDF-TEXT:
+{$pdfText}
+
+AUFGABE:
+Extrahiere folgende Felder aus dem Rechnungstext:
+
+1. **rechnungsnummer**: Die eindeutige Rechnungs- oder Belegnummer
+2. **betrag_mit_steuern**: Gesamtbetrag inkl. MwSt. (Brutto) im deutschen Format (z.B. "1.234,56")
+3. **gesamt_mwst**: MwSt.-Betrag im deutschen Format (z.B. "234,56")
+4. **datum_leistung**: Leistungsdatum oder Rechnungsdatum im Format DD.MM.YYYY
+5. **faelligkeitsdatum**: Fälligkeitsdatum/Zahlungsziel im Format DD.MM.YYYY (falls vorhanden)
+6. **arbeits_fahrtkosten**: Arbeitskosten/Lohnanteil für §35a EStG im deutschen Format (falls ausgewiesen)
+
+REGELN:
+- Zahlen im deutschen Format belassen (Punkt als Tausendertrennzeichen, Komma als Dezimaltrennzeichen)
+- Bei mehreren möglichen Beträgen: Den Gesamtbetrag (Brutto/inkl. MwSt.) wählen
+- Bei "Abschlag" oder "Vorauszahlung": Dies ist der betrag_mit_steuern
+- §35a-Angaben suchen: "Arbeitskosten", "Lohnanteil", "haushaltsnahe Dienstleistungen"
+- Wenn ein Feld nicht gefunden wird: null zurückgeben
+- confidence: 0.0-1.0 basierend auf Klarheit der extrahierten Daten
+
+Antworte NUR mit gültigem JSON:
+{
+    "rechnungsnummer": "RE-2024-001" oder null,
+    "betrag_mit_steuern": "1.234,56" oder null,
+    "gesamt_mwst": "234,56" oder null,
+    "datum_leistung": "15.03.2024" oder null,
+    "faelligkeitsdatum": "30.03.2024" oder null,
+    "arbeits_fahrtkosten": "500,00" oder null,
+    "confidence": 0.85,
+    "reasoning": "Kurze Begründung der Extraktion"
+}
+PROMPT;
+    }
+
+    /**
+     * Build prompt for natural language query with few-shot learning.
      */
     private function buildQueryPrompt(string $query, array $context): string
     {
-        $contextStr = json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        $contextStr = json_encode($context, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_UNICODE);
 
         // Get good Claude examples for few-shot learning
         $fewShotExamples = $this->getFewShotExamples(5);
@@ -415,7 +497,7 @@ PROMPT;
     }
 
     /**
-     * Get good Claude examples for few-shot learning
+     * Get good Claude examples for few-shot learning.
      */
     private function getFewShotExamples(int $limit = 5): string
     {
@@ -429,7 +511,7 @@ PROMPT;
             $examplesStr = "LERNE VON DIESEN HOCHWERTIGEN BEISPIEL-ANTWORTEN:\n\n";
 
             foreach ($examples as $i => $example) {
-                $examplesStr .= sprintf(
+                $examplesStr .= \sprintf(
                     "BEISPIEL %d:\nFrage: %s\n\nGute Antwort:\n%s\n\n---\n\n",
                     $i + 1,
                     $example->getQuery(),
@@ -438,7 +520,7 @@ PROMPT;
             }
 
             $this->logger->info('Injected few-shot examples into Ollama prompt', [
-                'example_count' => count($examples),
+                'example_count' => \count($examples),
             ]);
 
             return $examplesStr;

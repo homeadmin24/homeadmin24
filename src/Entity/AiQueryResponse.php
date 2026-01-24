@@ -9,7 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Stores AI query responses for learning and comparison
+ * Stores AI query responses for learning and comparison.
  *
  * Use cases:
  * - Compare Ollama vs Claude quality

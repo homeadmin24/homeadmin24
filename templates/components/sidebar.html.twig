@@ -1,17 +1,59 @@
-<button data-drawer-target="default-sidebar" data-drawer-toggle="default-sidebar" aria-controls="default-sidebar" type="button" class="inline-flex items-center p-2 mt-2 ms-3 text-sm text-gray-500 rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600">
-    <span class="sr-only">Open sidebar</span>
-    <svg class="w-6 h-6" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+<button id="sidebar-toggle" data-drawer-target="default-sidebar" data-drawer-toggle="default-sidebar" aria-controls="default-sidebar" type="button" class="fixed top-4 left-4 z-50 inline-flex items-center p-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 shadow-lg md:hidden">
+    <span class="sr-only">Toggle sidebar</span>
+    <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
         <path clip-rule="evenodd" fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path>
     </svg>
 </button>
 
+<style>
+    @media (min-width: 768px) {
+        #sidebar-toggle {
+            display: none;
+        }
+    }
+</style>
+
 <aside id="default-sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0" aria-label="Sidebar">
     <div class="h-full px-3 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-800 flex flex-col">
-        <div class="mb-5 text-center">
+        <div class="mb-5 flex items-center justify-between">
             <span class="text-xl font-semibold whitespace-nowrap dark:text-white">
                 <a href="{{ path('app_weg_index') }}">WEG-Verwaltung</a>
             </span>
+            <button id="sidebar-close" data-drawer-hide="default-sidebar" aria-controls="default-sidebar" type="button" class="inline-flex items-center p-2 text-sm text-gray-500 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600 sm:hidden">
+                <span class="sr-only">Close sidebar</span>
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+            </button>
         </div>
+
+        <script>
+            // Initialize sidebar state and focus management
+            document.addEventListener('DOMContentLoaded', function() {
+                const sidebar = document.getElementById('default-sidebar');
+                const closeButton = document.getElementById('sidebar-close');
+                const toggleButton = document.getElementById('sidebar-toggle');
+
+                // Open sidebar on desktop by default (screen width >= 640px)
+                if (sidebar && window.innerWidth >= 640) {
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebar.classList.add('translate-x-0');
+                } else if (sidebar) {
+                    // Keep closed on mobile
+                    sidebar.classList.add('-translate-x-full');
+                    sidebar.classList.remove('translate-x-0');
+                }
+
+                // When close button is clicked, immediately move focus to toggle button
+                // This must happen BEFORE Flowbite sets aria-hidden on the sidebar
+                if (closeButton && toggleButton) {
+                    closeButton.addEventListener('click', function(e) {
+                        // Immediately shift focus to prevent aria-hidden focus trap
+                        toggleButton.focus();
+                    });
+                }
+            });
+        </script>
         <ul class="space-y-2 font-medium">
             <li>
                 <a href="{{ path('app_weg_index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ app.request.attributes.get('_route') == 'app_weg_index' ? 'bg-gray-100 dark:bg-gray-700' : '' }}">

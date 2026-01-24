@@ -81,7 +81,7 @@ class TestAiCommand extends Command
 
             $io->definitionList(
                 ['Suggested Kostenkonto' => $result['kostenkonto'] ?? 'N/A'],
-                ['Confidence' => sprintf('%.0f%%', ($result['confidence'] ?? 0) * 100)],
+                ['Confidence' => \sprintf('%.0f%%', ($result['confidence'] ?? 0) * 100)],
                 ['Reasoning' => $result['reasoning'] ?? 'N/A']
             );
 

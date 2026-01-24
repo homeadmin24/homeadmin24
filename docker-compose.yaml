@@ -12,6 +12,10 @@ services:
       - APP_ENV=dev
       - APP_SECRET=98b5f8b5c1f5a8f9a1b6c3d7e2f4g5h6i9j0k3l7m2n8o4p9q6r1s5t8u2v7w3x9
       - DATABASE_URL=mysql://root:rootpassword@mysql:3306/homeadmin24?serverVersion=8.0&charset=utf8mb4&collation=utf8mb4_unicode_ci
+      - AI_ENABLED=true
+      - AI_PROVIDER=ollama
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.1:8b
     depends_on:
       - mysql
     volumes:
@@ -36,5 +40,24 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hausman-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    restart: unless-stopped
+
+  doc-intel:
+    build: ../doc-intel
+    container_name: doc-intel
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
+
 volumes:
   mysql_data:
+  ollama_data:

@@ -143,13 +143,13 @@ class BankStatementParsingService
             throw new \Exception('Fehler beim Lesen der CSV-Datei');
         }
 
-        // Detect encoding and convert to UTF-8
-        $encoding = mb_detect_encoding($content, ['UTF-8', 'ISO-8859-1', 'Windows-1252', 'CP1252'], true);
-        if ($encoding && 'UTF-8' !== $encoding) {
+        // Detect encoding and convert to UTF-8 (avoid double-encoding valid UTF-8 files)
+        if (!mb_check_encoding($content, 'UTF-8')) {
+            $encoding = mb_detect_encoding($content, ['UTF-8', 'ISO-8859-1', 'Windows-1252', 'CP1252'], true);
+            if (false === $encoding) {
+                $encoding = 'ISO-8859-1';
+            }
             $content = mb_convert_encoding($content, 'UTF-8', $encoding);
-        } elseif (!mb_check_encoding($content, 'UTF-8')) {
-            // Fallback: assume ISO-8859-1 if detection fails
-            $content = mb_convert_encoding($content, 'UTF-8', 'ISO-8859-1');
         }
 
         // Create temporary file with UTF-8 content
@@ -170,23 +170,23 @@ class BankStatementParsingService
             }
 
             $transactions[] = [
-                'account' => trim($row[0], '"'),
-                'booking_date' => $this->parseDate(trim($row[1], '"')),
-                'value_date' => $this->parseDate(trim($row[2], '"')),
-                'booking_text' => trim($row[3], '"'),
-                'purpose' => trim($row[4], '"'),
-                'creditor_id' => trim($row[5], '"'),
-                'mandate_reference' => trim($row[6], '"'),
-                'end_to_end_reference' => trim($row[7], '"'),
-                'collector_reference' => trim($row[8], '"'),
-                'original_amount' => trim($row[9], '"'),
-                'charge_back_fee' => trim($row[10], '"'),
-                'partner' => trim($row[11], '"'),
-                'iban' => trim($row[12], '"'),
-                'bic' => trim($row[13], '"'),
-                'amount' => $this->parseAmount(trim($row[14], '"')),
-                'currency' => trim($row[15], '"'),
-                'info' => trim($row[16], '"'),
+                'account' => mb_trim($row[0], '"'),
+                'booking_date' => $this->parseDate(mb_trim($row[1], '"')),
+                'value_date' => $this->parseDate(mb_trim($row[2], '"')),
+                'booking_text' => mb_trim($row[3], '"'),
+                'purpose' => mb_trim($row[4], '"'),
+                'creditor_id' => mb_trim($row[5], '"'),
+                'mandate_reference' => mb_trim($row[6], '"'),
+                'end_to_end_reference' => mb_trim($row[7], '"'),
+                'collector_reference' => mb_trim($row[8], '"'),
+                'original_amount' => mb_trim($row[9], '"'),
+                'charge_back_fee' => mb_trim($row[10], '"'),
+                'partner' => mb_trim($row[11], '"'),
+                'iban' => mb_trim($row[12], '"'),
+                'bic' => mb_trim($row[13], '"'),
+                'amount' => $this->parseAmount(mb_trim($row[14], '"')),
+                'currency' => mb_trim($row[15], '"'),
+                'info' => mb_trim($row[16], '"'),
             ];
         }
 
@@ -504,7 +504,7 @@ class BankStatementParsingService
 
         // Remove extra whitespace
         $str = preg_replace('/\s+/', ' ', $str);
-        $str = trim($str);
+        $str = mb_trim($str);
 
         return $str;
     }

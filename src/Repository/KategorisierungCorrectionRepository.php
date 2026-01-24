@@ -19,7 +19,7 @@ class KategorisierungCorrectionRepository extends ServiceEntityRepository
     }
 
     /**
-     * Find corrections for a similar partner name
+     * Find corrections for a similar partner name.
      */
     public function findByPartnerPattern(string $partner, int $limit = 5): array
     {
@@ -35,7 +35,7 @@ class KategorisierungCorrectionRepository extends ServiceEntityRepository
     }
 
     /**
-     * Get correction statistics
+     * Get correction statistics.
      */
     public function getCorrectionStats(): array
     {

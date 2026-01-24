@@ -7,7 +7,7 @@ namespace App\Service\AI;
 use App\Service\OllamaService;
 
 /**
- * Ollama AI Provider (Local LLM)
+ * Ollama AI Provider (Local LLM).
  *
  * Adapter for OllamaService to implement AIProviderInterface.
  * Uses local llama3.1:8b model for DSGVO-compliant queries.

@@ -7,14 +7,14 @@
         @page {
             margin: 80px 25px 40px 25px;
         }
-        
+
         .page-header {
             font-size: 8pt;
             text-align: center;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #333;
             padding-bottom: 8px;
             margin-bottom: 15px;
-            color: #666;
+            color: #333;
         }
         
         .footer {
@@ -25,7 +25,7 @@
             height: 30px;
             font-size: 7pt;
             text-align: center;
-            border-top: 1px solid #ddd;
+            border-top: 1px solid #333;
             padding-top: 5px;
         }
         
@@ -64,7 +64,7 @@
         
         .meta-info {
             font-size: 8pt;
-            color: #666;
+            color: #333;
             margin-top: 8px;
         }
         
@@ -72,13 +72,17 @@
             margin-bottom: 20px;
             page-break-inside: avoid;
         }
+
+        .section.allow-break {
+            page-break-inside: auto;
+        }
         
         .section-title {
-            font-size: 11pt;
+            font-size: 10pt;
             font-weight: bold;
-            background-color: #f5f5f5;
+            background-color: #f8f8f8;
             padding: 5px 8px;
-            border-left: 4px solid #333;
+            border-bottom: 1px solid #333;
             margin-bottom: 8px;
             text-transform: uppercase;
         }
@@ -106,38 +110,43 @@
         }
         
         .result-box {
-            background-color: #e8f4f8;
-            border: 2px solid #2196F3;
-            padding: 10px;
+            background-color: #f5f5f5;
+            border: 1px solid #333;
+            padding: 6px 8px;
             text-align: center;
-            margin: 15px 0;
-            border-radius: 5px;
+            margin: 10px 0;
+            border-radius: 0;
         }
         
         .result-box .result-text {
-            font-size: 12pt;
+            font-size: 9pt;
             font-weight: bold;
-            color: #1976D2;
+            color: #333;
         }
         
         .calculation-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 10px 0;
+            margin: 8px 0;
             font-size: 8pt;
         }
         
         .calculation-table th {
-            background-color: #f0f0f0;
+            background-color: #f8f8f8;
+            padding: 5px;
+            text-align: left;
+            border-bottom: 1px solid #333;
             font-weight: bold;
-            padding: 6px;
-            text-align: center;
-            border: 1px solid #ccc;
+        }
+
+        .calculation-table th.amount {
+            text-align: right;
+            font-family: inherit;
         }
         
         .calculation-table td {
-            padding: 4px 6px;
-            border: 1px solid #ddd;
+            padding: 3px 5px;
+            border-bottom: 1px solid #eee;
             text-align: right;
         }
         
@@ -189,39 +198,178 @@
         .payments-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 8px 0;
-            font-size: 8pt;
+            margin: 10px 0;
+            font-size: 7pt;
         }
         
         .payments-table th {
             background-color: #f8f8f8;
-            padding: 4px;
+            padding: 3px 5px;
             text-align: left;
             border-bottom: 1px solid #333;
             font-weight: bold;
         }
         
         .payments-table td {
-            padding: 2px 4px;
+            padding: 2px 5px;
             border-bottom: 1px solid #eee;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.1;
+        }
+
+        .payments-table tr.payments-total td,
+        .payments-table tr.payments-saldo td {
+            border-top: 0;
+            border-bottom: 0;
+        }
+
+        .payments-table tr.total td {
+            font-weight: bold;
+            background-color: #e8e8e8;
+            border-top: 2px solid #333;
+        }
+
+        .payments-table tr.payments-group-total td {
+            border-top: 1px solid #333;
+            font-weight: bold;
+            background-color: #f5f5f5;
+            padding: 2px 5px;
+            line-height: 1.1;
+        }
+
+        .payments-table tr.payments-group-spacer td {
+            border-bottom: 0;
+            padding: 0 0;
+        }
+
+        .payments-table.payments-detail {
+            margin: 10px 0;
+            font-size: 6pt;
+        }
+
+
+        .payments-table.payments-detail th,
+        .payments-table.payments-detail td {
+        }
+
+        .payments-table {
+            border-collapse: collapse;
         }
         
         .payments-table td.date {
-            width: 80px;
-            text-align: center;
+            width: 8mm;
+            text-align: left;
+            padding-right: 2px;
+            white-space: nowrap;
+        }
+
+        .payments-table td.year,
+        .payments-table th.year {
+            width: 4mm;
         }
         
+        .payments-table th.amount,
         .payments-table td.amount {
-            width: 80px;
+            width: 9mm;
             text-align: right;
             font-family: 'Courier New', monospace;
+            padding-left: 0;
+            padding-right: 3px;
+            white-space: nowrap;
         }
+
+        .payments-table td.amount.amount-total {
+            display: flex;
+            justify-content: space-between;
+            gap: 2px;
+        }
+
+        .payments-table td.amount.amount-total .amount-label {
+            font-family: inherit;
+        }
+
+        .payments-table td.amount.amount-total .amount-value {
+            margin-left: auto;
+        }
+
+        .payments-table td.desc,
+        .payments-table th.desc {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 0;
+            width: 54mm;
+        }
+
+        .payments-table td.partner,
+        .payments-table th.partner {
+            padding-right: 0;
+            padding-left: 4px;
+        }
+
+        .payments-table td.category,
+        .payments-table th.category {
+            padding-left: 0;
+        }
+
+        .payments-table td.nowrap {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .payments-table th.amount {
+            padding-right: 6px;
+        }
+
+        .payments-table.chrome td.desc,
+        .payments-table.chrome th.desc,
+        .payments-table.chrome td.amount,
+        .payments-table.chrome th.amount,
+        .payments-table.chrome td.partner,
+        .payments-table.chrome th.partner,
+        .payments-table.chrome td.category,
+        .payments-table.chrome th.category,
+        .payments-table.chrome td.konto,
+        .payments-table.chrome th.konto {
+            width: auto;
+        }
+
+        .payments-table td.partner,
+        .payments-table th.partner {
+            width: 28mm;
+        }
+
+        .payments-table td.category,
+        .payments-table th.category {
+            width: 14mm;
+        }
+
+        .payments-table td.konto,
+        .payments-table th.konto {
+            width: 18mm;
+        }
+
+        .payments-table.payments-detail td.date,
+        .payments-table.payments-detail th.date,
+        .payments-table.payments-detail td.desc,
+        .payments-table.payments-detail th.desc,
+        .payments-table.payments-detail td.amount,
+        .payments-table.payments-detail th.amount,
+        .payments-table.payments-detail td.partner,
+        .payments-table.payments-detail th.partner,
+        .payments-table.payments-detail td.konto,
+        .payments-table.payments-detail th.konto {
+            width: auto;
+        }
+
         
         .tax-section {
-            background-color: #fffbf0;
-            border: 1px solid #ffa000;
-            padding: 10px;
-            margin: 15px 0;
+            background-color: #f8f8f8;
+            border: 1px solid #333;
+            padding: 8px;
+            margin: 10px 0;
         }
         
         .tax-table {
@@ -232,16 +380,16 @@
         }
         
         .tax-table th {
-            background-color: #fff3e0;
-            padding: 4px;
+            background-color: #f8f8f8;
+            padding: 5px;
             text-align: center;
-            border: 1px solid #ffb74d;
+            border-bottom: 1px solid #333;
             font-weight: bold;
         }
         
         .tax-table td {
-            padding: 2px 4px;
-            border: 1px solid #ffccbc;
+            padding: 3px 5px;
+            border-bottom: 1px solid #eee;
             text-align: right;
         }
         
@@ -263,11 +411,11 @@
         }
         
         .positive {
-            color: #d32f2f;
+            color: #333;
         }
         
         .negative {
-            color: #388e3c;
+            color: #333;
         }
         
         .page-break {
@@ -278,36 +426,97 @@
             width: 100%;
             border-collapse: collapse;
             margin: 8px 0;
-            font-size: 7pt;
+            font-size: 8pt;
         }
         
         .umlageschluessel-table th {
             background-color: #f8f8f8;
-            padding: 4px;
+            padding: 5px;
             text-align: center;
-            border: 1px solid #333;
+            border-bottom: 1px solid #333;
             font-weight: bold;
         }
         
         .umlageschluessel-table td {
-            padding: 3px 4px;
-            border: 1px solid #ddd;
+            padding: 3px 5px;
+            border-bottom: 1px solid #eee;
             text-align: center;
         }
         
         .umlageschluessel-table td.label {
             text-align: left;
         }
-        
+
+        .balance-table th,
+        .balance-table td {
+            font-size: 8pt;
+            white-space: nowrap;
+        }
+
         h3, h4 {
             margin-top: 5px;
             margin-bottom: 8px;
         }
+
+        .preview {
+            background: #f2f2f2;
+        }
+
+        .preview .page-content {
+            width: 210mm;
+            max-width: none;
+            margin: 20px auto;
+            padding: 0 20mm 40px;
+            background: #fff;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .preview .page-header {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: #fff;
+        }
+
+        .preview .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 24px;
+            margin: 0;
+            padding-top: 4px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+        }
+
+        .preview .section.page-break {
+            border-top: 2px dashed #c0c0c0;
+            margin-top: 60px;
+            padding-top: 20px;
+            position: relative;
+        }
+
+        .preview .section.page-break::after {
+            content: "Seitenumbruch";
+            position: absolute;
+            top: -12px;
+            right: 0;
+            background: #fff;
+            padding: 0 6px;
+            font-size: 7pt;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
     </style>
 </head>
-<body>
-    <!-- Page Footer (appears on all pages) -->
+<body class="{{ previewMode|default(false) ? 'preview' : '' }}">
+    {% if previewMode|default(false) %}
+    <!-- Page Footer (preview only) -->
     <div class="footer"></div>
+    {% endif %}
 
     <div class="page-content">
     <div class="header">
@@ -320,7 +529,7 @@
     </div>
 
     <!-- PAGE 1: EIGENTÜMER INFORMATION, ABRECHNUNGSÜBERSICHT, UMLAGESCHLÜSSEL -->
-    <div class="section">
+    <div class="section allow-break">
         <div class="section-title">Eigentümer Information</div>
         <div class="info-grid">
             <div class="info-row">
@@ -337,20 +546,24 @@
     </div>
 
     {% if data.payments %}
-    <div class="section">
+    <div class="section allow-break">
         <div class="section-title">Abrechnungsübersicht</div>
         
         {# Use centralized calculated_totals from HgaService (BGH V ZR 44/09 compliant) #}
         {% set calc = data.calculated_totals %}
         {% set totalCosts = calc.unit.gesamtkosten %}
-        {% set saldo = calc.balance.saldo %}
+        {% set unitSoll = data.payments.soll|default(0) %}
+        {% set unitIst = data.payments.ist|default(0) %}
+        {% set unitAbrechnungsspitze = totalCosts - unitSoll %}
+        {% set unitZahlungsdiff = unitIst - unitSoll %}
+        {% set unitSaldo = totalCosts - unitIst %}
         
         <div class="result-box">
             <div class="result-text">
-                {% if saldo > 0 %}
-                    Ergebnis: Nachzahlung in Höhe von {{ saldo|number_format(2, ',', '.') }} €
+                {% if unitSaldo > 0 %}
+                    Ergebnis: Nachzahlung in Höhe von {{ unitSaldo|number_format(2, ',', '.') }} €
                 {% else %}
-                    Ergebnis: Guthaben in Höhe von {{ (saldo * -1)|number_format(2, ',', '.') }} €
+                    Ergebnis: Guthaben in Höhe von {{ (unitSaldo * -1)|number_format(2, ',', '.') }} €
                 {% endif %}
             </div>
         </div>
@@ -359,8 +572,8 @@
             <thead>
                 <tr>
                     <th style="text-align: left;">Position</th>
-                    <th>Objekt gesamt</th>
-                    <th>Ihr Anteil</th>
+                    <th class="amount">Objekt gesamt</th>
+                    <th class="amount">Ihr Anteil</th>
                 </tr>
             </thead>
             <tbody>
@@ -379,7 +592,7 @@
                     <td class="label">= Abrechnungsspitze</td>
                     {# Use centralized calculated_totals (BGH V ZR 44/09 compliant) #}
                     <td class="amount">{{ (calc.weg.gesamtkosten - (data.weg_totals.soll|default(0)))|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ calc.balance.abrechnungsspitze|number_format(2, ',', '.') }} € ({{ calc.balance.abrechnungsspitze > 0 ? 'Unterdeckung' : 'Überdeckung' }})</td>
+                    <td class="amount">{{ unitAbrechnungsspitze|number_format(2, ',', '.') }} € ({{ unitAbrechnungsspitze > 0 ? 'Unterdeckung' : 'Überdeckung' }})</td>
                 </tr>
                 <tr>
                     <td class="label">Hausgeld-Vorschuss Soll</td>
@@ -389,24 +602,28 @@
                 <tr>
                     <td class="label">- Hausgeld-Vorschuss Ist</td>
                     <td class="amount">{{ (data.weg_totals.ist|default(0))|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ (data.payments.ist|default(0))|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ unitIst|number_format(2, ',', '.') }} €</td>
                 </tr>
                 <tr class="subtotal">
                     <td class="label">= Zahlungsdifferenz</td>
                     <td class="amount">{{ ((data.weg_totals.ist|default(0)) - (data.weg_totals.soll|default(0)))|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ ((data.payments.ist|default(0)) - (data.payments.soll|default(0)))|number_format(2, ',', '.') }} € ({{ ((data.payments.ist|default(0)) - (data.payments.soll|default(0))) >= 0 ? 'Überdeckung' : 'Unterdeckung' }})</td>
+                    <td class="amount">{{ unitZahlungsdiff|number_format(2, ',', '.') }} € ({{ unitZahlungsdiff >= 0 ? 'Überdeckung' : 'Unterdeckung' }})</td>
                 </tr>
                 <tr class="total">
                     <td class="label">= ABRECHNUNGS-SALDO</td>
                     <td class="amount"></td>
-                    <td class="amount">{{ saldo|abs|number_format(2, ',', '.') }} € ({{ saldo > 0 ? 'Nachzahlung' : 'Guthaben' }})</td>
+                    <td class="amount">{{ unitSaldo|abs|number_format(2, ',', '.') }} € ({{ unitSaldo > 0 ? 'Nachzahlung' : 'Guthaben' }})</td>
                 </tr>
             </tbody>
         </table>
     </div>
     {% endif %}
 
-    <div class="section">
+    <!-- PAGE 2: KOSTENÜBERSICHT -->
+    <div class="section page-break">
+        <div class="page-header">
+            Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
+        </div>
         <div class="section-title">Umlageschlüssel</div>
 
         <table class="umlageschluessel-table">
@@ -453,14 +670,8 @@
                 {% endif %}
             </tbody>
         </table>
-    </div>
 
-    <!-- PAGE 2: KOSTENÜBERSICHT -->
-    <div class="section page-break">
-        <div class="page-header">
-            Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
-        </div>
-        <div class="section-title">Kostenübersicht</div>
+        <div class="section-title">Umlageergebnis</div>
         
         <div style="margin-bottom: 20px;">
             <h3>1. Umlagefähige Kosten (Mieter)</h3>
@@ -605,12 +816,254 @@
         </div>
     </div>
 
-    {% if data.payments.monthly_unit_payments|default([]) %}
-    <div class="section page-break">
+
+    {# NEW: Vermögensabgrenzung Section #}
+    {% set hasHausgeld = data.vermoegen_abgrenzung.hausgeld.available|default(false) %}
+    {% set hasRuecklage = data.vermoegen_abgrenzung.ruecklage.available|default(false) %}
+    {% if hasHausgeld or hasRuecklage %}
+    <div class="section allow-break page-break">
         <div class="page-header">
             Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
         </div>
-        <div class="section-title">Zahlungsübersicht {{ data.year }}</div>
+        <div class="section-title">Vermögensabgrenzung {{ data.year }}</div>
+
+        <p style="margin-bottom: 15px; font-size: 8.5pt; color: #666;">
+            Abstimmung der Bankstände mit den gebuchten Zahlungen im Abrechnungszeitraum.
+        </p>
+
+        <table class="cost-table vermoegen-table" style="width: 100%; margin-bottom: 20px;">
+            <thead>
+                <tr>
+                    <th style="width: 40%; text-align: left;">Beschreibung</th>
+                    <th style="width: 15%; text-align: center;">Details</th>
+                    <th style="width: 22.5%; text-align: right;">Hausgeld</th>
+                    <th style="width: 22.5%; text-align: right;">Rücklage</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="subtotal">
+                    <td colspan="4" style="font-size: 9pt;"><strong>Kontostände</strong></td>
+                </tr>
+                <tr>
+                    <td style="padding-left: 15px;">Kontostand zu Beginn</td>
+                    <td class="center" style="font-size: 8pt; color: #666;">
+                        {% if hasHausgeld %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_start.datum }}{% endif %}
+                        {% if hasRuecklage and not hasHausgeld %}{{ data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_start.datum }}{% endif %}
+                    </td>
+                    <td class="amount">{% if hasHausgeld %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_start.saldo|number_format(2, ',', '.') }} €{% else %}-{% endif %}</td>
+                    <td class="amount">{% if hasRuecklage %}{{ data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_start.saldo|number_format(2, ',', '.') }} €{% else %}-{% endif %}</td>
+                </tr>
+                <tr>
+                    <td style="padding-left: 15px;">Kontostand am Ende</td>
+                    <td class="center" style="font-size: 8pt; color: #666;">
+                        {% if hasHausgeld %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_end.datum }}{% endif %}
+                        {% if hasRuecklage and not hasHausgeld %}{{ data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_end.datum }}{% endif %}
+                    </td>
+                    <td class="amount">{% if hasHausgeld %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_end.saldo|number_format(2, ',', '.') }} €{% else %}-{% endif %}</td>
+                    <td class="amount">{% if hasRuecklage %}{{ data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_end.saldo|number_format(2, ',', '.') }} €{% else %}-{% endif %}</td>
+                </tr>
+
+                <tr class="subtotal" style="border-top: 2px solid #999;">
+                    <td colspan="4" style="font-size: 9pt;"><strong>Zahlungen im Zeitraum
+                        {% if hasHausgeld %}({{ data.vermoegen_abgrenzung.hausgeld.periode.start|date('d.m.Y') }} - {{ data.vermoegen_abgrenzung.hausgeld.periode.end|date('d.m.Y') }}){% endif %}
+                    </strong></td>
+                </tr>
+
+                {# Combine years from both accounts #}
+                {% set allYears = [] %}
+                {% if hasHausgeld %}
+                    {% for jahr in data.vermoegen_abgrenzung.hausgeld.periode.nach_abrechnungsjahr|keys %}
+                        {% set allYears = allYears|merge([jahr]) %}
+                    {% endfor %}
+                {% endif %}
+                {% if hasRuecklage %}
+                    {% for jahr in data.vermoegen_abgrenzung.ruecklage.periode.nach_abrechnungsjahr|keys %}
+                        {% if jahr not in allYears %}
+                            {% set allYears = allYears|merge([jahr]) %}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {# Sort years: current year first, then others #}
+                {% set sortedYears = allYears|sort %}
+                {% set allYears = [] %}
+                {% if data.year in sortedYears %}
+                    {% set allYears = [data.year] %}
+                {% endif %}
+                {% for jahr in sortedYears %}
+                    {% if jahr != data.year %}
+                        {% set allYears = allYears|merge([jahr]) %}
+                    {% endif %}
+                {% endfor %}
+
+                {% for jahr in allYears %}
+                    {% set hausgeldData = hasHausgeld ? data.vermoegen_abgrenzung.hausgeld.periode.nach_abrechnungsjahr[jahr]|default(null) : null %}
+                    {% set ruecklageData = hasRuecklage ? data.vermoegen_abgrenzung.ruecklage.periode.nach_abrechnungsjahr[jahr]|default(null) : null %}
+                    {% set totalZahlungen = (hausgeldData ? hausgeldData.anzahl_gesamt : 0) + (ruecklageData ? ruecklageData.anzahl_gesamt : 0) %}
+                    <tr style="background-color: #f5f5f5;">
+                        <td colspan="4" style="font-weight: 600; font-size: 8.5pt; padding: 4px 5px 4px 10px; border-top: 1px solid #ccc;">
+                            Abrechnungsjahr {{ jahr }} ({{ totalZahlungen }} Zahlungen)
+                        </td>
+                    </tr>
+
+                    {# Einnahmen row #}
+                    <tr>
+                        <td style="padding-left: 20px;">Einnahmen{% if jahr == data.year %} <sup style="color: #0066cc;">[1]</sup>{% endif %}</td>
+                        <td class="center" style="font-size: 7.5pt; color: #888;">{{ totalZahlungen > 0 ? ((hausgeldData ? hausgeldData.anzahl_einnahmen : 0) + (ruecklageData ? ruecklageData.anzahl_einnahmen : 0)) ~ ' Buchungen' : '' }}</td>
+                        <td class="amount" style="color: #006600; font-weight: 500;">{{ hausgeldData ? (hausgeldData.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                        <td class="amount" style="color: #006600; font-weight: 500;">{{ ruecklageData ? (ruecklageData.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    </tr>
+
+                    {# Einnahmen details: for non-main years show all, for main year show only Umbuchung #}
+                    {% if hausgeldData and hausgeldData.einnahmen_by_category|default({})|length > 0 %}
+                        {% for kategorie, betrag in hausgeldData.einnahmen_by_category %}
+                            {% if jahr != data.year or 'Umbuchung' in kategorie %}
+                                <tr style="background-color: #fafafa;">
+                                    <td style="padding-left: 40px; font-size: 7.5pt; color: #777;">{{ kategorie }}</td>
+                                    <td class="center"></td>
+                                    <td class="amount" style="font-size: 7.5pt; color: #006600;">{{ betrag|number_format(2, ',', '.') }} €</td>
+                                    <td class="amount"></td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    {% if ruecklageData and ruecklageData.einnahmen_by_category|default({})|length > 0 %}
+                        {% for kategorie, betrag in ruecklageData.einnahmen_by_category %}
+                            {% if jahr != data.year or 'Umbuchung' in kategorie %}
+                                <tr style="background-color: #fafafa;">
+                                    <td style="padding-left: 40px; font-size: 7.5pt; color: #777;">{{ kategorie }}</td>
+                                    <td class="center"></td>
+                                    <td class="amount"></td>
+                                    <td class="amount" style="font-size: 7.5pt; color: #006600;">{{ betrag|number_format(2, ',', '.') }} €</td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+
+                    {# Ausgaben row #}
+                    <tr>
+                        <td style="padding-left: 20px;">Ausgaben{% if jahr == data.year %} <sup style="color: #0066cc;">[2]</sup>{% endif %}</td>
+                        <td class="center" style="font-size: 7.5pt; color: #888;">{{ totalZahlungen > 0 ? ((hausgeldData ? hausgeldData.anzahl_ausgaben : 0) + (ruecklageData ? ruecklageData.anzahl_ausgaben : 0)) ~ ' Buchungen' : '' }}</td>
+                        <td class="amount" style="color: #cc0000; font-weight: 500;">{{ hausgeldData ? (hausgeldData.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                        <td class="amount" style="color: #cc0000; font-weight: 500;">{{ ruecklageData ? (ruecklageData.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    </tr>
+
+                    {# Ausgaben details: for non-main years show all, for main year show only Umbuchung #}
+                    {% if hausgeldData and hausgeldData.ausgaben_by_kostenkonto|default({})|length > 0 %}
+                        {% for kostenkonto, betrag in hausgeldData.ausgaben_by_kostenkonto %}
+                            {% if jahr != data.year or 'Umbuchung' in kostenkonto %}
+                                <tr style="background-color: #fafafa;">
+                                    <td style="padding-left: 40px; font-size: 7.5pt; color: #777;">{{ kostenkonto }}</td>
+                                    <td class="center"></td>
+                                    <td class="amount" style="font-size: 7.5pt; color: #cc0000;">{{ betrag|number_format(2, ',', '.') }} €</td>
+                                    <td class="amount"></td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    {% if ruecklageData and ruecklageData.ausgaben_by_kostenkonto|default({})|length > 0 %}
+                        {% for kostenkonto, betrag in ruecklageData.ausgaben_by_kostenkonto %}
+                            {% if jahr != data.year or 'Umbuchung' in kostenkonto %}
+                                <tr style="background-color: #fafafa;">
+                                    <td style="padding-left: 40px; font-size: 7.5pt; color: #777;">{{ kostenkonto }}</td>
+                                    <td class="center"></td>
+                                    <td class="amount"></td>
+                                    <td class="amount" style="font-size: 7.5pt; color: #cc0000;">{{ betrag|number_format(2, ',', '.') }} €</td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+
+                    {# Saldo row #}
+                    <tr style="border-top: 1px solid #ddd;">
+                        <td style="padding-left: 20px; font-weight: 600;">Saldo {{ jahr }}</td>
+                        <td class="center"></td>
+                        <td class="amount" style="font-weight: 600;">{{ hausgeldData ? (hausgeldData.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                        <td class="amount" style="font-weight: 600;">{{ ruecklageData ? (ruecklageData.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    </tr>
+                {% endfor %}
+
+                <tr style="background-color: #e8e8e8; border-top: 2px solid #666;">
+                    <td style="font-weight: 600; padding-top: 5px;">Gesamt alle Zahlungen</td>
+                    <td class="center" style="font-size: 7.5pt; color: #666; padding-top: 5px;">
+                        {% set totalBuchungen = (hasHausgeld ? data.vermoegen_abgrenzung.hausgeld.periode.gesamt.anzahl_gesamt : 0) + (hasRuecklage ? data.vermoegen_abgrenzung.ruecklage.periode.gesamt.anzahl_gesamt : 0) %}
+                        {{ totalBuchungen }} Buchungen
+                    </td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.periode.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.periode.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                </tr>
+
+                <tr class="subtotal" style="border-top: 2px solid #999;">
+                    <td colspan="4" style="font-size: 9pt; padding-top: 8px;"><strong>Abstimmung</strong></td>
+                </tr>
+                <tr>
+                    <td style="padding-left: 15px;">Kontostand Beginn</td>
+                    <td class="center"></td>
+                    <td class="amount">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_start.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_start.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                </tr>
+                <tr>
+                    <td style="padding-left: 15px;">+ Summe aller Zahlungen</td>
+                    <td class="center"></td>
+                    <td class="amount">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.periode.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.periode.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                </tr>
+                <tr style="background-color: #f0f0f0; border-top: 1px solid #999;">
+                    <td style="padding-left: 15px; font-weight: 600;">= Rechnerischer Endbestand</td>
+                    <td class="center"></td>
+                    <td class="amount" style="font-weight: 600;">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.abweichung.rechnerisch|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600;">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.abweichung.rechnerisch|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                </tr>
+                <tr>
+                    <td style="padding-left: 15px;">Tatsächlicher Kontostand (Bank)</td>
+                    <td class="center"></td>
+                    <td class="amount">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_end.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_end.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                </tr>
+                <tr style="background-color: #fff8e1; border-top: 2px solid #ffc107;">
+                    <td style="font-weight: 600; padding-top: 5px; padding-left: 15px;">Abweichung</td>
+                    <td class="center" style="font-size: 8pt; padding-top: 5px;">
+                        {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.abweichung.status == 'ok' %}
+                            <span style="color: #006600; font-weight: 600;">✓ HG</span>
+                        {% elseif hasHausgeld %}
+                            <span style="color: #ff6600; font-weight: 600;">⚠ HG</span>
+                        {% endif %}
+                        {% if hasRuecklage and data.vermoegen_abgrenzung.ruecklage.abweichung.status == 'ok' %}
+                            <span style="color: #006600; font-weight: 600;">✓ RL</span>
+                        {% elseif hasRuecklage %}
+                            <span style="color: #ff6600; font-weight: 600;">⚠ RL</span>
+                        {% endif %}
+                    </td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px; {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.abweichung.status != 'ok' %}color: #ff6600;{% endif %}">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.abweichung.differenz|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px; {% if hasRuecklage and data.vermoegen_abgrenzung.ruecklage.abweichung.status != 'ok' %}color: #ff6600;{% endif %}">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.abweichung.differenz|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        {% if (hasHausgeld and data.vermoegen_abgrenzung.hausgeld.bemerkung) or (hasRuecklage and data.vermoegen_abgrenzung.ruecklage.bemerkung) %}
+        <div style="margin-top: 12px; padding: 8px 12px; background-color: #f8f9fa; border-left: 3px solid #0066cc; font-size: 8pt;">
+            <strong style="font-size: 8.5pt;">Bemerkungen:</strong><br>
+            {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.bemerkung %}
+                <strong style="color: #0066cc;">Hausgeld:</strong> {{ data.vermoegen_abgrenzung.hausgeld.bemerkung|nl2br }}<br>
+            {% endif %}
+            {% if hasRuecklage and data.vermoegen_abgrenzung.ruecklage.bemerkung %}
+                <strong style="color: #0066cc;">Rücklage:</strong> {{ data.vermoegen_abgrenzung.ruecklage.bemerkung|nl2br }}
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div style="font-size: 8pt; color: #666; margin-top: 15px; padding: 8px 0; border-top: 1px solid #ddd;">
+            <strong style="font-size: 8.5pt; color: #333;">Erläuterungen:</strong><br>
+            <span style="color: #0066cc;">[1]</span> Details siehe "ZAHLUNGSÜBERSICHT {{ data.year }}"<br>
+            <span style="color: #0066cc;">[2]</span> Details siehe "ZAHLUNGEN NACH KOSTENKONTO (Umgelegte Konten {{ data.year }})"
+        </div>
+    </div>
+    {% endif %}
+
+
+
+    {% if data.payments.monthly_unit_payments|default([]) %}
+    <div class="section allow-break">
+        <div class="section-title">ZAHLUNGSÜBERSICHT {{ data.year }}</div>
         <div class="info-grid">
             <div class="info-row">
                 <div class="info-label">Debitor:</div>
@@ -625,8 +1078,8 @@
         <table class="payments-table">
             <thead>
                 <tr>
-                    <th>Datum</th>
-                    <th>Beschreibung</th>
+                    <th class="date" style="text-align: left;">Datum</th>
+                    <th style="text-align: left;">Beschreibung</th>
                     <th style="text-align: right;">WEG Gesamt</th>
                     <th style="text-align: right;">Ihre Zahlung</th>
                 </tr>
@@ -651,7 +1104,7 @@
                     {% endif %}
                 {% endfor %}
                 <tr style="border-top: 1px solid #999;">
-                    <td colspan="2"></td>
+                    <td colspan="2"><strong>Summe Wohngeld</strong></td>
                     <td class="amount"><strong>{{ totalWohngeldWeg|number_format(2, ',', '.') }} €</strong></td>
                     <td class="amount"><strong>{{ totalWohngeldUnit|number_format(2, ',', '.') }} €</strong></td>
                 </tr>
@@ -690,112 +1143,185 @@
                     {% set totalOtherWeg = totalOtherWeg + wegTotal %}
                 {% endfor %}
                 <tr style="border-top: 1px solid #999;">
-                    <td colspan="2"></td>
+                    <td colspan="2"><strong>Summe sonstige Zahlungen</strong></td>
                     <td class="amount"><strong>{{ totalOtherWeg|number_format(2, ',', '.') }} €</strong></td>
                     <td class="amount"><strong>{{ totalOtherUnit|number_format(2, ',', '.') }} €</strong></td>
                 </tr>
                 {% endif %}
 
-                <tr style="border-top: 2px solid #333;">
-                    <td colspan="2"></td>
-                    <td class="amount"><strong></strong></td>
+                <tr class="total">
+                    <td colspan="2"><strong>Gesamtsumme Zahlungen</strong></td>
+                    <td class="amount"><strong>{{ (totalWohngeldWeg + totalOtherWeg)|number_format(2, ',', '.') }} €</strong></td>
                     <td class="amount"><strong>{{ (totalWohngeldUnit + totalOtherUnit)|number_format(2, ',', '.') }} €</strong></td>
                 </tr>
 
-                {# Add WEG totals summary #}
-                <tr style="border-top: 3px double #333;">
-                    <td colspan="4" style="padding-top: 12px; font-weight: bold; font-size: 11pt; background-color: #e8e8e8;">WEG GESAMTSUMMEN:</td>
-                </tr>
-                <tr style="background-color: #f0f0f0;">
-                    <td colspan="3" style="font-weight: bold;">Wohngeld gesamt (WEG):</td>
-                    <td class="amount" style="font-weight: bold;">{{ (data.payments.weg_totals.ist|default(0))|number_format(2, ',', '.') }} €</td>
-                </tr>
+            </tbody>
+        </table>
 
-                {# Add Rücklagenzuführung #}
-                {% if data.costs.ruecklagen.items|default([]) %}
-                <tr style="border-top: 2px solid #ddd;">
-                    <td colspan="4" style="padding-top: 12px; font-weight: bold; background-color: #f8f8f8;">RÜCKLAGENZUFÜHRUNG (Einnahmen für Rücklage):</td>
-                </tr>
-                {% set unitRuecklagen = 0 %}
-                {% set wegRuecklagen = data.payments.weg_totals.ruecklagen|default(0) %}
-                {% for item in data.costs.ruecklagen.items %}
+    </div>
+    {% endif %}
+
+    {% if data.payments.all_payment_details|default([]) %}
+    <div class="section allow-break page-break">
+        <div class="page-header">
+            Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
+        </div>
+        <div class="section-title">ZAHLUNGEN NACH KOSTENKONTO (Umgelegte Konten {{ data.year }})</div>
+        <table class="payments-table payments-detail" style="line-height: 1.1; table-layout: fixed; width: 100%;">
+            <colgroup>
+                <col style="width: 12mm;">
+                <col style="width: 70mm;">
+                <col style="width: 48mm;">
+                <col style="width: 32mm;">
+                <col style="width: 20mm;">
+            </colgroup>
+            <thead>
                 <tr>
-                    <td class="date">31.12.{{ data.year }}</td>
-                    <td>{{ item.beschreibung }}</td>
-                    <td class="amount">{{ wegRuecklagen|abs|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ item.anteil|abs|number_format(2, ',', '.') }} €</td>
+                    <th class="date" style="text-align: left;">Datum</th>
+                    <th class="desc" style="text-align: left;">Bezeichnung</th>
+                    <th class="partner" style="text-align: left;">Zahler/Empfänger</th>
+                    <th class="konto" style="text-align: left;">Kostenkonto</th>
+                    <th class="amount" style="text-align: right;">Betrag</th>
                 </tr>
-                {% set unitRuecklagen = unitRuecklagen + item.anteil|abs %}
+            </thead>
+            <tbody>
+                {% set currentKostenkonto = '' %}
+                {% set groupTotal = 0 %}
+                {% set overallTotal = 0 %}
+                {% for payment in data.payments.all_payment_details %}
+                    {% set kostenkonto = '' %}
+                    {% if payment.kostenkonto_nummer is not empty %}
+                        {% set kostenkonto = payment.kostenkonto_nummer ~ ' ' ~ (payment.kostenkonto_bezeichnung|default('')) %}
+                    {% else %}
+                        {% set kostenkonto = payment.kostenkonto_bezeichnung|default('') %}
+                    {% endif %}
+                    {% set kostenkontoLabel = kostenkonto|trim is not empty ? kostenkonto : 'Ohne Kostenkonto' %}
+                    {% if currentKostenkonto != '' and currentKostenkonto != kostenkontoLabel %}
+                        <tr class="payments-group-total">
+                            <td class="date">&nbsp;</td>
+                            <td class="desc"><strong>Summe</strong></td>
+                            <td class="partner">&nbsp;</td>
+                            <td class="konto">&nbsp;</td>
+                            <td class="amount"><strong>{{ groupTotal|number_format(2, ',', '.') }} €</strong></td>
+                        </tr>
+                        <tr class="payments-group-spacer">
+                            <td colspan="5">&nbsp;</td>
+                        </tr>
+                        {% set groupTotal = 0 %}
+                    {% endif %}
+                    {% set currentKostenkonto = kostenkontoLabel %}
+                    {% set descText = payment.beschreibung|default('')|replace({'\n': ' ', '\r': '', '\t': ' '})|trim %}
+                    {% set descText = descText|replace({'  ': ' '})|replace({'  ': ' '})|replace({'  ': ' '})|replace({'  ': ' '}) %}
+                    {% set descShort = descText|length > 60 ? descText|slice(0, 60) ~ '...' : descText %}
+                    <tr>
+                        <td class="date">{{ payment.datum|date('d.m.Y') }}</td>
+                        <td class="desc">{{ descShort }}</td>
+                        {% set partnerText = payment.partner|default('')|replace({'\n': ' ', '\r': '', '\t': ' '})|trim %}
+                        {% set partnerText = partnerText|replace({'  ': ' '})|replace({'  ': ' '}) %}
+                        {% set partnerShort = partnerText|length > 30 ? partnerText|slice(0, 30) ~ '...' : partnerText %}
+                        <td class="nowrap partner">{{ partnerShort }}</td>
+                        <td class="nowrap konto">{{ kostenkonto }}</td>
+                        <td class="amount">{{ payment.betrag|number_format(2, ',', '.') }}&nbsp;€</td>
+                    </tr>
+                    {% set groupTotal = groupTotal + payment.betrag %}
+                    {% set overallTotal = overallTotal + payment.betrag %}
                 {% endfor %}
+                {% if currentKostenkonto != '' %}
+                    <tr class="payments-group-total">
+                        <td class="date">&nbsp;</td>
+                        <td class="desc"><strong>Summe</strong></td>
+                        <td class="partner">&nbsp;</td>
+                        <td class="konto">&nbsp;</td>
+                        <td class="amount"><strong>{{ groupTotal|number_format(2, ',', '.') }} €</strong></td>
+                    </tr>
+                    <tr class="payments-group-spacer">
+                        <td colspan="5">&nbsp;</td>
+                    </tr>
+                    <tr class="payments-group-total">
+                        <td class="date">&nbsp;</td>
+                        <td class="desc"><strong>Saldo</strong></td>
+                        <td class="partner">&nbsp;</td>
+                        <td class="konto">&nbsp;</td>
+                        <td class="amount"><strong>{{ overallTotal|number_format(2, ',', '.') }} €</strong></td>
+                    </tr>
                 {% endif %}
             </tbody>
         </table>
     </div>
     {% endif %}
 
-    {% if data.balance.hasData|default(false) %}
-    <div class="section">
-        <div class="section-title">Kontostandsentwicklung {{ data.year }}</div>
-        {% set wegRuecklagen = data.payments.weg_totals.ruecklagen|default(0) %}
-        {% set startTotal = data.balance.startAmount %}
-        {% set endTotal = data.balance.endAmount %}
-        {% set endRuecklagen = wegRuecklagen|abs %}
-        {% set endHausgeld = endTotal - endRuecklagen %}
-        {% set startHausgeld = startTotal %}
-        {% set startRuecklagen = 0 %}
-
+    {% if data.tax_deductible.items|default([]) %}
+    <div class="section page-break">
+        <div class="page-header">
+            Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
+        </div>
+        <div class="section-title">Abrechnung für Ausgaben i.S.d. §35a Einkommensteuergesetz</div>
         <div class="info-grid">
             <div class="info-row">
-                <div class="info-label">Kontostand Hausgeld 31.12.{{ data.balance.year - 1 }}:</div>
-                <div class="info-value">{{ startHausgeld|number_format(2, ',', '.') }} €</div>
+                <div class="info-label">Eigentümer:</div>
+                <div class="info-value">{{ data.einheit.nummer }} {{ data.einheit.beschreibung }} {{ data.einheit.eigentuemer }}</div>
             </div>
+            {% if data.einheit.address %}
             <div class="info-row">
-                <div class="info-label">Kontostand Rücklagen 31.12.{{ data.balance.year - 1 }}:</div>
-                <div class="info-value">{{ startRuecklagen|number_format(2, ',', '.') }} €</div>
+                <div class="info-label">Empfänger-Adresse:</div>
+                <div class="info-value">{{ data.einheit.address }}</div>
             </div>
-            <div class="info-row" style="padding-top: 8px; border-top: 1px solid #ddd;">
-                <div class="info-label">Kontostand Hausgeld 31.12.{{ data.balance.year }}:</div>
-                <div class="info-value">{{ endHausgeld|number_format(2, ',', '.') }} €</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Kontostand Rücklagen 31.12.{{ data.balance.year }}:</div>
-                <div class="info-value">{{ endRuecklagen|number_format(2, ',', '.') }} €</div>
-            </div>
-            <div class="info-row" style="padding-top: 8px; border-top: 1px solid #ddd;">
-                <div class="info-label">Veränderung Hausgeld:</div>
-                <div class="info-value {{ (endHausgeld - startHausgeld) >= 0 ? 'positive' : 'negative' }}">{{ (endHausgeld - startHausgeld) >= 0 ? '+' : '' }}{{ (endHausgeld - startHausgeld)|number_format(2, ',', '.') }} €</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Veränderung Rücklagen:</div>
-                <div class="info-value {{ (endRuecklagen - startRuecklagen) >= 0 ? 'positive' : 'negative' }}">{{ (endRuecklagen - startRuecklagen) >= 0 ? '+' : '' }}{{ (endRuecklagen - startRuecklagen)|number_format(2, ',', '.') }} €</div>
-            </div>
+            {% endif %}
+        </div>
+        <div class="tax-section">
+            <div class="section-title">Steuerbegünstigte Leistungen nach §35a EStG</div>
+            <table class="tax-table">
+            <thead>
+                <tr>
+                    <th>Handwerkerleistungen</th>
+                    <th>Gesamtkosten</th>
+                    <th>anrechenbar</th>
+                    <th>Ihr Anteil (Kosten)</th>
+                    <th>Ihr Anteil (anrechenbar)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data.tax_deductible.items %}
+                <tr>
+                    <td class="label">{{ item.kostenkonto }} - {{ item.beschreibung }} {{ item.verteilungsschluessel }}</td>
+                    <td class="amount">{{ item.gesamtkosten|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ item.anrechenbar|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ item.anteil_kosten|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ item.anteil_anrechenbar|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% endfor %}
+                <tr class="total">
+                    <td class="label"><strong>SUMME Handwerkerleistungen</strong></td>
+                    {% set totalGesamtkosten = data.tax_deductible.items|reduce((sum, item) => sum + item.gesamtkosten, 0) %}
+                    {% set totalAnrechenbar = data.tax_deductible.items|reduce((sum, item) => sum + item.anrechenbar, 0) %}
+                    {% set totalAnteilKosten = data.tax_deductible.items|reduce((sum, item) => sum + item.anteil_kosten, 0) %}
+                    <td class="amount"><strong>{{ totalGesamtkosten|number_format(2, ',', '.') }} €</strong></td>
+                    <td class="amount"><strong>{{ totalAnrechenbar|number_format(2, ',', '.') }} €</strong></td>
+                    <td class="amount"><strong>{{ totalAnteilKosten|number_format(2, ',', '.') }} €</strong></td>
+                    <td class="amount"><strong>{{ data.tax_deductible.total_anrechenbar|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 10px; padding: 8px; background-color: #f5f5f5; border-left: 4px solid #333;">
+            <strong>Ihr steuerlich absetzbarer Betrag (100% der Arbeits-/Fahrtkosten inkl. MwSt.): {{ data.tax_deductible.total_anrechenbar|number_format(2, ',', '.') }} EUR</strong>
+        </div>
+        
+        <div style="margin-top: 8px; font-size: 8pt; color: #333;">
+            <strong>HINWEIS:</strong> Diese Beträge können Sie in Ihrer Steuererklärung als haushaltsnahe
+            Dienstleistungen geltend machen (20% davon, max. 1.200 EUR Steuerermäßigung pro Jahr).
+        </div>
         </div>
     </div>
     {% endif %}
 
     {% if data.wirtschaftsplan %}
-    <div class="section page-break">
+    <div class="section allow-break page-break">
         <div class="page-header">
             Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
         </div>
         {% set planYear = data.year + 1 %}
-        <div class="section-title">Vermögensübersicht und Wirtschaftsplan {{ planYear }}</div>
-        
-        <h3>Vermögensstand:</h3>
-        <div class="info-grid" style="margin-bottom: 20px;">
-            <div class="info-row">
-                <div class="info-label">Kontostand WEG-Hausgeldkonto ({{ data.wirtschaftsplan.bank_balances.balance_date|default('16.07.2025') }}):</div>
-                <div class="info-value">{{ data.wirtschaftsplan.bank_balances.hausgeld_konto|default(0)|number_format(2, ',', '.') }} €</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Kontostand Rücklagenkonto ({{ data.wirtschaftsplan.bank_balances.balance_date|default('16.07.2025') }}):</div>
-                <div class="info-value">{{ data.wirtschaftsplan.bank_balances.ruecklagen_konto|default(0)|number_format(2, ',', '.') }} €</div>
-            </div>
-            <div class="info-row" style="border-top: 2px solid #333; padding-top: 5px; margin-top: 5px;">
-                <div class="info-label"><strong>GESAMTVERMÖGEN WEG:</strong></div>
-                <div class="info-value"><strong>{{ ((data.wirtschaftsplan.bank_balances.hausgeld_konto|default(0)) + (data.wirtschaftsplan.bank_balances.ruecklagen_konto|default(0)))|number_format(2, ',', '.') }} €</strong></div>
-            </div>
-        </div>
+        <div class="section-title">Wirtschaftsplan {{ planYear }}</div>
         
         <h3 style="margin-top: 20px;">Wirtschaftsplan {{ planYear }} - Geplante Ausgaben:</h3>
         
@@ -807,18 +1333,47 @@
             </colgroup>
             <tbody>
                 {% set umlagefaehigTotal = 0 %}
-                {% set planNotes = [] %}
+                {% set currentUmlageSection = '' %}
+                {% set planNotesByIndex = {} %}
+                {% set planNoteIndexList = [] %}
+                {% set planNotesValues = [] %}
+                {% set superscripts = {1:'¹',2:'²',3:'³',4:'⁴',5:'⁵',6:'⁶',7:'⁷',8:'⁸',9:'⁹'} %}
+                {# Build note index map using explicit indices only #}
                 {% for expense in data.wirtschaftsplan.planned_expenses.umlagefaehig|default([]) %}
+                    {% set note = expense.notes|default('') %}
+                    {% set noteIndex = expense.note_index|default(0) %}
+                    {% if note and noteIndex > 0 and note not in planNotesValues %}
+                        {% set planNotesByIndex = planNotesByIndex|merge({ ('n' ~ noteIndex): note }) %}
+                        {% set planNoteIndexList = planNoteIndexList|merge([noteIndex]) %}
+                        {% set planNotesValues = planNotesValues|merge([note]) %}
+                    {% endif %}
+                {% endfor %}
+                {% for expense in data.wirtschaftsplan.planned_expenses.nicht_umlagefaehig|default([]) %}
+                    {% set note = expense.notes|default('') %}
+                    {% set noteIndex = expense.note_index|default(0) %}
+                    {% if note and noteIndex > 0 and note not in planNotesValues %}
+                        {% set planNotesByIndex = planNotesByIndex|merge({ ('n' ~ noteIndex): note }) %}
+                        {% set planNoteIndexList = planNoteIndexList|merge([noteIndex]) %}
+                        {% set planNotesValues = planNotesValues|merge([note]) %}
+                    {% endif %}
+                {% endfor %}
+                {% for expense in data.wirtschaftsplan.planned_expenses.umlagefaehig|default([]) %}
+                {% set section = expense.section|default('Laufende Kosten') %}
+                {% if section != currentUmlageSection %}
+                <tr class="subtotal">
+                    <td colspan="2"><strong>{{ section }}</strong></td>
+                </tr>
+                {% set currentUmlageSection = section %}
+                {% endif %}
+                {% set noteIndex = expense.note_index|default(0) %}
                 <tr>
-                    <td>{{ expense.name|default('Unbekannt') }}</td>
+                    <td>{{ expense.name|default('Unbekannt') }}{% if noteIndex %}{{ superscripts[noteIndex]|default('') }}{% endif %}</td>
                     <td class="amount">{{ expense.amount|default(0)|number_format(2, ',', '.') }} €</td>
                 </tr>
-                {% if expense.notes|default('') %}
-                    {% if expense.notes not in planNotes %}
-                        {% set planNotes = planNotes|merge([expense.notes]) %}
-                    {% endif %}
+                {% set includeInTotal = expense.include_in_total is defined ? expense.include_in_total : true %}
+                {% if includeInTotal %}
+                    {% set umlagefaehigTotal = umlagefaehigTotal + expense.amount|default(0) %}
                 {% endif %}
-                {% set umlagefaehigTotal = umlagefaehigTotal + expense.amount|default(0) %}
                 {% endfor %}
                 <tr class="subtotal">
                     <td>Zwischensumme umlagefähig:</td>
@@ -835,17 +1390,24 @@
             </colgroup>
             <tbody>
                 {% set nichtUmlagefaehigTotal = 0 %}
+                {% set currentNichtSection = '' %}
                 {% for expense in data.wirtschaftsplan.planned_expenses.nicht_umlagefaehig|default([]) %}
+                {% set section = expense.section|default('Laufende Kosten') %}
+                {% if section != currentNichtSection %}
+                <tr class="subtotal">
+                    <td colspan="2"><strong>{{ section }}</strong></td>
+                </tr>
+                {% set currentNichtSection = section %}
+                {% endif %}
+                {% set noteIndex = expense.note_index|default(0) %}
                 <tr>
-                    <td>{{ expense.name|default('Unbekannt') }}</td>
+                    <td>{{ expense.name|default('Unbekannt') }}{% if noteIndex %}{{ superscripts[noteIndex]|default('') }}{% endif %}</td>
                     <td class="amount">{{ expense.amount|default(0)|number_format(2, ',', '.') }} €</td>
                 </tr>
-                {% if expense.notes|default('') %}
-                    {% if expense.notes not in planNotes %}
-                        {% set planNotes = planNotes|merge([expense.notes]) %}
-                    {% endif %}
+                {% set includeInTotal = expense.include_in_total is defined ? expense.include_in_total : true %}
+                {% if includeInTotal %}
+                    {% set nichtUmlagefaehigTotal = nichtUmlagefaehigTotal + expense.amount|default(0) %}
                 {% endif %}
-                {% set nichtUmlagefaehigTotal = nichtUmlagefaehigTotal + expense.amount|default(0) %}
                 {% endfor %}
                 <tr class="subtotal">
                     <td>Zwischensumme nicht umlagefähig:</td>
@@ -864,10 +1426,11 @@
                     <td><strong>GESAMTAUSGABEN {{ planYear }}:</strong></td>
                     <td class="amount"><strong>{{ (umlagefaehigTotal + nichtUmlagefaehigTotal)|number_format(2, ',', '.') }} €</strong></td>
                 </tr>
-                {% for note in planNotes %}
+                {% set noteIndices = planNoteIndexList|sort %}
+                {% for index in noteIndices %}
                 <tr>
                     <td colspan="2" style="font-size: 8pt; color: #555; padding-top: 4px;">
-                        * {{ note }}
+                        [{{ index }}] {{ planNotesByIndex['n' ~ index] }}
                     </td>
                 </tr>
                 {% endfor %}
@@ -881,7 +1444,7 @@
                 <col style="width: 120px;">
             </colgroup>
             <tbody>
-                {% set monthlyTotal = data.wirtschaftsplan.planned_income.monthly_total|default(1500) %}
+                {% set monthlyTotal = data.wirtschaftsplan.planned_income.monthly_total_final|default(1500) %}
                 {% set previousYear = data.year %}
                 {% set nachzahlungenKey = 'nachzahlungen_' ~ previousYear %}
                 {% set nachzahlungen = attribute(data.wirtschaftsplan.planned_income, nachzahlungenKey)|default(0) %}
@@ -950,58 +1513,6 @@
             {% endif %}
         </div>
         {% endif %}
-    </div>
-    {% endif %}
-
-    {% if data.tax_deductible.items|default([]) %}
-    <div class="section page-break">
-        <div class="page-header">
-            Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
-        </div>
-        <div class="tax-section">
-            <div class="section-title">Steuerbegünstigte Leistungen nach §35a EStG</div>
-            <table class="tax-table">
-            <thead>
-                <tr>
-                    <th>Handwerkerleistungen</th>
-                    <th>Gesamtkosten</th>
-                    <th>anrechenbar</th>
-                    <th>Ihr Anteil (Kosten)</th>
-                    <th>Ihr Anteil (anrechenbar)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in data.tax_deductible.items %}
-                <tr>
-                    <td class="label">{{ item.kostenkonto }} - {{ item.beschreibung }} {{ item.verteilungsschluessel }}</td>
-                    <td class="amount">{{ item.gesamtkosten|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ item.anrechenbar|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ item.anteil_kosten|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ item.anteil_anrechenbar|number_format(2, ',', '.') }} €</td>
-                </tr>
-                {% endfor %}
-                <tr class="total">
-                    <td class="label"><strong>SUMME Handwerkerleistungen</strong></td>
-                    {% set totalGesamtkosten = data.tax_deductible.items|reduce((sum, item) => sum + item.gesamtkosten, 0) %}
-                    {% set totalAnrechenbar = data.tax_deductible.items|reduce((sum, item) => sum + item.anrechenbar, 0) %}
-                    {% set totalAnteilKosten = data.tax_deductible.items|reduce((sum, item) => sum + item.anteil_kosten, 0) %}
-                    <td class="amount"><strong>{{ totalGesamtkosten|number_format(2, ',', '.') }} €</strong></td>
-                    <td class="amount"><strong>{{ totalAnrechenbar|number_format(2, ',', '.') }} €</strong></td>
-                    <td class="amount"><strong>{{ totalAnteilKosten|number_format(2, ',', '.') }} €</strong></td>
-                    <td class="amount"><strong>{{ data.tax_deductible.total_anrechenbar|number_format(2, ',', '.') }} €</strong></td>
-                </tr>
-            </tbody>
-        </table>
-        
-        <div style="margin-top: 15px; padding: 10px; background-color: #e3f2fd; border-left: 4px solid #2196F3;">
-            <strong>Ihr steuerlich absetzbarer Betrag (100% der Arbeits-/Fahrtkosten inkl. MwSt.): {{ data.tax_deductible.total_anrechenbar|number_format(2, ',', '.') }} EUR</strong>
-        </div>
-        
-        <div style="margin-top: 10px; font-size: 8pt; color: #666;">
-            <strong>HINWEIS:</strong> Diese Beträge können Sie in Ihrer Steuererklärung als haushaltsnahe
-            Dienstleistungen geltend machen (20% davon, max. 1.200 EUR Steuerermäßigung pro Jahr).
-        </div>
-        </div>
     </div>
     {% endif %}
 

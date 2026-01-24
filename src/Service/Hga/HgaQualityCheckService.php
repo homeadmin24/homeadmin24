@@ -6,8 +6,8 @@ namespace App\Service\Hga;
 
 use App\Entity\Dokument;
 use App\Repository\HgaQualityFeedbackRepository;
-use App\Service\OllamaService;
 use App\Service\AI\ClaudeProvider;
+use App\Service\OllamaService;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -20,13 +20,14 @@ class HgaQualityCheckService
         private OllamaService $ollamaService,
         private ClaudeProvider $claudeProvider,
         private LoggerInterface $logger,
-    ) {}
+    ) {
+    }
 
     /**
      * Run comprehensive quality checks on HGA document.
      *
-     * @param Dokument $dokument           The HGA document to check
-     * @param string   $provider           'ollama' or 'claude'
+     * @param Dokument $dokument            The HGA document to check
+     * @param string   $provider            'ollama' or 'claude'
      * @param bool     $includeUserFeedback Whether to include recent user-reported issues in AI context
      *
      * @return array{
@@ -52,7 +53,7 @@ class HgaQualityCheckService
     public function runQualityChecks(
         Dokument $dokument,
         string $provider = 'ollama',
-        bool $includeUserFeedback = true
+        bool $includeUserFeedback = true,
     ): array {
         $startTime = microtime(true);
 
@@ -85,9 +86,9 @@ class HgaQualityCheckService
         );
 
         // Update status based on AI findings
-        if ($aiAnalysis && $aiAnalysis['overall_assessment'] === 'critical') {
+        if ($aiAnalysis && 'critical' === $aiAnalysis['overall_assessment']) {
             $status = 'critical';
-        } elseif ($aiAnalysis && $aiAnalysis['overall_assessment'] === 'warning' && $status === 'pass') {
+        } elseif ($aiAnalysis && 'warning' === $aiAnalysis['overall_assessment'] && 'pass' === $status) {
             $status = 'warning';
         }
 
@@ -104,6 +105,31 @@ class HgaQualityCheckService
     }
 
     /**
+     * Get debug prompt for a document (without running AI analysis).
+     * Useful for debugging and prompt engineering.
+     */
+    public function getDebugPrompt(Dokument $dokument): string
+    {
+        // Get structured HGA data
+        $hgaData = $dokument->getHgaData();
+        if (!$hgaData) {
+            throw new \InvalidArgumentException('Document has no HGA data');
+        }
+
+        // Run rule-based checks
+        $checks = [];
+        $checks = array_merge($checks, $this->checkDataCompleteness($hgaData));
+        $checks = array_merge($checks, $this->checkCalculationPlausibility($hgaData));
+        $checks = array_merge($checks, $this->checkCompliance($hgaData));
+
+        // Get recent user feedback
+        $userFeedback = $this->feedbackRepository->getRecentIssues(10);
+
+        // Build and return prompt
+        return $this->buildAIPrompt($hgaData, $checks, $userFeedback);
+    }
+
+    /**
      * Check data completeness (critical issues).
      */
     private function checkDataCompleteness(array $hgaData): array
@@ -114,7 +140,7 @@ class HgaQualityCheckService
         $heatingShare = $hgaData['external_costs']['heating']['unit_share'] ?? 0.0;
         $waterShare = $hgaData['external_costs']['water']['unit_share'] ?? 0.0;
 
-        if ($heatingShare === 0.0 && $waterShare === 0.0) {
+        if (0.0 === $heatingShare && 0.0 === $waterShare) {
             $checks[] = [
                 'category' => 'data_completeness',
                 'severity' => 'high',
@@ -130,7 +156,7 @@ class HgaQualityCheckService
         $payments = $hgaData['payments'] ?? [];
         $paymentsIst = $payments['ist'] ?? 0.0;
 
-        if ($paymentsIst === 0.0) {
+        if (0.0 === $paymentsIst) {
             $checks[] = [
                 'category' => 'data_completeness',
                 'severity' => 'critical',
@@ -157,7 +183,7 @@ class HgaQualityCheckService
                     'category' => 'data_completeness',
                     'severity' => 'medium',
                     'status' => 'warning',
-                    'message' => sprintf(
+                    'message' => \sprintf(
                         'Zu wenige Zahlungen für diese Einheit: %d vorhanden, mindestens %d erwartet',
                         $paymentsCount,
                         $expectedMinPayments
@@ -167,7 +193,7 @@ class HgaQualityCheckService
                         'expected_min' => $expectedMinPayments,
                         'expected_typical' => 12,
                         'year' => $year,
-                        'recommendation' => sprintf(
+                        'recommendation' => \sprintf(
                             'Erwartete Zahlungen für diese Einheit: 12 Monatszahlungen, plus eventuell Nachzahlungen/Sonderumlagen. Tatsächlich: %d Zahlungen gefunden.',
                             $paymentsCount
                         ),
@@ -178,7 +204,7 @@ class HgaQualityCheckService
                     'category' => 'data_completeness',
                     'severity' => 'low',
                     'status' => 'warning',
-                    'message' => sprintf(
+                    'message' => \sprintf(
                         'Ungewöhnlich viele Zahlungen für diese Einheit: %d vorhanden, normalerweise 12-16',
                         $paymentsCount
                     ),
@@ -229,7 +255,7 @@ class HgaQualityCheckService
                     'category' => 'calculation_plausibility',
                     'severity' => 'high',
                     'status' => 'fail',
-                    'message' => sprintf(
+                    'message' => \sprintf(
                         'Kostenanteil unplausibel: %.1f%% statt erwartete %.1f%% (MEA-Anteil)',
                         $actualPercentage,
                         $meaPercentage
@@ -251,7 +277,7 @@ class HgaQualityCheckService
                 'category' => 'calculation_plausibility',
                 'severity' => 'critical',
                 'status' => 'fail',
-                'message' => sprintf(
+                'message' => \sprintf(
                     'Steuerermäßigung überschreitet gesetzliches Limit: %.2f EUR > 1.200 EUR',
                     $taxDeduction
                 ),
@@ -270,7 +296,7 @@ class HgaQualityCheckService
                 'category' => 'calculation_plausibility',
                 'severity' => 'medium',
                 'status' => 'warning',
-                'message' => sprintf(
+                'message' => \sprintf(
                     'Heizkosten ungewöhnlich hoch: %.2f EUR',
                     $heatingCosts
                 ),
@@ -314,7 +340,7 @@ class HgaQualityCheckService
                     'category' => 'compliance',
                     'severity' => 'medium',
                     'status' => 'warning',
-                    'message' => sprintf(
+                    'message' => \sprintf(
                         'Steuerermäßigung scheint zu hoch: %.1f%% von absetzbaren Kosten',
                         $actualPercentage
                     ),
@@ -343,16 +369,16 @@ class HgaQualityCheckService
     /**
      * Run AI analysis using selected provider.
      *
-     * @param array $hgaData      Structured HGA data
-     * @param array $checks       Results from rule-based checks
-     * @param string $provider    'ollama' or 'claude'
-     * @param array $userFeedback Recent user-reported issues
+     * @param array  $hgaData      Structured HGA data
+     * @param array  $checks       Results from rule-based checks
+     * @param string $provider     'ollama' or 'claude'
+     * @param array  $userFeedback Recent user-reported issues
      */
     private function runAIAnalysis(
         array $hgaData,
         array $checks,
         string $provider,
-        array $userFeedback
+        array $userFeedback,
     ): ?array {
         try {
             // Build AI prompt
@@ -361,14 +387,14 @@ class HgaQualityCheckService
             // Log the prompt for debugging
             $this->logger->info('HGA Quality Check - AI Prompt', [
                 'provider' => $provider,
-                'prompt_length' => strlen($prompt),
+                'prompt_length' => mb_strlen($prompt),
                 'prompt' => $prompt,
                 'einheit' => $hgaData['einheit']['nummer'] ?? 'unknown',
                 'year' => $hgaData['year'] ?? 'unknown',
             ]);
 
             // Ollama (local LLM)
-            if ($provider === 'ollama') {
+            if ('ollama' === $provider) {
                 $response = $this->ollamaService->analyzeHgaQuality($prompt);
 
                 // Log the response
@@ -381,7 +407,7 @@ class HgaQualityCheckService
             }
 
             // Claude (Anthropic API)
-            if ($provider === 'claude') {
+            if ('claude' === $provider) {
                 if (!$this->claudeProvider->isAvailable()) {
                     $this->logger->warning('Claude provider is not available (check AI_CLAUDE_ENABLED and ANTHROPIC_API_KEY)');
                     throw new \RuntimeException('Claude provider is not available. Please check your configuration.');
@@ -399,13 +425,13 @@ class HgaQualityCheckService
             }
 
             // Helpful error for typos
-            if ($provider === 'olama') {
+            if ('olama' === $provider) {
                 $this->logger->warning('Provider name typo detected: "olama" should be "ollama"');
                 throw new \InvalidArgumentException('Invalid provider "olama". Did you mean "ollama"?');
             }
 
             // Unknown provider
-            throw new \InvalidArgumentException(sprintf('Unknown AI provider "%s". Supported: ollama, claude', $provider));
+            throw new \InvalidArgumentException(\sprintf('Unknown AI provider "%s". Supported: ollama, claude', $provider));
         } catch (\Exception $e) {
             $this->logger->error('AI analysis failed', [
                 'provider' => $provider,
@@ -465,12 +491,12 @@ class HgaQualityCheckService
         $einheitMea = $einheit['mea'] ?? 'N/A';
 
         // Build failed checks list
-        $failedChecks = array_filter($checks, fn ($c) => $c['status'] !== 'pass');
+        $failedChecks = array_filter($checks, fn ($c) => 'pass' !== $c['status']);
         $failedChecksList = '';
         foreach ($failedChecks as $check) {
-            $failedChecksList .= sprintf(
+            $failedChecksList .= \sprintf(
                 "- [%s] %s: %s\n",
-                strtoupper($check['severity']),
+                mb_strtoupper($check['severity']),
                 $check['category'],
                 $check['message']
             );
@@ -484,11 +510,11 @@ class HgaQualityCheckService
         if (!empty($userFeedback)) {
             $userFeedbackContext = "\n\nWICHTIG - NUTZER HABEN DIESE FEHLER GEMELDET, DIE DU ERKENNEN SOLLST:\n\n";
             foreach ($userFeedback as $i => $feedback) {
-                $userFeedbackContext .= sprintf(
+                $userFeedbackContext .= \sprintf(
                     "Beispiel %d: %s\n  → %s\n\n",
                     $i + 1,
                     $feedback->getUserDescription(),
-                    $feedback->getUserFeedbackType() === 'false_negative'
+                    'false_negative' === $feedback->getUserFeedbackType()
                         ? 'Wurde nicht erkannt - bitte immer prüfen!'
                         : 'Neuer Check - bitte implementieren'
                 );
@@ -563,31 +589,6 @@ PROMPT;
     }
 
     /**
-     * Get debug prompt for a document (without running AI analysis).
-     * Useful for debugging and prompt engineering.
-     */
-    public function getDebugPrompt(Dokument $dokument): string
-    {
-        // Get structured HGA data
-        $hgaData = $dokument->getHgaData();
-        if (!$hgaData) {
-            throw new \InvalidArgumentException('Document has no HGA data');
-        }
-
-        // Run rule-based checks
-        $checks = [];
-        $checks = array_merge($checks, $this->checkDataCompleteness($hgaData));
-        $checks = array_merge($checks, $this->checkCalculationPlausibility($hgaData));
-        $checks = array_merge($checks, $this->checkCompliance($hgaData));
-
-        // Get recent user feedback
-        $userFeedback = $this->feedbackRepository->getRecentIssues(10);
-
-        // Build and return prompt
-        return $this->buildAIPrompt($hgaData, $checks, $userFeedback);
-    }
-
-    /**
      * Determine overall status from check results.
      */
     private function determineOverallStatus(array $checks): string
@@ -597,13 +598,13 @@ PROMPT;
         $hasWarning = false;
 
         foreach ($checks as $check) {
-            if ($check['status'] === 'fail') {
-                if ($check['severity'] === 'critical') {
+            if ('fail' === $check['status']) {
+                if ('critical' === $check['severity']) {
                     $hasCritical = true;
-                } elseif ($check['severity'] === 'high') {
+                } elseif ('high' === $check['severity']) {
                     $hasHigh = true;
                 }
-            } elseif ($check['status'] === 'warning') {
+            } elseif ('warning' === $check['status']) {
                 $hasWarning = true;
             }
         }

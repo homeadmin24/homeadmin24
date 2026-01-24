@@ -27,10 +27,28 @@ class WegController extends AbstractController
         KostenkontoRepository $kostenkontoRepository,
         \App\Repository\ZahlungskategorieRepository $zahlungskategorieRepository,
     ): Response {
+        // Get Umlageschlüssel and sort in HGA display order (same as HgaService)
+        $umlageschluessel = $umlageschluesselRepository->findAll();
+        $hgaOrder = ['01*', '02*', '03*', '04*', '05*', '06*', '07*'];
+        usort($umlageschluessel, function ($a, $b) use ($hgaOrder) {
+            $posA = array_search($a->getSchluessel(), $hgaOrder, true);
+            $posB = array_search($b->getSchluessel(), $hgaOrder, true);
+
+            // If not found in order array, put at end
+            if (false === $posA) {
+                $posA = 999;
+            }
+            if (false === $posB) {
+                $posB = 999;
+            }
+
+            return $posA <=> $posB;
+        });
+
         return $this->render('weg/index.html.twig', [
             'wegs' => $wegRepository->findAll(),
             'wegEinheiten' => $wegEinheitRepository->findAll(),
-            'umlageschluessel' => $umlageschluesselRepository->findAll(),
+            'umlageschluessel' => $umlageschluessel,
             'kostenkontos' => $kostenkontoRepository->findBy([], ['nummer' => 'ASC']),
             'kategorisierungsTypen' => KategorisierungsTyp::cases(),
             'zahlungskategorien' => $zahlungskategorieRepository->findBy([], ['name' => 'ASC']),

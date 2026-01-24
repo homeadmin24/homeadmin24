@@ -127,7 +127,12 @@ class TaxCalculationService
                 ];
             }
 
-            $grouped[$nummer]['total'] += abs((float) $zahlung->getBetrag());
+            $betrag = (float) $zahlung->getBetrag();
+            if ($betrag >= 0) {
+                continue;
+            }
+
+            $grouped[$nummer]['total'] += abs($betrag);
             $grouped[$nummer]['zahlungen'][] = $zahlung;
         }
 

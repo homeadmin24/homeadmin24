@@ -80,8 +80,6 @@ return [
             'Bitte reichen Sie die detaillierte Abrechnung zusammen mit den Handwerkerrechnungen',
             'beim Finanzamt ein.',
         ],
-        'balance_notice' => 'Hinweis: Der aktuelle Kontostand deckt den Mehrbedarf vollständig,',
-        'balance_notice_2' => 'daher keine Erhöhung der Hausgeld-Vorschüsse.',
         'result_nachzahlung' => 'Ergebnis: Nachzahlung in Höhe von %.2f €',
         'result_guthaben' => 'Ergebnis: Guthaben in Höhe von %.2f €',
     ],

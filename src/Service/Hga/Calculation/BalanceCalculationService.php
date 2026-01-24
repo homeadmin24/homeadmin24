@@ -5,19 +5,17 @@ declare(strict_types=1);
 namespace App\Service\Hga\Calculation;
 
 use App\Entity\Weg;
-use App\Repository\MonatsSaldoRepository;
 
 /**
  * Balance calculation service for HGA reports.
  *
  * Handles calculation of account balance changes (Kontostandsentwicklung)
- * for a given year using MonatsSaldo data.
+ * for a given year.
  */
 class BalanceCalculationService
 {
-    public function __construct(
-        private MonatsSaldoRepository $monatsSaldoRepository,
-    ) {
+    public function __construct()
+    {
     }
 
     /**
@@ -27,24 +25,7 @@ class BalanceCalculationService
      */
     public function getBalanceData(Weg $weg, int $year): array
     {
-        $startBalance = $this->getYearStartBalance($weg, $year);
-        $endBalance = $this->getYearEndBalance($weg, $year);
-
-        if (!$startBalance || !$endBalance) {
-            return ['hasData' => false];
-        }
-
-        $startAmount = (float) $startBalance->getOpeningBalance();
-        $endAmount = (float) $endBalance->getClosingBalance();
-        $change = $endAmount - $startAmount;
-
-        return [
-            'hasData' => true,
-            'startAmount' => $startAmount,
-            'endAmount' => $endAmount,
-            'change' => $change,
-            'year' => $year,
-        ];
+        return ['hasData' => false];
     }
 
     /**
@@ -82,47 +63,7 @@ class BalanceCalculationService
      */
     public function generateMonthlyBalanceOverview(Weg $weg, int $year): string
     {
-        $monthlyBalances = $this->monatsSaldoRepository->findByWegAndYear($weg, $year);
-
-        if (empty($monthlyBalances)) {
-            return '';
-        }
-
-        $output = "\nMONATLICHE KONTOENTWICKLUNG $year:\n";
-        $output .= str_repeat('-', 90) . "\n";
-        $output .= "Monat     | Anfangssaldo | Umsätze      | Endsaldo     | Transaktionen\n";
-        $output .= str_repeat('-', 90) . "\n";
-
-        foreach ($monthlyBalances as $balance) {
-            $output .= \sprintf(
-                "%-9s | %12s € | %12s € | %12s € | %5d\n",
-                $balance->getFormattedBalanceMonth(),
-                $this->formatAmount($balance->getOpeningBalance()),
-                $this->formatAmount($balance->getTransactionSum()),
-                $this->formatAmount($balance->getClosingBalance()),
-                $balance->getTransactionCount()
-            );
-        }
-
-        $output .= str_repeat('=', 90) . "\n\n";
-
-        return $output;
-    }
-
-    /**
-     * Get year start balance (first month opening balance).
-     */
-    private function getYearStartBalance(Weg $weg, int $year): ?\App\Entity\MonatsSaldo
-    {
-        return $this->monatsSaldoRepository->findYearStartBalance($weg, $year);
-    }
-
-    /**
-     * Get year end balance (last month closing balance).
-     */
-    private function getYearEndBalance(Weg $weg, int $year): ?\App\Entity\MonatsSaldo
-    {
-        return $this->monatsSaldoRepository->findYearEndBalance($weg, $year);
+        return '';
     }
 
     /**

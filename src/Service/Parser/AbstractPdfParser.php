@@ -86,7 +86,7 @@ abstract class AbstractPdfParser implements ParserInterface
         $formats = ['d.m.Y', 'd.m.y', 'd/m/Y', 'd-m-Y'];
 
         foreach ($formats as $format) {
-            $date = \DateTime::createFromFormat($format, trim($text));
+            $date = \DateTime::createFromFormat($format, mb_trim($text));
             if (false !== $date) {
                 return $date;
             }
@@ -101,7 +101,7 @@ abstract class AbstractPdfParser implements ParserInterface
     protected function extractWithRegex(string $text, string $pattern): ?string
     {
         if (preg_match($pattern, $text, $matches)) {
-            return isset($matches[1]) ? trim($matches[1]) : null;
+            return isset($matches[1]) ? mb_trim($matches[1]) : null;
         }
 
         return null;

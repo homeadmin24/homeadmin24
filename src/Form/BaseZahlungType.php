@@ -12,6 +12,7 @@ use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -115,6 +116,29 @@ abstract class BaseZahlungType extends AbstractType
                     return $er->createQueryBuilder('d')
                         ->orderBy('d.bezeichnung', 'ASC');
                 },
+            ])
+            ->add('zahlungTyp', ChoiceType::class, [
+                'label' => 'Zahlungsart',
+                'required' => false,
+                'choices' => [
+                    'Sonstiges' => 'sonstiges',
+                    'Rechnung' => 'rechnung',
+                    'Gebühr' => 'gebuehr',
+                    'Portokosten' => 'portokosten',
+                    'Rücklage' => 'ruecklage',
+                    'Rücklage Zuführung' => 'ruecklage_zufuehrung',
+                    'Rücklage Auflösung' => 'ruecklage_aufloesung',
+                ],
+                'placeholder' => 'Sonstiges',
+            ])
+            ->add('bankkontoTyp', ChoiceType::class, [
+                'label' => 'Konto-Typ',
+                'required' => false,
+                'choices' => [
+                    'Hausgeld' => 'hausgeld',
+                    'Rücklage' => 'ruecklage',
+                ],
+                'placeholder' => 'Hausgeld',
             ])
             ->add('rechnung', EntityType::class, [
                 'class' => Rechnung::class,

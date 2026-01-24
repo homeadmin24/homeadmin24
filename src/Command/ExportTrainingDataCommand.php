@@ -7,14 +7,13 @@ namespace App\Command;
 use App\Repository\AiQueryResponseRepository;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Export AI training data for fine-tuning Ollama
+ * Export AI training data for fine-tuning Ollama.
  *
  * Usage:
  *   php bin/console app:ai:export-training-data > training.jsonl
@@ -27,7 +26,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class ExportTrainingDataCommand extends Command
 {
     public function __construct(
-        private readonly AiQueryResponseRepository $repository
+        private readonly AiQueryResponseRepository $repository,
     ) {
         parent::__construct();
     }
@@ -90,28 +89,28 @@ class ExportTrainingDataCommand extends Command
             return Command::SUCCESS;
         }
 
-        $io->comment(sprintf('Found %d examples. Exporting...', count($examples)), OutputInterface::VERBOSITY_VERBOSE);
+        $io->comment(\sprintf('Found %d examples. Exporting...', \count($examples)), OutputInterface::VERBOSITY_VERBOSE);
 
         // Export based on format
         match ($format) {
             'jsonl' => $this->exportJsonl($examples, $output),
             'csv' => $this->exportCsv($examples, $output),
-            default => $io->error('Invalid format. Use "jsonl" or "csv".')
+            default => $io->error('Invalid format. Use "jsonl" or "csv".'),
         };
 
         // Optionally mark as used
         if ($markUsed) {
             $ids = array_map(fn ($ex) => $ex->getId(), $examples);
             $this->repository->markAsUsedForTraining($ids);
-            $io->success(sprintf('Marked %d examples as used_for_training', count($ids)));
+            $io->success(\sprintf('Marked %d examples as used_for_training', \count($ids)));
         }
 
-        $io->comment(sprintf(
+        $io->comment(\sprintf(
             "\n✅ Exported %d training examples\n" .
             "📊 Stats: %d good ratings from Claude\n" .
-            "🔥 Next: Use for Ollama fine-tuning or few-shot learning",
-            count($examples),
-            count(array_filter($examples, fn ($ex) => 'good' === $ex->getUserRating()))
+            '🔥 Next: Use for Ollama fine-tuning or few-shot learning',
+            \count($examples),
+            \count(array_filter($examples, fn ($ex) => 'good' === $ex->getUserRating()))
         ), OutputInterface::VERBOSITY_VERBOSE);
 
         return Command::SUCCESS;
@@ -119,7 +118,7 @@ class ExportTrainingDataCommand extends Command
 
     /**
      * Export as JSONL (one JSON object per line)
-     * Format for Ollama fine-tuning
+     * Format for Ollama fine-tuning.
      */
     private function exportJsonl(array $examples, OutputInterface $output): void
     {
@@ -130,11 +129,11 @@ class ExportTrainingDataCommand extends Command
             $contextStr = $this->formatContextForTraining($context);
 
             $training = [
-                'prompt' => sprintf(
+                'prompt' => \sprintf(
                     "Du bist ein Finanzassistent für WEG-Verwaltung.\n\n" .
                     "Frage: %s\n\n" .
                     "Verfügbare Daten:\n%s\n\n" .
-                    "Antworte präzise auf Deutsch mit deutscher Zahlenformatierung:",
+                    'Antworte präzise auf Deutsch mit deutscher Zahlenformatierung:',
                     $example->getQuery(),
                     $contextStr
                 ),
@@ -147,12 +146,12 @@ class ExportTrainingDataCommand extends Command
                 ],
             ];
 
-            $output->writeln(json_encode($training, JSON_UNESCAPED_UNICODE));
+            $output->writeln(json_encode($training, \JSON_UNESCAPED_UNICODE));
         }
     }
 
     /**
-     * Export as CSV for analysis
+     * Export as CSV for analysis.
      */
     private function exportCsv(array $examples, OutputInterface $output): void
     {
@@ -160,11 +159,11 @@ class ExportTrainingDataCommand extends Command
         $output->writeln('id,query,response,rating,response_time,created_at');
 
         foreach ($examples as $example) {
-            $output->writeln(sprintf(
+            $output->writeln(\sprintf(
                 '%d,"%s","%s","%s",%f,"%s"',
                 $example->getId(),
                 str_replace('"', '""', $example->getQuery()),
-                str_replace('"', '""', substr($example->getResponse(), 0, 200)), // Truncate for CSV
+                str_replace('"', '""', mb_substr($example->getResponse(), 0, 200)), // Truncate for CSV
                 $example->getUserRating() ?? 'null',
                 $example->getResponseTime(),
                 $example->getCreatedAt()->format('Y-m-d H:i:s')
@@ -173,7 +172,7 @@ class ExportTrainingDataCommand extends Command
     }
 
     /**
-     * Format context data for training (more compact)
+     * Format context data for training (more compact).
      */
     private function formatContextForTraining(array $context): string
     {
@@ -189,18 +188,18 @@ class ExportTrainingDataCommand extends Command
         }
 
         if (isset($context['payments']['total'])) {
-            $formatted[] = sprintf('Gesamtbetrag: %.2f €', $context['payments']['total']);
+            $formatted[] = \sprintf('Gesamtbetrag: %.2f €', $context['payments']['total']);
         }
 
         if (isset($context['payments']['by_category'])) {
             $formatted[] = 'Kategorien:';
             foreach ($context['payments']['by_category'] as $nummer => $cat) {
-                $formatted[] = sprintf('  - %s: %.2f € (%d Zahlungen)', $nummer, $cat['total'], $cat['count']);
+                $formatted[] = \sprintf('  - %s: %.2f € (%d Zahlungen)', $nummer, $cat['total'], $cat['count']);
             }
         }
 
         if (isset($context['payments']['count'])) {
-            $formatted[] = sprintf('Anzahl Zahlungen: %d', $context['payments']['count']);
+            $formatted[] = \sprintf('Anzahl Zahlungen: %d', $context['payments']['count']);
         }
 
         return implode("\n", $formatted);

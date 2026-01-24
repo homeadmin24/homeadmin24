@@ -28,6 +28,7 @@
         "build": "encore production --progress"
     },
     "dependencies": {
+        "puppeteer": "^24.34.0",
         "simple-datatables": "^10.0.0"
     }
 }

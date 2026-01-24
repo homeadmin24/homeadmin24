@@ -54,13 +54,13 @@ class TestAiQueryCommand extends Command
                 $io->text($result['answer']);
 
                 $io->newLine();
-                $io->info(sprintf('Context size: %d data points', $result['context_size']));
+                $io->info(\sprintf('Context size: %d data points', $result['context_size']));
 
                 return Command::SUCCESS;
-            } else {
-                $io->error('Query failed: ' . $result['error']);
-                return Command::FAILURE;
             }
+            $io->error('Query failed: ' . $result['error']);
+
+            return Command::FAILURE;
         } catch (\Exception $e) {
             $io->error('Error: ' . $e->getMessage());
 

@@ -7,8 +7,8 @@ namespace App\Service;
 use App\Entity\AiQueryResponse;
 use App\Repository\AiQueryResponseRepository;
 use App\Repository\KostenkontoRepository;
-use App\Repository\ZahlungRepository;
 use App\Repository\WegEinheitRepository;
+use App\Repository\ZahlungRepository;
 use App\Service\AI\AIProviderInterface;
 use App\Service\AI\ClaudeProvider;
 use App\Service\AI\OllamaProvider;
@@ -16,7 +16,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
- * Service for answering natural language financial queries using AI
+ * Service for answering natural language financial queries using AI.
  *
  * Examples:
  * - "Wie viel haben wir 2024 für Heizung ausgegeben?"
@@ -40,7 +40,7 @@ class AiQueryService
     }
 
     /**
-     * Answer query using Ollama (local, DSGVO-compliant)
+     * Answer query using Ollama (local, DSGVO-compliant).
      */
     public function answerWithOllama(string $query): array
     {
@@ -48,7 +48,7 @@ class AiQueryService
     }
 
     /**
-     * Answer query using Claude (cloud API, dev-only)
+     * Answer query using Claude (cloud API, dev-only).
      */
     public function answerWithClaude(string $query): array
     {
@@ -56,7 +56,7 @@ class AiQueryService
     }
 
     /**
-     * Compare answers from both providers side-by-side
+     * Compare answers from both providers side-by-side.
      */
     public function compareProviders(string $query): array
     {
@@ -64,7 +64,7 @@ class AiQueryService
 
         $results = [
             'query' => $query,
-            'context_size' => count($context),
+            'context_size' => \count($context),
             'providers' => [],
         ];
 
@@ -111,7 +111,34 @@ class AiQueryService
     }
 
     /**
-     * Answer with a specific provider
+     * Rate a response (for learning).
+     */
+    public function rateResponse(int $responseId, string $rating): bool
+    {
+        $response = $this->responseRepository->find($responseId);
+
+        if (!$response) {
+            return false;
+        }
+
+        $response->setUserRating($rating);
+        $this->entityManager->flush();
+
+        return true;
+    }
+
+    /**
+     * Legacy method - defaults to Ollama.
+     *
+     * @deprecated Use answerWithOllama() or answerWithClaude()
+     */
+    public function answerQuery(string $query): array
+    {
+        return $this->answerWithOllama($query);
+    }
+
+    /**
+     * Answer with a specific provider.
      */
     private function answerWithProvider(string $query, AIProviderInterface $provider): array
     {
@@ -157,7 +184,7 @@ class AiQueryService
 
             $this->logger->info('AI query answered successfully', [
                 'provider' => $provider->getProviderName(),
-                'answer_length' => \strlen($answer),
+                'answer_length' => mb_strlen($answer),
                 'response_time' => $responseTime,
             ]);
 
@@ -186,7 +213,7 @@ class AiQueryService
     }
 
     /**
-     * Store AI response for learning
+     * Store AI response for learning.
      */
     private function storeResponse(
         string $query,
@@ -194,7 +221,7 @@ class AiQueryService
         string $provider,
         string $response,
         float $responseTime,
-        float $cost
+        float $cost,
     ): AiQueryResponse {
         $aiResponse = new AiQueryResponse();
         $aiResponse->setQuery($query);
@@ -211,34 +238,7 @@ class AiQueryService
     }
 
     /**
-     * Rate a response (for learning)
-     */
-    public function rateResponse(int $responseId, string $rating): bool
-    {
-        $response = $this->responseRepository->find($responseId);
-
-        if (!$response) {
-            return false;
-        }
-
-        $response->setUserRating($rating);
-        $this->entityManager->flush();
-
-        return true;
-    }
-
-    /**
-     * Legacy method - defaults to Ollama
-     *
-     * @deprecated Use answerWithOllama() or answerWithClaude()
-     */
-    public function answerQuery(string $query): array
-    {
-        return $this->answerWithOllama($query);
-    }
-
-    /**
-     * Build context data for the query based on intelligent analysis
+     * Build context data for the query based on intelligent analysis.
      */
     private function buildQueryContext(string $query): array
     {
@@ -476,7 +476,7 @@ class AiQueryService
             }
 
             $categoryTotals[$kontoNummer]['total'] += abs($betrag);
-            $categoryTotals[$kontoNummer]['count']++;
+            ++$categoryTotals[$kontoNummer]['count'];
 
             $result[] = [
                 'date' => $payment->getDatum()?->format('Y-m-d'),
@@ -489,7 +489,7 @@ class AiQueryService
 
         return [
             'total' => $total,
-            'count' => count($result),
+            'count' => \count($result),
             'by_category' => $categoryTotals,
             'payments' => $result,
         ];
@@ -530,7 +530,7 @@ class AiQueryService
 
         return [
             'total' => $total,
-            'count' => count($result),
+            'count' => \count($result),
             'payments' => $result,
         ];
     }
@@ -613,7 +613,7 @@ class AiQueryService
 
         return [
             'total' => $total,
-            'count' => count($result),
+            'count' => \count($result),
             'payments' => $result,
         ];
     }

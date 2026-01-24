@@ -9,7 +9,6 @@ use App\Repository\WegEinheitRepository;
 use App\Repository\WegRepository;
 use App\Service\Hga\HgaServiceInterface;
 use App\Service\Hga\Report\PdfReportGenerator;
-use App\Service\Hga\Report\TxtReportGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -30,7 +29,6 @@ class HgaGenerateCommand extends Command
         private WegRepository $wegRepository,
         private WegEinheitRepository $wegEinheitRepository,
         private HgaServiceInterface $hgaService,
-        private TxtReportGenerator $txtReportGenerator,
         private PdfReportGenerator $pdfReportGenerator,
         private string $projectDir,
     ) {
@@ -42,7 +40,6 @@ class HgaGenerateCommand extends Command
         $this
             ->addArgument('weg-id', InputArgument::REQUIRED, 'ID of the WEG')
             ->addArgument('year', InputArgument::REQUIRED, 'Year for the Hausgeldabrechnung')
-            ->addOption('format', 'f', InputOption::VALUE_OPTIONAL, 'Output format (txt, pdf)', 'txt')
             ->addOption('unit', 'u', InputOption::VALUE_OPTIONAL, 'Specific unit number to generate (optional)')
             ->addOption('output-dir', 'o', InputOption::VALUE_OPTIONAL, 'Output directory', null)
             ->addOption('validate-only', null, InputOption::VALUE_NONE, 'Only validate inputs without generating reports')
@@ -54,7 +51,6 @@ class HgaGenerateCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $wegId = (int) $input->getArgument('weg-id');
         $year = (int) $input->getArgument('year');
-        $format = $input->getOption('format');
         $unitFilter = $input->getOption('unit');
         $outputDir = $input->getOption('output-dir');
         $validateOnly = $input->getOption('validate-only');
@@ -67,7 +63,7 @@ class HgaGenerateCommand extends Command
         ));
 
         // Validate inputs
-        if (!$this->validateInputs($io, $wegId, $year, $format)) {
+        if (!$this->validateInputs($io, $wegId, $year)) {
             return Command::FAILURE;
         }
 
@@ -116,7 +112,7 @@ class HgaGenerateCommand extends Command
         $io->note(\sprintf('Output directory: %s', $outputDirectory));
 
         // Generate reports
-        $successCount = $this->generateReports($io, $wegEinheiten, $year, $format, $outputDirectory, $verboseErrors);
+        $successCount = $this->generateReports($io, $wegEinheiten, $year, $outputDirectory, $verboseErrors);
 
         // Save metadata
         $this->saveGenerationMetadata($weg, $year, $successCount, \count($wegEinheiten));
@@ -132,7 +128,7 @@ class HgaGenerateCommand extends Command
         return Command::FAILURE;
     }
 
-    private function validateInputs(SymfonyStyle $io, int $wegId, int $year, string $format): bool
+    private function validateInputs(SymfonyStyle $io, int $wegId, int $year): bool
     {
         $errors = [];
 
@@ -143,10 +139,6 @@ class HgaGenerateCommand extends Command
         $currentYear = (int) date('Y');
         if ($year < 2000 || $year > $currentYear + 1) {
             $errors[] = \sprintf('Year must be between 2000 and %d', $currentYear + 1);
-        }
-
-        if (!\in_array($format, ['txt', 'pdf'], true)) {
-            $errors[] = 'Format must be either "txt" or "pdf"';
         }
 
         if (!empty($errors)) {
@@ -216,7 +208,7 @@ class HgaGenerateCommand extends Command
     /**
      * @param array<\App\Entity\WegEinheit> $wegEinheiten
      */
-    private function generateReports(SymfonyStyle $io, array $wegEinheiten, int $year, string $format, string $outputDir, bool $verboseErrors): int
+    private function generateReports(SymfonyStyle $io, array $wegEinheiten, int $year, string $outputDir, bool $verboseErrors): int
     {
         $successCount = 0;
 
@@ -224,18 +216,11 @@ class HgaGenerateCommand extends Command
             $unitId = $einheit->getNummer();
             $owner = $einheit->getMiteigentuemer();
 
-            $io->text(\sprintf('Generating %s for unit %s - %s', mb_strtoupper($format), $unitId, $owner));
+            $io->text(\sprintf('Generating PDF for unit %s - %s', $unitId, $owner));
 
             try {
-                // Select appropriate generator based on format
-                $generator = match ($format) {
-                    'txt' => $this->txtReportGenerator,
-                    'pdf' => $this->pdfReportGenerator,
-                    default => throw new \InvalidArgumentException("Unsupported format: $format"),
-                };
-
                 // Generate report content
-                $content = $generator->generateReport($einheit, $year);
+                $content = $this->pdfReportGenerator->generateReport($einheit, $year);
 
                 // Calculate HGA data
                 $hgaData = $this->hgaService->generateReportData($einheit, $year);
@@ -245,7 +230,7 @@ class HgaGenerateCommand extends Command
                     $year,
                     $einheit->getWeg()->getId(),
                     $unitId,
-                    $format
+                    'pdf'
                 );
 
                 $filePath = $outputDir . '/' . $filename;
@@ -301,7 +286,7 @@ class HgaGenerateCommand extends Command
             $dokument = new Dokument();
             $dokument->setDateiname($filename);
             $dokument->setDateipfad($relativePath);
-            $dokument->setDateityp(pathinfo($filename, PATHINFO_EXTENSION));
+            $dokument->setDateityp(pathinfo($filename, \PATHINFO_EXTENSION));
             $dokument->setDategroesse(filesize($filePath));
             $dokument->setUploadDatum(new \DateTime());
             $dokument->setKategorie('hausgeldabrechnung');
@@ -309,7 +294,7 @@ class HgaGenerateCommand extends Command
             $dokument->setEinheitNummer($einheit->getNummer());
             $dokument->setWeg($einheit->getWeg());
             $dokument->setHgaData($hgaData);
-            $dokument->setFormat(pathinfo($filename, PATHINFO_EXTENSION));
+            $dokument->setFormat('pdf');
 
             $this->entityManager->persist($dokument);
         }

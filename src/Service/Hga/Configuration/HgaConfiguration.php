@@ -7,35 +7,24 @@ namespace App\Service\Hga\Configuration;
 use App\Entity\WegEinheit;
 use App\Repository\KostenkontoRepository;
 use App\Repository\WegEinheitVorauszahlungRepository;
+use App\Repository\WirtschaftsplanConfigRepository;
 use App\Service\Hga\ConfigurationInterface;
+use App\Service\SystemConfigService;
 
 /**
  * HGA configuration implementation.
  *
  * Provides centralized configuration access for HGA operations
- * using static config file instead of database.
+ * using system_config values.
  */
 class HgaConfiguration implements ConfigurationInterface
 {
-    /**
-     * @var array<string, mixed>
-     */
-    private array $config;
-
     public function __construct(
         private WegEinheitVorauszahlungRepository $vorauszahlungRepository,
         private KostenkontoRepository $kostenkontoRepository,
-        string $projectDir,
+        private SystemConfigService $systemConfigService,
+        private WirtschaftsplanConfigRepository $wirtschaftsplanConfigRepository,
     ) {
-        // Load base config
-        $this->config = require $projectDir . '/config/hga_config.php';
-
-        // Override with local config if it exists
-        $localConfigPath = $projectDir . '/config/hga_config.php.local';
-        if (file_exists($localConfigPath)) {
-            $localConfig = require $localConfigPath;
-            $this->config = array_replace_recursive($this->config, $localConfig);
-        }
     }
 
     /**
@@ -77,7 +66,7 @@ class HgaConfiguration implements ConfigurationInterface
      */
     public function getSectionHeaders(): array
     {
-        return $this->config['section_headers'];
+        return $this->systemConfigService->getArray('hga.section_headers', []);
     }
 
     /**
@@ -85,7 +74,7 @@ class HgaConfiguration implements ConfigurationInterface
      */
     public function getStandardTexts(): array
     {
-        return $this->config['standard_texts'];
+        return $this->systemConfigService->getArray('hga.standard_texts', []);
     }
 
     /**
@@ -93,20 +82,25 @@ class HgaConfiguration implements ConfigurationInterface
      */
     public function getWirtschaftsplanData(int $year = 2025): array
     {
-        return [
-            'bank_balances' => $this->config['bank_balances'],
-            'planned_expenses' => $this->config['planned_expenses'],
-            'planned_income' => $this->config['planned_income'],
-        ];
-    }
+        $prefix = "wirtschaftsplan.{$year}";
+        $systemConfigData = $this->systemConfigService->getWirtschaftsplanData($year);
+        $systemConfigData['balance_overrides'] = $this->systemConfigService->getArray("{$prefix}.balance_overrides", []);
+        $config = $this->wirtschaftsplanConfigRepository->findOneBy(['year' => $year]);
 
-    /**
-     * Get account categories for report grouping.
-     *
-     * @return array<string, mixed>
-     */
-    public function getAccountCategories(): array
-    {
-        return $this->config['account_categories'];
+        if (!$config) {
+            return $systemConfigData;
+        }
+
+        $data = $config->getData() ?? [];
+
+        return [
+            'bank_balances' => $data['bank_balances'] ?? $systemConfigData['bank_balances'],
+            'planned_expenses' => [
+                'umlagefaehig' => $data['planned_expenses']['umlagefaehig'] ?? $systemConfigData['planned_expenses']['umlagefaehig'] ?? [],
+                'nicht_umlagefaehig' => $data['planned_expenses']['nicht_umlagefaehig'] ?? $systemConfigData['planned_expenses']['nicht_umlagefaehig'] ?? [],
+            ],
+            'planned_income' => $data['planned_income'] ?? $systemConfigData['planned_income'],
+            'balance_overrides' => $data['balance_overrides'] ?? $systemConfigData['balance_overrides'],
+        ];
     }
 }

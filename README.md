@@ -16,7 +16,13 @@ Umfassendes Immobilienverwaltungssystem für deutsche Wohnungseigentümergemeins
 ```bash
 git clone https://github.com/homeadmin24/homeadmin24.git
 cd homeadmin24
-./setup.sh
+docker compose up -d --build
+sleep 10
+docker compose exec web composer install --no-interaction
+docker compose exec web php bin/console doctrine:database:create --if-not-exists
+docker compose exec web php bin/console doctrine:schema:update --force
+docker compose exec web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
+docker compose exec web php bin/console cache:clear
 ```
 
 **Access:** http://127.0.0.1:8000
@@ -68,7 +74,7 @@ cd homeadmin24
 - **Backend**: Symfony 8.0 (PHP 8.4+)
 - **Datenbank**: MySQL 9
 - **Frontend**: Tailwind CSS, Flowbite, Stimulus.js, Webpack Encore
-- **PDF**: DomPDF
+- **PDF**: Headless Chrome (Puppeteer)
 
 ---
 
@@ -88,7 +94,7 @@ cd homeadmin24
 
 ## 📦 Demo-Daten
 
-Nach `./setup.sh` verfügbar:
+Nach dem Setup verfügbar:
 - 3 WEG (Musterhausen, Berlin, Hamburg)
 - 12 Wohneinheiten mit Eigentümern
 - 145 Zahlungen (Einnahmen/Ausgaben)

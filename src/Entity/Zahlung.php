@@ -62,6 +62,12 @@ class Zahlung
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $aiReasoning = null;
 
+    #[ORM\Column(type: 'string', length: 50, options: ['default' => 'sonstiges'])]
+    private string $zahlungTyp = 'sonstiges';
+
+    #[ORM\Column(type: 'string', length: 20, options: ['default' => 'hausgeld'])]
+    private string $bankkontoTyp = 'hausgeld';
+
     public function getId(): ?int
     {
         return $this->id;
@@ -235,8 +241,32 @@ class Zahlung
         return $this;
     }
 
+    public function getZahlungTyp(): string
+    {
+        return $this->zahlungTyp;
+    }
+
+    public function setZahlungTyp(string $zahlungTyp): self
+    {
+        $this->zahlungTyp = $zahlungTyp;
+
+        return $this;
+    }
+
+    public function getBankkontoTyp(): string
+    {
+        return $this->bankkontoTyp;
+    }
+
+    public function setBankkontoTyp(string $bankkontoTyp): self
+    {
+        $this->bankkontoTyp = $bankkontoTyp;
+
+        return $this;
+    }
+
     /**
-     * Get Buchungspartner name (for AI context)
+     * Get Buchungspartner name (for AI context).
      */
     public function getBuchungspartner(): ?string
     {

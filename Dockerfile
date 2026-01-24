@@ -4,12 +4,18 @@ FROM php:8.4-fpm
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libzip-dev \
+    chromium \
     nginx \
+    poppler-utils \
     curl \
     && docker-php-ext-install pdo_mysql zip \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ENV PUPPETEER_SKIP_DOWNLOAD=1
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PUPPETEER_CACHE_DIR=/var/www/.cache/puppeteer
 
 # Set working directory
 WORKDIR /var/www/html
@@ -44,8 +50,10 @@ RUN mkdir -p /var/www/html/var/sessions/dev \
     && mkdir -p /var/www/html/data/dokumente/bank-statements \
     && mkdir -p /var/www/html/data/dokumente/protokolle \
     && mkdir -p /var/www/html/data/dokumente/vertraege \
+    && mkdir -p /var/www/.cache/puppeteer \
     && chown -R www-data:www-data /var/www/html/var \
     && chown -R www-data:www-data /var/www/html/data \
+    && chown -R www-data:www-data /var/www/.cache/puppeteer \
     && chmod -R 775 /var/www/html/var \
     && chmod -R 775 /var/www/html/data
 

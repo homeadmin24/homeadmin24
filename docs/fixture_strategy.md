@@ -17,17 +17,14 @@
 ### **Option A: Demo System (Development)** ⭐ Recommended
 
 ```bash
-# Automated setup (recommended)
-./setup.sh
-
-# OR Manual setup:
-docker-compose up -d
+# Manual setup:
+docker compose up -d --build
 sleep 10
-docker-compose exec web composer install
-docker-compose exec web php bin/console doctrine:database:create --if-not-exists
-docker-compose exec web php bin/console doctrine:schema:update --force
-docker-compose exec web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
-docker-compose exec web php bin/console cache:clear
+docker compose exec web composer install --no-interaction
+docker compose exec web php bin/console doctrine:database:create --if-not-exists
+docker compose exec web php bin/console doctrine:schema:update --force
+docker compose exec web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
+docker compose exec web php bin/console cache:clear
 
 # Loading order (handled automatically):
 # 1. System Config: Roles, payment categories, cost accounts, Umlageschlüssel
@@ -46,7 +43,7 @@ docker-compose exec web php bin/console cache:clear
 docker exec -i homeadmin24-mysql-1 mysql -uroot -prootpassword homeadmin24 < backup/backup_YYYYMMDD_HHMMSS_description.sql
 
 # Update schema for any new columns
-docker-compose exec web php bin/console doctrine:schema:update --force
+docker compose exec web php bin/console doctrine:schema:update --force
 
 # Result: Your production data restored
 # Login: Use your existing credentials
@@ -56,10 +53,10 @@ docker-compose exec web php bin/console doctrine:schema:update --force
 ```bash
 # Clean production install (no demo data)
 # ⚠️ Only for local development - NOT for production droplets!
-docker-compose exec web php bin/console doctrine:fixtures:load --group=system-config --no-interaction
+docker compose exec web php bin/console doctrine:fixtures:load --group=system-config --no-interaction
 
 # Create your first admin user
-docker-compose exec web php bin/console app:create-admin
+docker compose exec web php bin/console app:create-admin
 
 # Result: Empty system with core configuration
 # Next: Add your real WEGs, units, payments manually
@@ -94,13 +91,13 @@ docker exec homeadmin24-mysql-1 mysqldump -uroot -prootpassword homeadmin24 > ba
 ```bash
 # Quick restore (recommended)
 docker exec -i homeadmin24-mysql-1 mysql -uroot -prootpassword homeadmin24 < backup/your_backup.sql
-docker-compose exec web php bin/console doctrine:schema:update --force
+docker compose exec web php bin/console doctrine:schema:update --force
 
 # Full database recreation + restore
 docker-compose exec web php bin/console doctrine:database:drop --force
 docker-compose exec web php bin/console doctrine:database:create
 docker exec -i homeadmin24-mysql-1 mysql -uroot -prootpassword homeadmin24 < backup/your_backup.sql
-docker-compose exec web php bin/console doctrine:schema:update --force
+docker compose exec web php bin/console doctrine:schema:update --force
 ```
 
 #### **Restore Backup (Production Droplet)**

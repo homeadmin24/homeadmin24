@@ -20,10 +20,52 @@
                         Hausgeldabrechnung
                     </h1>
                     <p class="text-gray-600 dark:text-gray-400">
-                        Erstellen Sie automatisch Hausgeldabrechnungen für ausgewählte Einheiten in PDF- und/oder TXT-Format.
+                        Erstellen Sie automatisch Hausgeldabrechnungen für ausgewählte Einheiten im PDF-Format.
                     </p>
                 </div>
 
+                <div class="mb-4 border-b border-gray-200">
+                    <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="abrechnung-tab" data-tabs-toggle="#abrechnung-tab-content" data-tabs-active-classes="text-blue-600 hover:text-blue-600 border-blue-600" data-tabs-inactive-classes="text-gray-500 hover:text-gray-600 hover:border-gray-300 border-transparent" role="tablist">
+                        <li class="me-2" role="presentation">
+                            <button class="inline-block p-4 border-b-2 rounded-t-lg" id="generate-styled-tab" data-tabs-target="#styled-generate" type="button" role="tab" aria-controls="generate" aria-selected="{{ app.request.query.get('tab') == 'generate' or app.request.query.get('tab') is empty ? 'true' : 'false' }}">
+                                Generieren
+                            </button>
+                        </li>
+                        <li class="me-2" role="presentation">
+                            <button class="inline-block p-4 border-b-2 rounded-t-lg" id="hga-config-styled-tab" data-tabs-target="#styled-hga-config" type="button" role="tab" aria-controls="hga-config" aria-selected="{{ app.request.query.get('tab') == 'hga-config' ? 'true' : 'false' }}">
+                                HGA-Konfiguration
+                            </button>
+                        </li>
+                        <li class="me-2" role="presentation">
+                            <button class="inline-block p-4 border-b-2 rounded-t-lg" id="kontostaende-styled-tab" data-tabs-target="#styled-kontostaende" type="button" role="tab" aria-controls="kontostaende" aria-selected="{{ app.request.query.get('tab') == 'kontostaende' ? 'true' : 'false' }}">
+                                Kontostände
+                            </button>
+                        </li>
+                        <li class="me-2" role="presentation">
+                            <button class="inline-block p-4 border-b-2 rounded-t-lg" id="wirtschaftsplan-styled-tab" data-tabs-target="#styled-wirtschaftsplan" type="button" role="tab" aria-controls="wirtschaftsplan" aria-selected="{{ app.request.query.get('tab') == 'wirtschaftsplan' ? 'true' : 'false' }}">
+                                Wirtschaftsplan
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                {% if app.request.query.get('edit_kontostand') %}
+                    <script>
+                        document.addEventListener('DOMContentLoaded', () => {
+                            const id = '{{ app.request.query.get('edit_kontostand')|e('js') }}';
+                            if (!id) {
+                                return;
+                            }
+                            const toggle = document.querySelector(`[data-modal-toggle="editKontostandModal-${id}"]`);
+                            if (toggle) {
+                                toggle.click();
+                            }
+                        });
+                    </script>
+                {% endif %}
+
+                <div id="abrechnung-tab-content">
+                <div class="{{ app.request.query.get('tab') == 'generate' or app.request.query.get('tab') is empty ? '' : 'hidden' }}" id="styled-generate" role="tabpanel" aria-labelledby="generate-tab">
     <!-- Flash Messages -->
     {% for label, messages in app.flashes %}
         {% for message in messages %}
@@ -75,13 +117,6 @@
                         </div>
                     </div>
 
-                    <div>
-                        {{ form_row(form.format, {
-                            'help': 'PDF: Für Archivierung und Versand | TXT: Für Datenverarbeitung und Backup | Beide: Empfohlen',
-                            'row_attr': {'class': 'mb-1'}
-                        }) }}
-                    </div>
-
                     
                     <div data-abrechnung-target="einheitenContainer">
                         <!-- Einheiten and submit button will be populated here dynamically -->
@@ -102,9 +137,8 @@
                 <div class="text-sm text-blue-800 dark:text-blue-200 space-y-2">
                     <p><strong>1. WEG auswählen:</strong> Bestimmt welche Einheiten verfügbar sind</p>
                     <p><strong>2. Jahr festlegen:</strong> Abrechnungszeitraum (üblicherweise Vorjahr)</p>
-                    <p><strong>3. Format wählen:</strong> PDF für Versand, TXT für Archiv</p>
-                    <p><strong>4. Einheiten markieren:</strong> Nur für ausgewählte Einheiten</p>
-                    <p><strong>5. Generieren:</strong> Dateien werden automatisch gespeichert</p>
+                    <p><strong>3. Einheiten markieren:</strong> Nur für ausgewählte Einheiten</p>
+                    <p><strong>4. Generieren:</strong> Dateien werden automatisch gespeichert</p>
                 </div>
             </div>
 
@@ -147,6 +181,418 @@
             </div>
             {% endif %}
             </div>
+                </div>
+                </div>
+
+                <div class="{{ app.request.query.get('tab') == 'hga-config' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-hga-config" role="tabpanel" aria-labelledby="hga-config-tab">
+                    <div class="mb-4">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">HGA-Konfiguration</h3>
+                        <p class="text-sm text-gray-600">Bearbeiten Sie die HGA-JSON-Konfiguration direkt in der Datenbank.</p>
+                    </div>
+
+                    {% for message in app.flashes('success') %}
+                        <div class="mb-4 rounded-lg bg-green-100 px-4 py-3 text-sm text-green-800">{{ message }}</div>
+                    {% endfor %}
+                    {% for message in app.flashes('error') %}
+                        <div class="mb-4 rounded-lg bg-red-100 px-4 py-3 text-sm text-red-800">{{ message }}</div>
+                    {% endfor %}
+
+                    <form method="post" action="{{ path('app_abrechnung_hga_config_update') }}" class="space-y-6">
+                        <div>
+                            <label for="hga-section-headers" class="block text-sm font-medium text-gray-700">Section Headers (JSON)</label>
+                            <p class="mt-1 text-xs text-gray-500">Texte für Abschnittsüberschriften im PDF (z.B. Titelblöcke und Tabellenüberschriften).</p>
+                            <textarea id="hga-section-headers" name="hga_section_headers" rows="8" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white p-2 text-xs text-gray-900 font-mono">{{ hgaSectionHeadersJson }}</textarea>
+                        </div>
+
+                        <div>
+                            <label for="hga-standard-texts" class="block text-sm font-medium text-gray-700">Standardtexte (JSON)</label>
+                            <p class="mt-1 text-xs text-gray-500">Standardtexte für Hinweise und Ergebniszeilen im PDF (z.B. Steuerhinweise).</p>
+                            <textarea id="hga-standard-texts" name="hga_standard_texts" rows="8" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white p-2 text-xs text-gray-900 font-mono">{{ hgaStandardTextsJson }}</textarea>
+                        </div>
+
+                        <button type="submit" class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Speichern</button>
+                    </form>
+                </div>
+                <div class="{{ app.request.query.get('tab') == 'wirtschaftsplan' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-wirtschaftsplan" role="tabpanel" aria-labelledby="wirtschaftsplan-tab">
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Wirtschaftsplan verwalten</h3>
+                        <button type="button"
+                                class="mt-3 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                                data-modal-target="createWirtschaftsplanModal"
+                                data-modal-toggle="createWirtschaftsplanModal">
+                            Neuen Wirtschaftsplan erfassen
+                        </button>
+                    </div>
+
+                    {% for message in app.flashes('success') %}
+                        <div class="mb-4 rounded-lg bg-green-100 px-4 py-3 text-sm text-green-800">{{ message }}</div>
+                    {% endfor %}
+                    {% for message in app.flashes('error') %}
+                        <div class="mb-4 rounded-lg bg-red-100 px-4 py-3 text-sm text-red-800">{{ message }}</div>
+                    {% endfor %}
+
+                    <div id="createWirtschaftsplanModal" tabindex="-1" aria-hidden="true" data-modal-backdrop="dynamic"
+                         class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-start py-4 w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+                        <div class="relative p-4 w-full max-w-2xl h-full md:h-auto">
+                            <div class="relative p-4 bg-white rounded-lg shadow dark:bg-gray-800 sm:p-5 max-h-[calc(100vh-6rem)] overflow-y-auto">
+                                <div class="flex justify-between items-center pb-4 mb-4 rounded-t border-b sm:mb-5 dark:border-gray-600">
+                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                        Neuen Wirtschaftsplan erfassen
+                                    </h3>
+                                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="createWirtschaftsplanModal">
+                                        <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                                        <span class="sr-only">Schließen</span>
+                                    </button>
+                                </div>
+                                <form method="post" action="{{ path('app_abrechnung_wirtschaftsplan_config_create') }}" class="space-y-4">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('wirtschaftsplan_create') }}">
+                                    <div>
+                                        <label for="wirtschaftsplan-year" class="block text-sm font-medium text-gray-700">Plan-Jahr</label>
+                                        <input id="wirtschaftsplan-year" name="plan_year" type="number" value="{{ hgaYear + 1 }}" class="mt-1 block w-40 rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-900">
+                                    </div>
+                                    <div>
+                                        <label for="wirtschaftsplan-json" class="block text-sm font-medium text-gray-700">Wirtschaftsplan (JSON)</label>
+                                        <textarea id="wirtschaftsplan-json" name="plan_json" rows="12" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white p-2 text-xs text-gray-900 font-mono">{{ wirtschaftsplanTemplateJson }}</textarea>
+                                    </div>
+                                    <div class="mt-6 flex items-center justify-end gap-2">
+                                        <button type="button"
+                                                class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-4 py-2.5 hover:text-gray-900"
+                                                data-modal-hide="createWirtschaftsplanModal">
+                                            Abbrechen
+                                        </button>
+                                        <button type="submit" class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                                            Wirtschaftsplan speichern
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-lg border border-gray-200 bg-white">
+                        <div class="border-b border-gray-200 px-6 py-4">
+                            <h4 class="text-lg font-semibold text-gray-900">Erfasste Wirtschaftspläne</h4>
+                        </div>
+                        {% if wirtschaftsplanRows is empty %}
+                            <div class="px-6 py-8 text-center text-sm text-gray-500">
+                                Noch kein Wirtschaftsplan erfasst.
+                            </div>
+                        {% else %}
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left text-gray-500">
+                                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3">Jahr</th>
+                                            <th scope="col" class="px-6 py-3">Letzte Änderung</th>
+                                            <th scope="col" class="px-6 py-3 text-center">Aktionen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in wirtschaftsplanRows %}
+                                            <tr class="bg-white border-b hover:bg-gray-50">
+                                                <td class="px-6 py-4 font-medium text-gray-900">{{ row.year }}</td>
+                                                <td class="px-6 py-4">{{ row.updatedAt ? row.updatedAt|date('d.m.Y H:i') : (row.createdAt ? row.createdAt|date('d.m.Y H:i') : '-') }}</td>
+                                                <td class="px-6 py-4 text-center">
+                                                    <div class="flex items-center justify-center gap-2">
+                                                        <button type="button"
+                                                                class="rounded-lg p-2 text-blue-600 hover:bg-blue-50"
+                                                                data-modal-target="editWirtschaftsplanModal-{{ row.id }}"
+                                                                data-modal-toggle="editWirtschaftsplanModal-{{ row.id }}"
+                                                                title="Bearbeiten">
+                                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h2m-1 0v14m-7-7h14" />
+                                                            </svg>
+                                                        </button>
+                                                        <form method="post" action="{{ path('app_abrechnung_wirtschaftsplan_config_delete', {id: row.id}) }}"
+                                                              onsubmit="return confirm('Wirtschaftsplan wirklich löschen?');"
+                                                              class="inline">
+                                                            <input type="hidden" name="_token" value="{{ csrf_token('wirtschaftsplan_delete' ~ row.id) }}">
+                                                            <button type="submit" class="rounded-lg p-2 text-red-600 hover:bg-red-50" title="Löschen">
+                                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0h8m-9 0h10M10 4h4m-4 0a1 1 0 00-1 1v2h6V5a1 1 0 00-1-1" />
+                                                                </svg>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    {% for row in wirtschaftsplanRows %}
+                        <div id="editWirtschaftsplanModal-{{ row.id }}" tabindex="-1" aria-hidden="true" data-modal-backdrop="dynamic"
+                             class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-start py-4 w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+                            <div class="relative p-4 w-full max-w-2xl h-full md:h-auto">
+                                <div class="relative p-4 bg-white rounded-lg shadow dark:bg-gray-800 sm:p-5 max-h-[calc(100vh-6rem)] overflow-y-auto">
+                                    <div class="flex justify-between items-center pb-4 mb-4 rounded-t border-b sm:mb-5 dark:border-gray-600">
+                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                            Wirtschaftsplan bearbeiten
+                                        </h3>
+                                        <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="editWirtschaftsplanModal-{{ row.id }}">
+                                            <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                                            <span class="sr-only">Schließen</span>
+                                        </button>
+                                    </div>
+                                    <form method="post" action="{{ path('app_abrechnung_wirtschaftsplan_config_update', {id: row.id}) }}" class="space-y-4">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('wirtschaftsplan_update' ~ row.id) }}">
+                                        <div>
+                                            <label for="wirtschaftsplan-year-{{ row.id }}" class="block text-sm font-medium text-gray-700">Plan-Jahr</label>
+                                            <input id="wirtschaftsplan-year-{{ row.id }}" name="plan_year" type="number" value="{{ row.year }}" class="mt-1 block w-40 rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-900">
+                                        </div>
+                                        <div>
+                                            <label for="wirtschaftsplan-json-{{ row.id }}" class="block text-sm font-medium text-gray-700">Wirtschaftsplan (JSON)</label>
+                                            <textarea id="wirtschaftsplan-json-{{ row.id }}" name="plan_json" rows="12" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white p-2 text-xs text-gray-900 font-mono">{{ row.json }}</textarea>
+                                        </div>
+                                        <div class="mt-6 flex items-center justify-end gap-2">
+                                            <button type="button"
+                                                    class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-4 py-2.5 hover:text-gray-900"
+                                                    data-modal-hide="editWirtschaftsplanModal-{{ row.id }}">
+                                                Abbrechen
+                                            </button>
+                                            <button type="submit" class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                                                Änderungen speichern
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="{{ app.request.query.get('tab') == 'kontostaende' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-kontostaende" role="tabpanel" aria-labelledby="kontostaende-tab">
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Kontostände verwalten</h3>
+                        <button type="button"
+                                class="mt-3 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                                data-modal-target="createKontostandModal"
+                                data-modal-toggle="createKontostandModal">
+                            Neuen Kontostand erfassen
+                        </button>
+                    </div>
+
+                    {% for message in app.flashes('success') %}
+                        <div class="mb-4 rounded-lg bg-green-100 px-4 py-3 text-sm text-green-800">{{ message }}</div>
+                    {% endfor %}
+                    {% for message in app.flashes('error') %}
+                        <div class="mb-4 rounded-lg bg-red-100 px-4 py-3 text-sm text-red-800">{{ message }}</div>
+                    {% endfor %}
+
+                    <div id="createKontostandModal" tabindex="-1" aria-hidden="true" data-modal-backdrop="dynamic"
+                         class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-start py-4 w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+                        <div class="relative p-4 w-full max-w-2xl h-full md:h-auto">
+                            <div class="relative p-4 bg-white rounded-lg shadow dark:bg-gray-800 sm:p-5 max-h-[calc(100vh-6rem)] overflow-y-auto">
+                                <div class="flex justify-between items-center pb-4 mb-4 rounded-t border-b sm:mb-5 dark:border-gray-600">
+                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                        Neuen Kontostand erfassen
+                                    </h3>
+                                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="createKontostandModal">
+                                        <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                                        <span class="sr-only">Schließen</span>
+                                    </button>
+                                </div>
+                                {{ form_start(kontostandForm) }}
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            {{ form_label(kontostandForm.weg, 'WEG') }}
+                                            {{ form_widget(kontostandForm.weg) }}
+                                        </div>
+                                        <div>
+                                            {{ form_label(kontostandForm.year, 'Abrechnungsjahr') }}
+                                            {{ form_widget(kontostandForm.year) }}
+                                        </div>
+                                        <div>
+                                            {{ form_label(kontostandForm.stichtagStart, 'Stichtag Start') }}
+                                            {{ form_widget(kontostandForm.stichtagStart) }}
+                                            <p class="mt-1 text-xs text-gray-500">Anfang Abrechnungsjahr</p>
+                                        </div>
+                                        <div>
+                                            {{ form_label(kontostandForm.stichtagEnd, 'Stichtag Ende') }}
+                                            {{ form_widget(kontostandForm.stichtagEnd) }}
+                                            <p class="mt-1 text-xs text-gray-500">Kann über Jahresgrenze gehen</p>
+                                        </div>
+                                        <div>
+                                            {{ form_label(kontostandForm.saldoStart, 'Saldo am Stichtag Start (€)') }}
+                                            {{ form_widget(kontostandForm.saldoStart) }}
+                                            <p class="mt-1 text-xs text-gray-500">Aus Bankauszug</p>
+                                        </div>
+                                        <div>
+                                            {{ form_label(kontostandForm.saldoEnd, 'Saldo am Stichtag Ende (€)') }}
+                                            {{ form_widget(kontostandForm.saldoEnd) }}
+                                            <p class="mt-1 text-xs text-gray-500">Aus Bankauszug</p>
+                                        </div>
+                                        <div>
+                                            {{ form_label(kontostandForm.bankkontoTyp, 'Bankkonto-Typ') }}
+                                            {{ form_widget(kontostandForm.bankkontoTyp) }}
+                                        </div>
+                                        <div>
+                                            {{ form_label(kontostandForm.bemerkung, 'Bemerkung (optional)') }}
+                                            {{ form_widget(kontostandForm.bemerkung) }}
+                                        </div>
+                                    </div>
+                                    <div class="mt-6 flex items-center justify-end gap-2">
+                                        <button type="button"
+                                                class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-4 py-2.5 hover:text-gray-900 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600"
+                                                data-modal-hide="createKontostandModal">
+                                            Abbrechen
+                                        </button>
+                                        <button type="submit" class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                                            Kontostand speichern
+                                        </button>
+                                    </div>
+                                {{ form_end(kontostandForm) }}
+                            </div>
+                        </div>
+                    </div>
+
+                    {# List existing Kontostände #}
+                    <div class="rounded-lg border border-gray-200 bg-white">
+                        <div class="border-b border-gray-200 px-6 py-4">
+                            <h4 class="text-lg font-semibold text-gray-900">Erfasste Kontostände</h4>
+                        </div>
+                        {% if kontostaende is empty %}
+                            <div class="px-6 py-8 text-center text-sm text-gray-500">
+                                Noch keine Kontostände erfasst. Nutzen Sie das Formular oben, um den ersten Kontostand zu erfassen.
+                            </div>
+                        {% else %}
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left text-gray-500">
+                                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3">Jahr</th>
+                                            <th scope="col" class="px-6 py-3">Konto-Typ</th>
+                                            <th scope="col" class="px-6 py-3">Stichtag Start</th>
+                                            <th scope="col" class="px-6 py-3">Stichtag Ende</th>
+                                            <th scope="col" class="px-6 py-3 text-right">Saldo Start</th>
+                                            <th scope="col" class="px-6 py-3 text-right">Saldo Ende</th>
+                                            <th scope="col" class="px-6 py-3">Bemerkung</th>
+                                            <th scope="col" class="px-6 py-3 text-center">Aktionen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for kontostand in kontostaende %}
+                                            <tr class="bg-white border-b hover:bg-gray-50">
+                                                <td class="px-6 py-4">{{ kontostand.year }}</td>
+                                                <td class="px-6 py-4">
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ kontostand.bankkontoTyp == 'hausgeld' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
+                                                        {{ kontostand.bankkontoTyp|capitalize }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-4">{{ kontostand.stichtagStart|date('d.m.Y') }}</td>
+                                                <td class="px-6 py-4">{{ kontostand.stichtagEnd|date('d.m.Y') }}</td>
+                                                <td class="px-6 py-4 text-right font-mono whitespace-nowrap">{{ kontostand.saldoStart|number_format(2, ',', '.') }} €</td>
+                                                <td class="px-6 py-4 text-right font-mono whitespace-nowrap">{{ kontostand.saldoEnd|number_format(2, ',', '.') }} €</td>
+                                                <td class="px-6 py-4 max-w-xs truncate">{{ kontostand.bemerkung }}</td>
+                                                <td class="px-6 py-4 text-center">
+                                                    <div class="flex items-center justify-center gap-2">
+                                                        <button type="button"
+                                                                class="rounded-lg p-2 text-blue-600 hover:bg-blue-50"
+                                                                data-modal-target="editKontostandModal-{{ kontostand.id }}"
+                                                                data-modal-toggle="editKontostandModal-{{ kontostand.id }}"
+                                                                title="Bearbeiten">
+                                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h2m-1 0v14m-7-7h14" />
+                                                            </svg>
+                                                        </button>
+                                                        <form method="post" action="{{ path('app_abrechnung_kontostand_delete', {id: kontostand.id}) }}"
+                                                              onsubmit="return confirm('Kontostand wirklich löschen?');"
+                                                              class="inline">
+                                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ kontostand.id) }}">
+                                                            <button type="submit" class="rounded-lg p-2 text-red-600 hover:bg-red-50" title="Löschen">
+                                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0h8m-9 0h10M10 4h4m-4 0a1 1 0 00-1 1v2h6V5a1 1 0 00-1-1" />
+                                                                </svg>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    {% for kontostand in kontostaende %}
+                        {% set editForm = kontostandEditForms[kontostand.id]|default(null) %}
+                        {% if editForm %}
+                            <div id="editKontostandModal-{{ kontostand.id }}" tabindex="-1" aria-hidden="true" data-modal-backdrop="dynamic"
+                                 class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-start py-4 w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+                                <div class="relative p-4 w-full max-w-2xl h-full md:h-auto">
+                                    <div class="relative p-4 bg-white rounded-lg shadow dark:bg-gray-800 sm:p-5 max-h-[calc(100vh-6rem)] overflow-y-auto">
+                                        <div class="flex justify-between items-center pb-4 mb-4 rounded-t border-b sm:mb-5 dark:border-gray-600">
+                                            <div>
+                                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                                    Kontostand bearbeiten
+                                                </h3>
+                                                <p class="text-xs text-gray-500">{{ kontostand.weg.bezeichnung }} · {{ kontostand.year }} · {{ kontostand.bankkontoTyp|capitalize }}</p>
+                                            </div>
+                                            <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="editKontostandModal-{{ kontostand.id }}">
+                                                <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                                                <span class="sr-only">Schließen</span>
+                                            </button>
+                                        </div>
+                                        {{ form_start(editForm) }}
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    {{ form_label(editForm.weg, 'WEG') }}
+                                                    {{ form_widget(editForm.weg) }}
+                                                </div>
+                                                <div>
+                                                    {{ form_label(editForm.year, 'Abrechnungsjahr') }}
+                                                    {{ form_widget(editForm.year) }}
+                                                </div>
+                                                <div>
+                                                    {{ form_label(editForm.stichtagStart, 'Stichtag Start') }}
+                                                    {{ form_widget(editForm.stichtagStart) }}
+                                                    <p class="mt-1 text-xs text-gray-500">Anfang Abrechnungsjahr</p>
+                                                </div>
+                                                <div>
+                                                    {{ form_label(editForm.stichtagEnd, 'Stichtag Ende') }}
+                                                    {{ form_widget(editForm.stichtagEnd) }}
+                                                    <p class="mt-1 text-xs text-gray-500">Kann über Jahresgrenze gehen</p>
+                                                </div>
+                                                <div>
+                                                    {{ form_label(editForm.saldoStart, 'Saldo am Stichtag Start (€)') }}
+                                                    {{ form_widget(editForm.saldoStart) }}
+                                                    <p class="mt-1 text-xs text-gray-500">Aus Bankauszug</p>
+                                                </div>
+                                                <div>
+                                                    {{ form_label(editForm.saldoEnd, 'Saldo am Stichtag Ende (€)') }}
+                                                    {{ form_widget(editForm.saldoEnd) }}
+                                                    <p class="mt-1 text-xs text-gray-500">Aus Bankauszug</p>
+                                                </div>
+                                                <div>
+                                                    {{ form_label(editForm.bankkontoTyp, 'Bankkonto-Typ') }}
+                                                    {{ form_widget(editForm.bankkontoTyp) }}
+                                                </div>
+                                                <div>
+                                                    {{ form_label(editForm.bemerkung, 'Bemerkung (optional)') }}
+                                                    {{ form_widget(editForm.bemerkung) }}
+                                                </div>
+                                            </div>
+                                            <div class="mt-6 flex items-center justify-end gap-2">
+                                                <button type="button"
+                                                        class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-4 py-2.5 hover:text-gray-900 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600"
+                                                        data-modal-hide="editKontostandModal-{{ kontostand.id }}">
+                                                    Abbrechen
+                                                </button>
+                                                <button type="submit" class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                                                    Änderungen speichern
+                                                </button>
+                                            </div>
+                                        {{ form_end(editForm) }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                </div>
         </main>
     </div>
 {% endblock %}

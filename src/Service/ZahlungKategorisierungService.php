@@ -98,6 +98,10 @@ class ZahlungKategorisierungService
             $zahlung->setKostenkonto($kostenkonto);
         }
 
+        $this->assignBankkontoTyp($zahlung);
+
+        $this->maybeAssignAbrechnungsjahr($zahlung);
+
         // Auto-assign eigentuemer for Hausgeld payments
         if ($kategorie && 'Hausgeld-Zahlung' === $kategorie->getName() && $dienstleister && !$zahlung->getEigentuemer()) {
             $eigentuemer = $this->findEigentuemer($dienstleister->getBezeichnung());
@@ -163,6 +167,14 @@ class ZahlungKategorisierungService
             return $this->kostenkontoRepository->findOneBy(['nummer' => '049100']); // Kontoübertragung / Kontoauflösung
         }
 
+        // Hausmeister-Sonderleistungen (e.g. Hausmeisterarbeiten 12/2024)
+        if (str_contains($bezeichnung, 'hausmeisterarbeiten')
+            || str_contains($bezeichnung, 'hausmeister-arbeiten')
+            || str_contains($bezeichnung, 'sonderleistung')
+            || str_contains($bezeichnung, 'sonderleistungen')) {
+            return $this->kostenkontoRepository->findOneBy(['nummer' => '040101']); // Hausmeister-Sonderleistungen
+        }
+
         // Hausmeister (check BEFORE Hausgeld to avoid false matches with generic WEG keywords)
         if (str_contains($bezeichnung, 'hausmeister') || str_contains($dienstleisterArt, 'hausmeister')) {
             return $this->kostenkontoRepository->findOneBy(['nummer' => '040100']); // Hausmeisterkosten
@@ -222,6 +234,7 @@ class ZahlungKategorisierungService
             if (str_contains($bezeichnung, 'gebäude') || str_contains($bezeichnung, 'wohngebäude') || str_contains($bezeichnung, 'lw-902')) {
                 return $this->kostenkontoRepository->findOneBy(['nummer' => '046000']); // Versicherung: Gebäude
             }
+
             // Default to building insurance if type is unclear
             return $this->kostenkontoRepository->findOneBy(['nummer' => '046000']); // Versicherung: Gebäude
         }
@@ -252,6 +265,17 @@ class ZahlungKategorisierungService
         }
 
         return null;
+    }
+
+    private function assignBankkontoTyp(Zahlung $zahlung): void
+    {
+        // Default to Hausgeld unless the kostenkonto indicates Ruecklage
+        $kostenkonto = $zahlung->getKostenkonto();
+        if ($kostenkonto && \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG === $kostenkonto->getKategorisierungsTyp()) {
+            $zahlung->setBankkontoTyp('ruecklage');
+        } else {
+            $zahlung->setBankkontoTyp('hausgeld');
+        }
     }
 
     private function isHausgeldIncome(string $bezeichnung): bool
@@ -341,6 +365,34 @@ class ZahlungKategorisierungService
         return false;
     }
 
+    private function maybeAssignAbrechnungsjahr(Zahlung $zahlung): void
+    {
+        if (null !== $zahlung->getAbrechnungsjahrZuordnung()) {
+            return;
+        }
+
+        $bezeichnung = mb_strtolower($zahlung->getBezeichnung() ?? '');
+        $year = $this->extractServiceYear($bezeichnung);
+
+        if (null === $year) {
+            return;
+        }
+
+        $buchungsjahr = (int) $zahlung->getDatum()->format('Y');
+        if ($year !== $buchungsjahr) {
+            $zahlung->setAbrechnungsjahrZuordnung($year);
+        }
+    }
+
+    private function extractServiceYear(string $bezeichnung): ?int
+    {
+        if (!preg_match('/\\b(0?[1-9]|1[0-2])\\/(20\\d{2})\\b/', $bezeichnung, $matches)) {
+            return null;
+        }
+
+        return (int) $matches[2];
+    }
+
     private function isKostenkontoAllowed(\App\Entity\Zahlungskategorie $kategorie, \App\Entity\Kostenkonto $kostenkonto): bool
     {
         $fieldConfig = $kategorie->getFieldConfig();
@@ -406,7 +458,7 @@ class ZahlungKategorisierungService
         // Normalize whitespace
         $str = preg_replace('/\s+/', ' ', $str);
 
-        return trim($str);
+        return mb_trim($str);
     }
 
     /**

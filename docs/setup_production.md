@@ -2,6 +2,8 @@
 
 Complete guide for deploying homeadmin24 to production. For local development setup, see [setup_local.md](setup_local.md).
 
+**Note:** AI services (Ollama, DocIntel) are currently **local-only**. Production/Demo deployments should disable AI features.
+
 ## Table of Contents
 
 - [Deployment Options Overview](#deployment-options-overview)

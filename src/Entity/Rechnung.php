@@ -18,7 +18,7 @@ class Rechnung
      */
     private ?int $id = null;
 
-    #[ORM\Column(type: 'string', length: 255)]
+    #[ORM\Column(type: 'text', nullable: true)]
     private ?string $information = null;
 
     #[ORM\Column(type: 'boolean')]
@@ -66,7 +66,7 @@ class Rechnung
         return $this->information;
     }
 
-    public function setInformation(string $information): self
+    public function setInformation(?string $information): self
     {
         $this->information = $information;
 

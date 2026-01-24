@@ -14,7 +14,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'user')]
 #[UniqueEntity(fields: ['email'], message: 'Es gibt bereits einen Account mit dieser E-Mail-Adresse')]
-class User implements UserInterface, PasswordAuthenticatedUserInterface
+class User implements \Stringable, UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -173,7 +173,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getFullName(): string
     {
-        return trim($this->firstName . ' ' . $this->lastName);
+        return mb_trim($this->firstName . ' ' . $this->lastName);
     }
 
     public function isActive(): bool

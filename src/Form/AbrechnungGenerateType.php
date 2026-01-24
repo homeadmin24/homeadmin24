@@ -44,20 +44,7 @@ class AbrechnungGenerateType extends AbstractType
                 'label' => 'Abrechnungsjahr',
                 'data' => date('Y'), // Default to current year
             ])
-            ->add('format', ChoiceType::class, [
-                'choices' => [
-                    'PDF' => 'pdf',
-                    'TXT' => 'txt',
-                    'Beide' => 'both',
-                ],
-                'expanded' => true,
-                'multiple' => false,
-                'attr' => [
-                    'class' => 'flex flex-wrap gap-4',
-                ],
-                'label' => 'Format',
-                'data' => 'both', // Default to both formats
-            ]);
+        ;
     }
 
     public function configureOptions(OptionsResolver $resolver): void

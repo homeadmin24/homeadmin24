@@ -397,7 +397,7 @@ Navigate to `/admin/hga-feedback` (requires admin role)
 
 1. **Generate HGA Document**:
    ```bash
-   docker compose exec web php bin/console app:hga-generate 3 2025 --unit=0003 --format=txt
+   docker compose exec web php bin/console app:hga-generate 3 2025 --unit=0003
    ```
 
 2. **Verify HGA Data Populated**:

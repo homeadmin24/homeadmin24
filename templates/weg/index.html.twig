@@ -350,7 +350,38 @@
         <div class="{{ app.request.query.get('tab') == 'kategorien' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-kategorien" role="tabpanel" aria-labelledby="kategorien-tab">
             <div class="mb-4">
                 <h3 class="text-xl font-semibold text-gray-900 mb-4">Zahlungskategorien → Kostenkonto Mapping</h3>
-                <p class="text-sm text-gray-600 mb-4">Diese Tabelle zeigt, welche Kostenkontos für jede Zahlungskategorie erlaubt sind.</p>
+
+                <!-- Purpose & Explanation -->
+                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h4 class="text-sm font-semibold text-blue-800 mb-2">Zweck: Verhindern falscher Kontobuchungen</h4>
+                            <p class="text-sm text-blue-700 mb-2">
+                                Diese Konfiguration schränkt ein, auf welche Kostenkontos eine Zahlung gebucht werden darf.
+                                Beim Erfassen einer Zahlung im Formular werden nur die hier konfigurierten Kostenkontos zur Auswahl angeboten.
+                            </p>
+
+                            <div class="mt-3">
+                                <p class="text-sm text-blue-700">
+                                    <strong>Beispiel:</strong> Hausgeld-Zahlung → nur Wohngeld-Konto (099900) erlaubt
+                                </p>
+                            </div>
+
+                            <div class="mt-3 pt-3 border-t border-blue-200">
+                                <p class="text-xs text-blue-600">
+                                    <strong>Hinweis:</strong> Wenn keine Einschränkung konfiguriert ist (graue Schrift "Alle Kostenkontos erlaubt"),
+                                    können alle aktiven Kostenkontos für diese Kategorie ausgewählt werden. Dies ist sinnvoll für flexible Kategorien
+                                    wie "Rechnung von Dienstleister", wo verschiedene Kostenarten möglich sind.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="overflow-x-auto">
@@ -358,14 +389,32 @@
                     <thead class="text-xs text-gray-700 uppercase bg-gray-100">
                         <tr>
                             <th scope="col" class="px-4 py-3">Kategorie</th>
+                            <th scope="col" class="px-4 py-3 text-center">Status</th>
                             <th scope="col" class="px-4 py-3">Erlaubte Kostenkontos</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for kategorie in zahlungskategorien %}
-                        <tr class="bg-white border-b hover:bg-gray-50">
+                        <tr class="bg-white border-b hover:bg-gray-50 {{ not kategorie.isActive ? 'opacity-60' : '' }}">
                             <td class="px-4 py-4 font-medium text-gray-900">
                                 {{ kategorie.name }}
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                {% if kategorie.isActive %}
+                                    <span class="inline-flex items-center px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded" title="Aktiv">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        <span class="ml-1">Aktiv</span>
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-800 bg-gray-200 rounded" title="Inaktiv">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        <span class="ml-1">Inaktiv</span>
+                                    </span>
+                                {% endif %}
                             </td>
                             <td class="px-4 py-4">
                                 {% set kostenkontoFilter = kategorie.fieldConfig['kostenkonto_filter'] ?? [] %}
@@ -374,9 +423,14 @@
                                 {% else %}
                                     <div class="flex flex-wrap gap-2">
                                         {% for konto in kostenkontos %}
-                                            {% if konto.id in kostenkontoFilter %}
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            {% if konto.nummer in kostenkontoFilter %}
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ konto.isActive ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-600 line-through' }}" title="{{ konto.isActive ? 'Aktiv' : 'Inaktiv' }}">
                                                     {{ konto.nummer }} - {{ konto.bezeichnung }}
+                                                    {% if not konto.isActive %}
+                                                        <svg class="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                                        </svg>
+                                                    {% endif %}
                                                 </span>
                                             {% endif %}
                                         {% endfor %}
@@ -494,6 +548,7 @@
                 </div>
             </div>
         </div>
+
         </div>
     </main>
 </div>

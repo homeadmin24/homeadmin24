@@ -9,6 +9,8 @@ use App\Repository\DokumentRepository;
 use App\Repository\WegEinheitRepository;
 use App\Service\Hga\HgaQualityCheckService;
 use App\Service\InvoiceProcessingService;
+use App\Service\AI\DocIntelProvider;
+use App\Service\PdfRenderService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
@@ -240,7 +242,7 @@ class DokumentController extends AbstractController
         int $id,
         Request $request,
         DokumentRepository $dokumentRepo,
-        HgaQualityCheckService $qualityService
+        HgaQualityCheckService $qualityService,
     ): JsonResponse {
         $dokument = $dokumentRepo->find($id);
 
@@ -278,7 +280,7 @@ class DokumentController extends AbstractController
         int $id,
         Request $request,
         DokumentRepository $dokumentRepo,
-        HgaQualityCheckService $qualityService
+        HgaQualityCheckService $qualityService,
     ): Response {
         $dokument = $dokumentRepo->find($id);
 
@@ -300,7 +302,7 @@ class DokumentController extends AbstractController
                 );
 
                 return new Response(
-                    '<h2>Full Quality Check Result</h2><pre>' . json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . '</pre>',
+                    '<h2>Full Quality Check Result</h2><pre>' . json_encode($result, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_UNICODE) . '</pre>',
                     200,
                     ['Content-Type' => 'text/html; charset=utf-8']
                 );
@@ -319,13 +321,48 @@ class DokumentController extends AbstractController
         }
     }
 
+    #[Route('/{id}/docintel-debug', name: 'app_dokument_docintel_debug', methods: ['GET'])]
+    public function docIntelDebug(
+        int $id,
+        DokumentRepository $dokumentRepo,
+        DocIntelProvider $docIntelProvider,
+        PdfRenderService $pdfRenderService,
+    ): JsonResponse {
+        $dokument = $dokumentRepo->find($id);
+
+        if (!$dokument) {
+            return $this->json(['error' => 'Dokument nicht gefunden'], 404);
+        }
+
+        if (!$docIntelProvider->isAvailable()) {
+            return $this->json(['error' => 'DocIntel ist nicht aktiviert'], 400);
+        }
+
+        $pdfPath = $dokument->getAbsoluterPfad($this->getParameter('kernel.project_dir'));
+
+        try {
+            $imagePaths = $pdfRenderService->renderToImages($pdfPath);
+            try {
+                $result = $docIntelProvider->extractInvoiceDataFromImages($imagePaths);
+            } finally {
+                $pdfRenderService->cleanup($imagePaths);
+            }
+
+            return $this->json($result);
+        } catch (\Exception $e) {
+            return $this->json([
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     #[Route('/{id}/quality-feedback', name: 'app_dokument_quality_feedback', methods: ['POST'])]
     public function saveFeedback(
         int $id,
         Request $request,
         DokumentRepository $dokumentRepo,
         WegEinheitRepository $einheitRepo,
-        EntityManagerInterface $em
+        EntityManagerInterface $em,
     ): JsonResponse {
         $dokument = $dokumentRepo->find($id);
 
@@ -360,7 +397,7 @@ class DokumentController extends AbstractController
 
         // Handle helpful rating
         $helpfulRating = $request->request->get('helpful_rating');
-        if ($helpfulRating !== null) {
+        if (null !== $helpfulRating) {
             $feedback->setHelpfulRating((bool) $helpfulRating);
         }
 

@@ -9,7 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: UmlageschluesselRepository::class)]
-class Umlageschluessel
+class Umlageschluessel implements \Stringable
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -24,6 +24,12 @@ class Umlageschluessel
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $beschreibung = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $gesamtumlage = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $umlageTyp = null;
 
     /**
      * @var Collection<int, Kostenkonto>
@@ -78,6 +84,30 @@ class Umlageschluessel
     public function setBeschreibung(?string $beschreibung): static
     {
         $this->beschreibung = $beschreibung;
+
+        return $this;
+    }
+
+    public function getGesamtumlage(): ?string
+    {
+        return $this->gesamtumlage;
+    }
+
+    public function setGesamtumlage(?string $gesamtumlage): static
+    {
+        $this->gesamtumlage = $gesamtumlage;
+
+        return $this;
+    }
+
+    public function getUmlageTyp(): ?string
+    {
+        return $this->umlageTyp;
+    }
+
+    public function setUmlageTyp(?string $umlageTyp): static
+    {
+        $this->umlageTyp = $umlageTyp;
 
         return $this;
     }

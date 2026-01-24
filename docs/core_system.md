@@ -436,22 +436,17 @@ docker compose exec web php bin/console doctrine:fixtures:load \
   --no-interaction
 ```
 
-### Automated Setup Script
-
-**Location:** `setup.sh`
+### Manual Setup Commands
 
 ```bash
-#!/bin/bash
-set -e
-
 # Start Docker containers
-docker compose up -d
+docker compose up -d --build
 
 # Wait for MySQL
 sleep 10
 
 # Install dependencies
-docker compose exec web composer install
+docker compose exec web composer install --no-interaction
 
 # Create database and schema
 docker compose exec web php bin/console doctrine:database:create --if-not-exists

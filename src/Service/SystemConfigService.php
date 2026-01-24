@@ -102,29 +102,6 @@ class SystemConfigService
     }
 
     /**
-     * Get balance data for a specific year.
-     *
-     * @return array<string, mixed>
-     */
-    public function getBalanceData(int $year): array
-    {
-        $startData = $this->getArray("balance.{$year}.start", []);
-        $endData = $this->getArray("balance.{$year}.end", []);
-
-        if (empty($startData) || empty($endData)) {
-            return ['hasData' => false];
-        }
-
-        return [
-            'hasData' => true,
-            'startAmount' => $startData['amount'] ?? 0.0,
-            'endAmount' => $endData['amount'] ?? 0.0,
-            'change' => ($endData['amount'] ?? 0.0) - ($startData['amount'] ?? 0.0),
-            'year' => $year,
-        ];
-    }
-
-    /**
      * Get HGA section headers.
      *
      * @return array<string, string>
@@ -153,16 +130,6 @@ class SystemConfigService
     public function getHgaStandardTexts(): array
     {
         return $this->getArray('hga.standard_texts', []);
-    }
-
-    /**
-     * Get account category mappings.
-     *
-     * @return array<string, mixed>
-     */
-    public function getAccountCategories(): array
-    {
-        return $this->getArray('hga.account_categories', []);
     }
 
     /**

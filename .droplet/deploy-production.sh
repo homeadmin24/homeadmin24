@@ -106,6 +106,14 @@ if [ ! -f .env.local ]; then
     touch .env.local
 fi
 
+# Ensure Chrome renderer is enabled for PDF generation
+if ! grep -q "^HGA_PDF_RENDERER=" .env; then
+    echo "HGA_PDF_RENDERER=chrome" >> .env
+fi
+if ! grep -q "^PUPPETEER_EXECUTABLE_PATH=" .env; then
+    echo "PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium" >> .env
+fi
+
 # Create production docker-compose override
 echo "[3/12] Creating production docker-compose configuration..."
 cat > docker-compose.prod.yml <<'DOCKER_COMPOSE'
@@ -113,6 +121,9 @@ services:
   web:
     environment:
       - APP_ENV=prod
+      - AI_ENABLED=false
+      - AI_CLAUDE_ENABLED=false
+      - DOCINTEL_ENABLED=false
     restart: unless-stopped
     # Don't inherit volume mounts from base - use built files from Docker image
     volumes: !reset []
@@ -132,16 +143,21 @@ if [ "$QUICK_MODE" = true ]; then
     echo "[4/8] ⚡ Skipping Docker rebuild (quick mode)..."
     echo "       Containers will continue running with new code"
 
-    echo "[5/8] Clearing Symfony cache..."
+    echo "[5/9] Clearing Symfony cache..."
     docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web php bin/console cache:clear
 
-    echo "[6/8] Rebuilding frontend assets..."
+    echo "[6/9] Ensuring Puppeteer is installed..."
+    if ! docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web node -e "require('puppeteer')" >/dev/null 2>&1; then
+        docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web npm install --omit=dev
+    fi
+
+    echo "[7/9] Rebuilding frontend assets..."
     docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web npm run build
 
-    echo "[7/8] Updating database schema..."
+    echo "[8/9] Updating database schema..."
     docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web php bin/console doctrine:schema:update --force
 
-    echo "[8/8] Deployment complete (skipping Nginx/SSL config in quick mode)"
+    echo "[9/9] Deployment complete (skipping Nginx/SSL config in quick mode)"
     echo ""
     echo "=========================================="
     echo "✅ Quick PRODUCTION Deployment complete!"

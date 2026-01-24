@@ -19,7 +19,7 @@ class AiQueryResponseRepository extends ServiceEntityRepository
     }
 
     /**
-     * Get good Claude answers for training Ollama
+     * Get good Claude answers for training Ollama.
      *
      * @return AiQueryResponse[]
      */
@@ -38,7 +38,7 @@ class AiQueryResponseRepository extends ServiceEntityRepository
     }
 
     /**
-     * Get metrics for comparison
+     * Get metrics for comparison.
      */
     public function getProviderMetrics(): array
     {
@@ -60,7 +60,7 @@ class AiQueryResponseRepository extends ServiceEntityRepository
     }
 
     /**
-     * Mark examples as used for training
+     * Mark examples as used for training.
      */
     public function markAsUsedForTraining(array $ids): void
     {

@@ -152,6 +152,14 @@ if [ ! -f .env.local ]; then
     touch .env.local
 fi
 
+# Ensure Chrome renderer is enabled for PDF generation
+if ! grep -q "^HGA_PDF_RENDERER=" .env; then
+    echo "HGA_PDF_RENDERER=chrome" >> .env
+fi
+if ! grep -q "^PUPPETEER_EXECUTABLE_PATH=" .env; then
+    echo "PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium" >> .env
+fi
+
 # Create demo docker compose override
 echo "[3/11] Creating demo docker compose configuration..."
 cat > docker-compose.demo.yml <<'DOCKER_COMPOSE'
@@ -160,6 +168,9 @@ services:
     container_name: homeadmin24-demo-web
     environment:
       - APP_ENV=dev
+      - AI_ENABLED=false
+      - AI_CLAUDE_ENABLED=false
+      - DOCINTEL_ENABLED=false
       - TRUSTED_PROXIES=127.0.0.1
       - TRUSTED_HOSTS=^demo\.homeadmin24\.de$
       - MESSENGER_TRANSPORT_DSN=doctrine://default?auto_setup=0
@@ -182,20 +193,25 @@ if [ "$QUICK_MODE" = true ]; then
     echo "[4/8] ⚡ Skipping Docker rebuild (quick mode)..."
     echo "       Containers will continue running with new code"
 
-    echo "[5/8] Clearing Symfony cache..."
+    echo "[5/9] Clearing Symfony cache..."
     docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web php bin/console cache:clear
 
-    echo "[5.5/8] Restarting web container to clear PHP OPcache..."
+    echo "[5.5/9] Restarting web container to clear PHP OPcache..."
     docker compose -f docker-compose.yaml -f docker-compose.demo.yml restart web
     sleep 3  # Wait for container to be ready
 
-    echo "[6/8] Rebuilding frontend assets..."
+    echo "[6/9] Ensuring Puppeteer is installed..."
+    if ! docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web node -e "require('puppeteer')" >/dev/null 2>&1; then
+        docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web npm install --omit=dev
+    fi
+
+    echo "[7/9] Rebuilding frontend assets..."
     docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web npm run build
 
-    echo "[7/8] Running database migrations..."
+    echo "[8/9] Running database migrations..."
     docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web php bin/console doctrine:migrations:migrate --no-interaction
 
-    echo "[8/8] Reloading demo data..."
+    echo "[9/9] Reloading demo data..."
     docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
 else
     # Full deployment with Docker rebuild

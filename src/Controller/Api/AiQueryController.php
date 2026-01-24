@@ -21,7 +21,7 @@ class AiQueryController extends AbstractController
     }
 
     /**
-     * Answer with Ollama (local, DSGVO-compliant)
+     * Answer with Ollama (local, DSGVO-compliant).
      *
      * POST /api/ai/query/ollama
      * Body: {"query": "Wie viel haben wir 2024 für Heizung ausgegeben?"}
@@ -31,14 +31,14 @@ class AiQueryController extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
 
-        if (!isset($data['query']) || empty(trim($data['query']))) {
+        if (!isset($data['query']) || empty(mb_trim($data['query']))) {
             return $this->json([
                 'success' => false,
                 'error' => 'Query parameter is required',
             ], 400);
         }
 
-        $query = trim($data['query']);
+        $query = mb_trim($data['query']);
 
         try {
             $result = $this->aiQueryService->answerWithOllama($query);
@@ -53,7 +53,7 @@ class AiQueryController extends AbstractController
     }
 
     /**
-     * Answer with Claude (cloud API, dev-only)
+     * Answer with Claude (cloud API, dev-only).
      *
      * POST /api/ai/query/claude
      * Body: {"query": "Wie viel haben wir 2024 für Heizung ausgegeben?"}
@@ -71,14 +71,14 @@ class AiQueryController extends AbstractController
 
         $data = json_decode($request->getContent(), true);
 
-        if (!isset($data['query']) || empty(trim($data['query']))) {
+        if (!isset($data['query']) || empty(mb_trim($data['query']))) {
             return $this->json([
                 'success' => false,
                 'error' => 'Query parameter is required',
             ], 400);
         }
 
-        $query = trim($data['query']);
+        $query = mb_trim($data['query']);
 
         try {
             $result = $this->aiQueryService->answerWithClaude($query);
@@ -93,7 +93,7 @@ class AiQueryController extends AbstractController
     }
 
     /**
-     * Compare answers from Ollama and Claude side-by-side
+     * Compare answers from Ollama and Claude side-by-side.
      *
      * POST /api/ai/query/compare
      * Body: {"query": "Wie viel haben wir 2024 für Heizung ausgegeben?"}
@@ -111,14 +111,14 @@ class AiQueryController extends AbstractController
 
         $data = json_decode($request->getContent(), true);
 
-        if (!isset($data['query']) || empty(trim($data['query']))) {
+        if (!isset($data['query']) || empty(mb_trim($data['query']))) {
             return $this->json([
                 'success' => false,
                 'error' => 'Query parameter is required',
             ], 400);
         }
 
-        $query = trim($data['query']);
+        $query = mb_trim($data['query']);
 
         try {
             $result = $this->aiQueryService->compareProviders($query);
@@ -133,7 +133,7 @@ class AiQueryController extends AbstractController
     }
 
     /**
-     * Rate an AI response (for learning)
+     * Rate an AI response (for learning).
      *
      * POST /api/ai/response/{id}/rate
      * Body: {"rating": "good"} or {"rating": "bad"}
@@ -159,9 +159,10 @@ class AiQueryController extends AbstractController
     }
 
     /**
-     * Legacy endpoint - defaults to Ollama
+     * Legacy endpoint - defaults to Ollama.
      *
      * POST /api/ai/query
+     *
      * @deprecated Use /api/ai/query/ollama or /api/ai/query/claude
      */
     #[Route('/query', name: 'query', methods: ['POST'])]
@@ -171,7 +172,7 @@ class AiQueryController extends AbstractController
     }
 
     /**
-     * Get example queries for the UI
+     * Get example queries for the UI.
      */
     #[Route('/query/examples', name: 'query_examples', methods: ['GET'])]
     public function getExamples(): JsonResponse

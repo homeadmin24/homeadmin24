@@ -67,39 +67,9 @@ class SystemConfigFixtures extends Fixture implements FixtureGroupInterface
                     'Bitte reichen Sie die detaillierte Abrechnung zusammen mit den Handwerkerrechnungen',
                     'beim Finanzamt ein.',
                 ],
-                'balance_notice' => 'Hinweis: Der aktuelle Kontostand deckt den Mehrbedarf vollständig, daher keine Erhöhung der Hausgeld-Vorschüsse.',
             ],
             'hausgeldabrechnung',
             'Standard text templates for HGA reports'
-        );
-
-        // Account category mappings
-        $this->createConfig($manager,
-            'hga.account_categories',
-            [
-                'heizung_wasser' => [
-                    'name' => 'HEIZUNG/WASSER/ABRECHNUNG',
-                    'accounts' => ['041800'],
-                ],
-                'versicherung' => [
-                    'name' => 'Versicherungen',
-                    'accounts' => ['046000', '046200'],
-                ],
-                'verwaltung' => [
-                    'name' => 'Verwaltung',
-                    'accounts' => ['050000', '052000'],
-                ],
-                'instandhaltung' => [
-                    'name' => 'Instandhaltung/Reparaturen',
-                    'accounts' => ['045100', '044000'],
-                ],
-                'sonstiges' => [
-                    'name' => 'Sonstige',
-                    'accounts' => [],
-                ],
-            ],
-            'hausgeldabrechnung',
-            'Kostenkonto category mappings for report grouping'
         );
 
         $manager->flush();

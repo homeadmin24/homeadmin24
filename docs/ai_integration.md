@@ -1,8 +1,8 @@
 # AI Integration Documentation
 
-**Document Version**: 2.0
-**Date**: 2025-12-28
-**Status**: Production-Ready (Local Development)
+**Document Version**: 2.1
+**Date**: 2026-01-15
+**Status**: Production-Ready
 
 ---
 
@@ -73,7 +73,8 @@ docker compose exec web php tests/ai/test-ollama-direct.php
 5. [Payment Categorization](#payment-categorization)
 6. [Natural Language Queries](#natural-language-queries)
 7. [Ollama Learning & Fine-tuning](#ollama-learning--fine-tuning)
-8. [Privacy & Compliance](#privacy--compliance)
+8. [Invoice Data Extraction (LLM)](#invoice-data-extraction-llm)
+9. [Privacy & Compliance](#privacy--compliance)
 
 ---
 
@@ -87,6 +88,12 @@ The homeadmin24 system provides AI-powered features for:
 2. **Natural Language Financial Queries** - Ask questions in German, get instant answers
 3. **Invoice Data Extraction** - Automatically extract structured data from PDFs
 4. **HGA Quality Checks** - Pre-flight review to catch errors before sending
+
+### Invoice Data Extraction (LLM)
+
+LLM-based invoice extraction is now implemented using the same Ollama/Claude dual-provider pattern.
+
+See full documentation: **[AI Invoice Data Extraction](ai_doc_extraction.md)**
 
 ### Architecture Strategy
 
@@ -715,6 +722,8 @@ zur automatischen Kategorisierung von Zahlungen.
 
 ## Related Documentation
 
+- [AI Invoice Data Extraction](ai_doc_extraction.md) - LLM-based PDF parsing
+- [HGA Quality Checks](hga-quality-checks.md) - AI quality validation
 - [Core System Documentation](core_system.md) - Payment categorization, CSV import, auth system
 - [Local Setup Guide](setup_local.md) - Docker development environment
 - [Production Deployment](setup_production.md) - Deployment options

@@ -2,13 +2,12 @@
 
 ## Voraussetzungen
 
-- Docker Desktop installiert und gestartet
+- Docker Desktop oder Orbstack installiert und gestartet
 - Git installiert
 - Node.js 20.x installiert (für Frontend-Entwicklung)
+- Chrome/Chromium + Puppeteer (für PDF-Renderer)
 
 ## Schnellstart
-
-### Option 1: Automatisches Setup (Empfohlen)
 
 ```bash
 # Repository klonen
@@ -16,58 +15,45 @@ git clone https://github.com/homeadmin24/homeadmin24.git
 cd homeadmin24
 
 # Backend Setup (Docker)
-./setup.sh
-
-# Frontend Setup (LOKAL - außerhalb des Containers!)
-npm install
-npm run dev
-```
-
-Das Script führt automatisch aus:
-1. Docker Container starten
-2. Auf MySQL warten
-3. Composer Dependencies installieren
-4. Datenbank erstellen
-5. Schema anlegen
-6. Demo-Daten laden
-7. Cache leeren
-
-**WICHTIG:** Nach `./setup.sh` MUSS `npm run dev` ausgeführt werden, sonst fehlen die Frontend-Assets!
-
-### Option 2: Manuelles Setup
-
-```bash
-# Backend Setup (Docker)
-# 1. Container starten
-docker compose up -d
-
-# 2. Auf MySQL warten (10 Sekunden)
+docker compose up -d --build web mysql ollama doc-intel
 sleep 10
-
-# 3. Composer Dependencies installieren
-docker compose exec web composer install
-
-# 4. Datenbank erstellen
+docker compose exec web composer install --no-interaction
 docker compose exec web php bin/console doctrine:database:create --if-not-exists
-
-# 5. Schema anlegen
 docker compose exec web php bin/console doctrine:schema:update --force
-
-# 6. Demo-Daten laden
 docker compose exec web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
-
-# 7. Cache leeren
 docker compose exec web php bin/console cache:clear
 
 # Frontend Setup (LOKAL - außerhalb des Containers!)
-# 8. Node.js Dependencies installieren
 npm install
-
-# 9. Frontend Assets bauen (Development Mode)
 npm run dev
 ```
 
-**WICHTIG:** Schritte 8-9 MÜSSEN lokal ausgeführt werden, NICHT im Container!
+**WICHTIG:** Die Frontend-Assets müssen lokal gebaut werden, nicht im Container.
+
+## AI Services (Nur lokal)
+
+Für lokale Entwicklung werden **Ollama** und **DocIntel** verwendet. Demo/Prod werden aktuell **nicht** eingesetzt.
+
+### Ollama (lokal, via docker-compose.yaml)
+
+Ollama wird automatisch mit `docker compose up -d --build` gestartet.
+
+```bash
+# Modell einmalig laden (falls noch nicht vorhanden)
+docker exec -it hausman-ollama ollama pull llama3.1:8b
+```
+
+### DocIntel (lokal, externes OCR/LayoutLM)
+
+DocIntel ist **optional** und wird lokal per `docker compose up -d --build` mitgestartet.
+
+```bash
+# Beispiel .env.local Ergänzungen
+DOCINTEL_ENABLED=true
+DOCINTEL_URL=http://doc-intel:8000
+```
+
+Wenn DocIntel nicht läuft, bleibt der Parser bei Text-Extraktion/LLM-Fallback.
 
 ## Zugriff auf die Anwendung
 
@@ -120,7 +106,7 @@ Nach dem Setup stehen folgende Demo-Daten zur Verfügung:
 
 ```bash
 # Container starten
-docker compose up -d
+docker compose up -d --build
 
 # Container stoppen
 docker compose down
@@ -270,6 +256,36 @@ window.Stimulus.controllers.map(c => c.identifier)  // Alle Controller
 document.querySelectorAll('script[src*="app"]')     // Geladene Scripts
 ```
 
+## PDF-Renderer (Chrome/Puppeteer)
+
+Standard ist **Headless Chrome (Puppeteer)**.
+
+### Chrome-Renderer aktivieren
+
+1. **Puppeteer installieren (lokal oder im Server-Container):**
+```bash
+cd homeadmin24
+npm install puppeteer
+```
+
+2. **Optional: Standard-Renderer per Env setzen:**
+```bash
+export HGA_PDF_RENDERER=chrome
+```
+
+3. **Optional: Pfade setzen (wenn Node/Puppeteer nicht im Standardpfad liegt):**
+```bash
+export HGA_NODE_PATH=/pfad/zum/node
+export HGA_PUPPETEER_MODULE_PATH=/pfad/zum/node_modules/puppeteer
+```
+
+4. **Renderer per URL testen (Preview):**
+```
+http://127.0.0.1:8000/abrechnung/2025/preview/0003?renderer=chrome
+```
+
+**Hinweis:** Wenn der PDF-Export mit `Cannot find module 'puppeteer'` fehlschlägt, ist `HGA_PUPPETEER_MODULE_PATH` nicht gesetzt oder Puppeteer fehlt im Node-Environment.
+
 ### Neue Entity erstellen
 
 ```bash
@@ -299,7 +315,7 @@ docker compose exec web php bin/console doctrine:schema:update --force
 **Container startet nicht**
 ```bash
 # Port 8000 belegt? → docker-compose.yaml ändern: "8001:80"
-# MySQL kaputt? → docker compose down -v && ./setup.sh
+# MySQL kaputt? → docker compose down -v && docker compose up -d
 ```
 
 **Permission Denied**
@@ -312,7 +328,13 @@ docker compose exec web chmod -R 755 /var/www/html/var
 ```bash
 docker compose down -v
 rm -rf var/cache/* var/log/*
-./setup.sh
+docker compose up -d
+sleep 10
+docker compose exec web composer install --no-interaction
+docker compose exec web php bin/console doctrine:database:create --if-not-exists
+docker compose exec web php bin/console doctrine:schema:update --force
+docker compose exec web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
+docker compose exec web php bin/console cache:clear
 npm install && npm run dev
 ```
 

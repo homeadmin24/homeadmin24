@@ -8,7 +8,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
- * Claude AI Provider (Anthropic API)
+ * Claude AI Provider (Anthropic API).
  *
  * Uses Claude Sonnet for high-quality financial query responses.
  * Only enabled in development environment for learning and comparison.
@@ -46,7 +46,36 @@ class ClaudeProvider implements AIProviderInterface
     }
 
     /**
-     * Analyze HGA quality with Claude AI
+     * Extract invoice data from PDF text using Claude AI.
+     *
+     * @param string $pdfText The extracted text from the PDF
+     *
+     * @return array{
+     *   rechnungsnummer: ?string,
+     *   betrag_mit_steuern: ?string,
+     *   gesamt_mwst: ?string,
+     *   datum_leistung: ?string,
+     *   faelligkeitsdatum: ?string,
+     *   arbeits_fahrtkosten: ?string,
+     *   confidence: float,
+     *   reasoning: string
+     * }
+     */
+    public function extractInvoiceData(string $pdfText): array
+    {
+        if (!$this->isAvailable()) {
+            throw new \RuntimeException('ClaudeProvider is not available');
+        }
+
+        $prompt = $this->buildInvoiceExtractionPrompt($pdfText);
+
+        $response = $this->generateText($prompt, maxTokens: 1024);
+
+        return $this->extractJson($response);
+    }
+
+    /**
+     * Analyze HGA quality with Claude AI.
      *
      * @param string $prompt The analysis prompt with complete HGA context
      *
@@ -68,8 +97,25 @@ class ClaudeProvider implements AIProviderInterface
         return $this->extractJson($response);
     }
 
+    public function getProviderName(): string
+    {
+        return 'claude';
+    }
+
+    public function isAvailable(): bool
+    {
+        return $this->enabled && !empty($this->apiKey);
+    }
+
+    public function getEstimatedCost(): float
+    {
+        // Average query: ~2000 input tokens + ~500 output tokens
+        // = $0.006 + $0.0075 = ~$0.014 (~€0.013)
+        return 0.013;
+    }
+
     /**
-     * Core text generation method
+     * Core text generation method.
      */
     private function generateText(string $prompt, int $maxTokens = 2048, int $timeout = self::DEFAULT_TIMEOUT): string
     {
@@ -140,7 +186,7 @@ class ClaudeProvider implements AIProviderInterface
 
             $this->logger->error('Claude request failed', [
                 'error' => $errorDetails,
-                'api_key_length' => strlen($this->apiKey),
+                'api_key_length' => mb_strlen($this->apiKey),
                 'model' => self::MODEL,
             ]);
 
@@ -149,28 +195,28 @@ class ClaudeProvider implements AIProviderInterface
     }
 
     /**
-     * Extract JSON from Claude response
+     * Extract JSON from Claude response.
      */
     private function extractJson(string $response): array
     {
         // Claude sometimes wraps JSON in markdown code blocks
         $response = preg_replace('/```json\s*|\s*```/', '', $response);
-        $response = trim($response);
+        $response = mb_trim($response);
 
         try {
-            return json_decode($response, true, 512, JSON_THROW_ON_ERROR);
+            return json_decode($response, true, 512, \JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
             // Fallback: try to find JSON in text
             if (preg_match('/\{.*\}/s', $response, $matches)) {
                 try {
-                    return json_decode($matches[0], true, 512, JSON_THROW_ON_ERROR);
+                    return json_decode($matches[0], true, 512, \JSON_THROW_ON_ERROR);
                 } catch (\JsonException $e2) {
                     // Give up
                 }
             }
 
             $this->logger->error('Could not extract JSON from Claude response', [
-                'response' => substr($response, 0, 500),
+                'response' => mb_substr($response, 0, 500),
                 'error' => $e->getMessage(),
             ]);
 
@@ -178,29 +224,57 @@ class ClaudeProvider implements AIProviderInterface
         }
     }
 
-    public function getProviderName(): string
+    /**
+     * Build prompt for invoice data extraction.
+     */
+    private function buildInvoiceExtractionPrompt(string $pdfText): string
     {
-        return 'claude';
-    }
+        return <<<PROMPT
+Du bist ein Experte für die Extraktion von Rechnungsdaten aus deutschen Geschäftsrechnungen.
 
-    public function isAvailable(): bool
-    {
-        return $this->enabled && !empty($this->apiKey);
-    }
+Analysiere den folgenden PDF-Text und extrahiere die Rechnungsinformationen:
 
-    public function getEstimatedCost(): float
-    {
-        // Average query: ~2000 input tokens + ~500 output tokens
-        // = $0.006 + $0.0075 = ~$0.014 (~€0.013)
-        return 0.013;
+PDF-TEXT:
+{$pdfText}
+
+AUFGABE:
+Extrahiere folgende Felder aus dem Rechnungstext:
+
+1. **rechnungsnummer**: Die eindeutige Rechnungs- oder Belegnummer
+2. **betrag_mit_steuern**: Gesamtbetrag inkl. MwSt. (Brutto) im deutschen Format (z.B. "1.234,56")
+3. **gesamt_mwst**: MwSt.-Betrag im deutschen Format (z.B. "234,56")
+4. **datum_leistung**: Leistungsdatum oder Rechnungsdatum im Format DD.MM.YYYY
+5. **faelligkeitsdatum**: Fälligkeitsdatum/Zahlungsziel im Format DD.MM.YYYY (falls vorhanden)
+6. **arbeits_fahrtkosten**: Arbeitskosten/Lohnanteil für §35a EStG im deutschen Format (falls ausgewiesen)
+
+REGELN:
+- Zahlen im deutschen Format belassen (Punkt als Tausendertrennzeichen, Komma als Dezimaltrennzeichen)
+- Bei mehreren möglichen Beträgen: Den Gesamtbetrag (Brutto/inkl. MwSt.) wählen
+- Bei "Abschlag" oder "Vorauszahlung": Dies ist der betrag_mit_steuern
+- §35a-Angaben suchen: "Arbeitskosten", "Lohnanteil", "haushaltsnahe Dienstleistungen"
+- Wenn ein Feld nicht gefunden wird: null zurückgeben
+- confidence: 0.0-1.0 basierend auf Klarheit der extrahierten Daten
+
+Antworte NUR mit gültigem JSON:
+{
+    "rechnungsnummer": "RE-2024-001" oder null,
+    "betrag_mit_steuern": "1.234,56" oder null,
+    "gesamt_mwst": "234,56" oder null,
+    "datum_leistung": "15.03.2024" oder null,
+    "faelligkeitsdatum": "30.03.2024" oder null,
+    "arbeits_fahrtkosten": "500,00" oder null,
+    "confidence": 0.85,
+    "reasoning": "Kurze Begründung der Extraktion"
+}
+PROMPT;
     }
 
     /**
-     * Build prompt for Claude with financial data context
+     * Build prompt for Claude with financial data context.
      */
     private function buildQueryPrompt(string $query, array $context): string
     {
-        $contextStr = json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        $contextStr = json_encode($context, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_UNICODE);
 
         return <<<PROMPT
 Du bist ein Finanzassistent für WEG-Verwaltung (Wohnungseigentümergemeinschaft) in Deutschland.
@@ -256,7 +330,7 @@ PROMPT;
     }
 
     /**
-     * Calculate actual cost based on token usage
+     * Calculate actual cost based on token usage.
      */
     private function calculateCost(array $usage): float
     {

@@ -53,9 +53,38 @@
 
                 <!-- Filter section -->
                 <div class="mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
-                    <form method="GET">
-                        <!-- Form row with buttons -->
-                        <div class="flex items-center gap-4">
+                    <form method="GET" id="filter-form" onsubmit="capturePerPage(event)">
+                        <!-- Hidden field to preserve entries per page selection -->
+                        <input type="hidden" name="per_page" id="per_page_field" value="{{ app.request.query.get('per_page', '25') }}">
+
+                        <!-- Date Range Quick Select & Date Pickers -->
+                        <div class="flex flex-wrap items-center gap-4 mb-3">
+                            <div class="flex items-center gap-2">
+                                <label for="quick_year_select" class="text-sm font-medium text-gray-900 dark:text-gray-300 whitespace-nowrap">
+                                    Schnellauswahl:
+                                </label>
+                                <select id="quick_year_select"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                    <option value="">Benutzerdefiniert</option>
+                                    {% for year in 2020..2026 %}
+                                        <option value="{{ year }}">01.01.{{ year }} - 31.12.{{ year }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label for="start_datum" class="text-sm font-medium text-gray-900 dark:text-gray-300 whitespace-nowrap">
+                                    Von:
+                                </label>
+                                <input type="date" name="start_datum" id="start_datum" value="{{ startDatum }}"
+                                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label for="end_datum" class="text-sm font-medium text-gray-900 dark:text-gray-300 whitespace-nowrap">
+                                    Bis:
+                                </label>
+                                <input type="date" name="end_datum" id="end_datum" value="{{ endDatum }}"
+                                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            </div>
                             <div class="flex items-center">
                                 <input type="checkbox" name="only_uncategorized" id="only_uncategorized" value="1"
                                        {% if onlyUncategorized %}checked{% endif %}
@@ -64,6 +93,71 @@
                                     Nur unkategorisiert
                                 </label>
                             </div>
+                            <div class="flex items-center">
+                                <input type="hidden" name="show_simulations" value="0">
+                                <input type="checkbox" name="show_simulations" id="show_simulations" value="1"
+                                       {% if showSimulations %}checked{% endif %}
+                                       class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                <label for="show_simulations" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 whitespace-nowrap">
+                                    Simulationen anzeigen
+                                </label>
+                            </div>
+                            <select name="transaction_type" id="transaction_type"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                <option value="">Alle Transaktionen</option>
+                                <option value="income" {% if transactionType == 'income' %}selected{% endif %}>Nur Einnahmen</option>
+                                <option value="expense" {% if transactionType == 'expense' %}selected{% endif %}>Nur Ausgaben</option>
+                            </select>
+                        </div>
+
+                        <script>
+                            // Function to capture per_page value from DataTable dropdown before form submission
+                            window.capturePerPage = function(event) {
+                                const perPageSelect = document.querySelector('.datatable-selector');
+                                const hiddenField = document.getElementById('per_page_field');
+
+                                if (perPageSelect && hiddenField) {
+                                    hiddenField.value = perPageSelect.value;
+                                    console.log('Captured per_page:', perPageSelect.value);
+                                } else {
+                                    console.warn('Could not find per_page selector or hidden field');
+                                }
+                                // Allow form to submit normally
+                                return true;
+                            };
+
+                            // Auto-fill date pickers when quick year select changes
+                            document.getElementById('quick_year_select').addEventListener('change', function() {
+                                const year = this.value;
+                                const startInput = document.getElementById('start_datum');
+                                const endInput = document.getElementById('end_datum');
+
+                                if (year) {
+                                    startInput.value = year + '-01-01';
+                                    endInput.value = year + '-12-31';
+                                } else {
+                                    startInput.value = '';
+                                    endInput.value = '';
+                                }
+                            });
+
+                            // Set quick select to matching year if dates match a full year
+                            window.addEventListener('DOMContentLoaded', function() {
+                                const startInput = document.getElementById('start_datum');
+                                const endInput = document.getElementById('end_datum');
+                                const quickSelect = document.getElementById('quick_year_select');
+
+                                if (startInput.value && endInput.value) {
+                                    const startMatch = startInput.value.match(/^(\d{4})-01-01$/);
+                                    const endMatch = endInput.value.match(/^(\d{4})-12-31$/);
+
+                                    if (startMatch && endMatch && startMatch[1] === endMatch[1]) {
+                                        quickSelect.value = startMatch[1];
+                                    }
+                                }
+                            });
+                        </script>
+                        <div class="flex items-center gap-4">
                             <select name="abrechnungsjahr" id="abrechnungsjahr"
                                     class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                 <option value="">Alle Jahre</option>
@@ -113,7 +207,7 @@
                                     class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 whitespace-nowrap">
                                 <i class="fas fa-filter"></i> Filtern
                             </button>
-                            {% if selectedKostenkonto or selectedZahlungskategorie or selectedDienstleister or selectedWegEinheit or selectedAbrechnungsjahr or onlyUncategorized %}
+                            {% if selectedKostenkonto or selectedZahlungskategorie or selectedDienstleister or selectedWegEinheit or selectedAbrechnungsjahr or onlyUncategorized or startDatum or endDatum or transactionType %}
                                 <a href="{{ path('app_zahlung_index') }}"
                                    class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-4 py-2.5 hover:text-gray-900 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 whitespace-nowrap">
                                     <i class="fas fa-times"></i> Filter zurücksetzen
@@ -131,6 +225,20 @@
                         </div>
                     {% endfor %}
                 {% endfor %}
+
+                <div class="mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 {{ saldo >= 0 ? 'border-green-500' : 'border-red-500' }}">
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-lg text-gray-700 dark:text-gray-200">
+                        <div>
+                            Einnahmen: <span class="text-green-600 dark:text-green-400">{{ incomeSum|number_format(2, ',', '.') }} €</span> ({{ incomeCount }})
+                            <span class="mx-2 text-gray-400">|</span>
+                            Ausgaben: <span class="text-red-600 dark:text-red-400">{{ expenseSum|number_format(2, ',', '.') }} €</span> ({{ expenseCount }})
+                        </div>
+                        <div>
+                            Saldo <span class="{{ saldo >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ saldo|number_format(2, ',', '.') }} €</span>
+                            ({{ zahlungen|length }})
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Combined table for all payments -->
                 <div class="mb-6">
@@ -200,13 +308,15 @@
                                         <button
                                                 data-action="zahlung#showEditForm"
                                                 data-zahlung-id="{{ zahlung.id }}"
-                                                class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-xs px-3 py-1.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                                            {{ zahlung.hauptkategorie ? 'Bearbeiten' : 'Kategorisieren' }}
+                                                class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-xs px-3 py-1.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                                                title="{{ zahlung.hauptkategorie ? 'Bearbeiten' : 'Kategorisieren' }}">
+                                            <i class="fas fa-edit"></i>
                                         </button>
                                         <button
                                                 data-action="zahlung#setupDeleteModal"
                                                 data-zahlung-id="{{ zahlung.id }}"
-                                                class="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800">
+                                                class="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800"
+                                                title="Löschen">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>

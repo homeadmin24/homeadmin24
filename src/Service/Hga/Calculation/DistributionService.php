@@ -71,6 +71,31 @@ class DistributionService implements CalculationInterface
     }
 
     /**
+     * Get the distribution share for a unit and distribution key.
+     * Returns the fraction string (e.g., "1/3") or null if not configured.
+     */
+    public function getDistributionShare(?WegEinheit $einheit, string $distributionKey): ?string
+    {
+        if (!$einheit) {
+            return null;
+        }
+
+        // Query umlageschluessel_einheit table for this unit and key
+        $connection = $this->entityManager->getConnection();
+        $sql = 'SELECT ue.anteil
+                FROM umlageschluessel_einheit ue
+                JOIN umlageschluessel u ON ue.umlageschluessel_id = u.id
+                WHERE u.schluessel = :key AND ue.weg_einheit_id = :einheit_id';
+
+        $result = $connection->executeQuery($sql, [
+            'key' => $distributionKey,
+            'einheit_id' => $einheit->getId(),
+        ])->fetchOne();
+
+        return $result ?: null;
+    }
+
+    /**
      * Calculate distribution for external costs (01*, 04*).
      *
      * These require specific unit data or external calculation.
@@ -160,10 +185,10 @@ class DistributionService implements CalculationInterface
 
         // Query umlageschluessel_einheit table for this unit and key 02*
         $connection = $this->entityManager->getConnection();
-        $sql = "SELECT ue.anteil
+        $sql = 'SELECT ue.anteil
                 FROM umlageschluessel_einheit ue
                 JOIN umlageschluessel u ON ue.umlageschluessel_id = u.id
-                WHERE u.schluessel = :key AND ue.weg_einheit_id = :einheit_id";
+                WHERE u.schluessel = :key AND ue.weg_einheit_id = :einheit_id';
 
         $result = $connection->executeQuery($sql, [
             'key' => '02*',
@@ -193,30 +218,5 @@ class DistributionService implements CalculationInterface
     private function countWegUnits(Weg $weg): int
     {
         return $this->wegEinheitRepository->count(['weg' => $weg]);
-    }
-
-    /**
-     * Get the distribution share for a unit and distribution key.
-     * Returns the fraction string (e.g., "1/3") or null if not configured.
-     */
-    public function getDistributionShare(?WegEinheit $einheit, string $distributionKey): ?string
-    {
-        if (!$einheit) {
-            return null;
-        }
-
-        // Query umlageschluessel_einheit table for this unit and key
-        $connection = $this->entityManager->getConnection();
-        $sql = "SELECT ue.anteil
-                FROM umlageschluessel_einheit ue
-                JOIN umlageschluessel u ON ue.umlageschluessel_id = u.id
-                WHERE u.schluessel = :key AND ue.weg_einheit_id = :einheit_id";
-
-        $result = $connection->executeQuery($sql, [
-            'key' => $distributionKey,
-            'einheit_id' => $einheit->getId(),
-        ])->fetchOne();
-
-        return $result ?: null;
     }
 }

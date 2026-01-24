@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service\Hga\Calculation;
 
 use App\Entity\WegEinheit;
+use App\Repository\RechnungRepository;
 use App\Repository\ZahlungRepository;
 use App\Service\Hga\ConfigurationInterface;
 
@@ -18,6 +19,7 @@ class PaymentCalculationService
 {
     public function __construct(
         private ZahlungRepository $zahlungRepository,
+        private RechnungRepository $rechnungRepository,
         private ConfigurationInterface $configurationService,
     ) {
     }
@@ -44,7 +46,7 @@ class PaymentCalculationService
         $total = 0.0;
         foreach ($payments as $payment) {
             // Only count Hausgeld-Zahlung category
-            if ($payment->getHauptkategorie()?->getName() === 'Hausgeld-Zahlung') {
+            if ('Hausgeld-Zahlung' === $payment->getHauptkategorie()?->getName()) {
                 $total += (float) $payment->getBetrag();
             }
         }
@@ -71,7 +73,7 @@ class PaymentCalculationService
 
         // Count actual payments
         $payments = $this->zahlungRepository->getOwnerPaymentsByYear($einheit, $year);
-        $count = count($payments);
+        $count = \count($payments);
 
         return [
             'soll' => $soll,
@@ -89,7 +91,10 @@ class PaymentCalculationService
      *   datum: \DateTimeInterface,
      *   beschreibung: string,
      *   betrag: float,
-     *   kategorie: string|null
+     *   kategorie: string|null,
+     *   partner: string|null,
+     *   kostenkonto_nummer: string|null,
+     *   kostenkonto_bezeichnung: string|null
      * }>
      */
     public function getPaymentDetails(WegEinheit $einheit, int $year): array
@@ -98,15 +103,145 @@ class PaymentCalculationService
 
         $details = [];
         foreach ($payments as $payment) {
+            $kostenkonto = $payment->getKostenkonto();
             $details[] = [
                 'datum' => $payment->getDatum(),
+                'abrechnungsjahr_zuordnung' => $payment->getAbrechnungsjahrZuordnung(),
                 'beschreibung' => $payment->getBezeichnung() ?? 'Zahlung',
                 'betrag' => (float) $payment->getBetrag(),
                 'kategorie' => $payment->getHauptkategorie()?->getName(),
+                'partner' => $payment->getBuchungspartner(),
+                'kostenkonto_nummer' => $kostenkonto?->getNummer(),
+                'kostenkonto_bezeichnung' => $kostenkonto?->getBezeichnung(),
             ];
         }
 
         return $details;
+    }
+
+    /**
+     * Get detailed payment list for a WEG filtered by transaction date year.
+     *
+     * @return array<array{
+     *   datum: \DateTimeInterface,
+     *   beschreibung: string,
+     *   betrag: float,
+     *   kategorie: string|null,
+     *   partner: string|null,
+     *   kostenkonto_nummer: string|null,
+     *   kostenkonto_bezeichnung: string|null
+     * }>
+     */
+    public function getWegPaymentDetails(\App\Entity\Weg $weg, int $year): array
+    {
+        $payments = $this->zahlungRepository->getPaymentsByWegAndDateYear($weg, $year);
+
+        $details = [];
+        foreach ($payments as $payment) {
+            $kostenkonto = $payment->getKostenkonto();
+            $details[] = [
+                'datum' => $payment->getDatum(),
+                'abrechnungsjahr_zuordnung' => $payment->getAbrechnungsjahrZuordnung(),
+                'beschreibung' => $payment->getBezeichnung() ?? 'Zahlung',
+                'betrag' => (float) $payment->getBetrag(),
+                'kategorie' => $payment->getHauptkategorie()?->getName(),
+                'partner' => $payment->getBuchungspartner(),
+                'kostenkonto_nummer' => $kostenkonto?->getNummer(),
+                'kostenkonto_bezeichnung' => $kostenkonto?->getBezeichnung(),
+            ];
+        }
+
+        return $details;
+    }
+
+    /**
+     * Get detailed payment list for all payments filtered by transaction date year.
+     *
+     * @return array<array{
+     *   datum: \DateTimeInterface,
+     *   beschreibung: string,
+     *   betrag: float,
+     *   kategorie: string|null,
+     *   partner: string|null,
+     *   kostenkonto_nummer: string|null,
+     *   kostenkonto_bezeichnung: string|null
+     * }>
+     */
+    public function getAllPaymentDetails(int $year): array
+    {
+        $payments = $this->zahlungRepository->getAllPaymentsByDateYear($year);
+
+        $details = [];
+        foreach ($payments as $payment) {
+            $kostenkonto = $payment->getKostenkonto();
+            $details[] = [
+                'datum' => $payment->getDatum(),
+                'abrechnungsjahr_zuordnung' => $payment->getAbrechnungsjahrZuordnung(),
+                'beschreibung' => $payment->getBezeichnung() ?? 'Zahlung',
+                'betrag' => (float) $payment->getBetrag(),
+                'kategorie' => $payment->getHauptkategorie()?->getName(),
+                'partner' => $payment->getBuchungspartner(),
+                'kostenkonto_nummer' => $kostenkonto?->getNummer(),
+                'kostenkonto_bezeichnung' => $kostenkonto?->getBezeichnung(),
+            ];
+        }
+
+        return $details;
+    }
+
+    /**
+     * Summaries for invoices that are accounted in the year but paid outside the year.
+     *
+     * @return array{
+     *   unpaid_at_year_end: float,
+     *   paid_outside_year: float,
+     *   invoice_count: int,
+     *   unpaid_count: int
+     * }
+     */
+    public function getInvoiceOpenItemsSummary(\App\Entity\Weg $weg, int $year): array
+    {
+        $rows = $this->rechnungRepository->getInvoiceStatusRowsForWegYear($weg->getId());
+
+        $unpaidAtYearEnd = 0.0;
+        $paidOutsideYear = 0.0;
+        $invoiceCount = 0;
+        $unpaidCount = 0;
+
+        foreach ($rows as $row) {
+            $invoiceYear = $this->resolveInvoiceYear($row);
+            if ($invoiceYear !== $year) {
+                continue;
+            }
+
+            ++$invoiceCount;
+            $amount = (float) ($row['amount'] ?? 0);
+            $paymentDate = $row['paymentDate'] ?? null;
+            $paymentYear = $paymentDate instanceof \DateTimeInterface ? (int) $paymentDate->format('Y') : null;
+            $isOutstanding = (bool) ($row['outstanding'] ?? false);
+            if ($isOutstanding) {
+                $paymentYear = null;
+            }
+
+            $isUnpaidAtYearEnd = null === $paymentYear || $paymentYear > $year;
+            if ($isUnpaidAtYearEnd) {
+                $unpaidAtYearEnd += $amount;
+                ++$unpaidCount;
+            }
+
+            $isPaidOutsideYear = null === $paymentYear || $paymentYear !== $year;
+            if ($isPaidOutsideYear) {
+                $paidOutsideYear += $amount;
+            }
+        }
+
+        return [
+            'unpaid_at_year_end' => $unpaidAtYearEnd,
+            'paid_outside_year' => $paidOutsideYear,
+            'invoice_count' => $invoiceCount,
+            'unpaid_count' => $unpaidCount,
+            'outstanding_count' => $this->countOutstanding($rows, $year),
+        ];
     }
 
     /**
@@ -139,6 +274,36 @@ class PaymentCalculationService
         }
 
         return $total;
+    }
+
+    /**
+     * Get summed income/expense totals for a calendar year.
+     *
+     * @return array{income: float, expense: float}
+     */
+    public function getPaymentTotalsByDateYear(int $year): array
+    {
+        return $this->zahlungRepository->getPaymentTotalsByDateYear($year);
+    }
+
+    /**
+     * Get Vermoegen-specific payment summary for a calendar year.
+     *
+     * @return array<string, float>
+     */
+    public function getVermoegenPaymentSummary(int $year): array
+    {
+        return $this->zahlungRepository->getVermoegenPaymentSummary($year);
+    }
+
+    /**
+     * Get Vermoegen-specific payment summary until a custom end date.
+     *
+     * @return array<string, float>
+     */
+    public function getVermoegenPaymentSummaryUntil(int $year, \DateTimeInterface $endDate): array
+    {
+        return $this->zahlungRepository->getVermoegenPaymentSummary($year, $endDate);
     }
 
     /**
@@ -176,7 +341,7 @@ class PaymentCalculationService
 
             foreach ($payments as $payment) {
                 // Only count Hausgeld-Zahlung category
-                if ($payment->getHauptkategorie()?->getName() === 'Hausgeld-Zahlung') {
+                if ('Hausgeld-Zahlung' === $payment->getHauptkategorie()?->getName()) {
                     $month = (int) $payment->getDatum()->format('n');
                     $monthlyTotals[$month] += (float) $payment->getBetrag();
                 }
@@ -184,5 +349,60 @@ class PaymentCalculationService
         }
 
         return $monthlyTotals;
+    }
+
+    /**
+     * Resolve invoice year for reporting.
+     *
+     * @param array{
+     *   dueDate?: \DateTimeInterface|null,
+     *   serviceDate?: \DateTimeInterface|null,
+     *   docYear?: int|null,
+     *   docUpload?: \DateTimeInterface|null
+     * } $row
+     */
+    private function resolveInvoiceYear(array $row): ?int
+    {
+        if (!empty($row['docYear'])) {
+            return (int) $row['docYear'];
+        }
+        if (($row['dueDate'] ?? null) instanceof \DateTimeInterface) {
+            return (int) $row['dueDate']->format('Y');
+        }
+        if (($row['serviceDate'] ?? null) instanceof \DateTimeInterface) {
+            return (int) $row['serviceDate']->format('Y');
+        }
+        if (($row['docUpload'] ?? null) instanceof \DateTimeInterface) {
+            return (int) $row['docUpload']->format('Y');
+        }
+
+        return null;
+    }
+
+    /**
+     * Count invoices flagged as outstanding for the target year.
+     *
+     * @param array<int, array{
+     *   outstanding?: bool|null,
+     *   dueDate?: \DateTimeInterface|null,
+     *   serviceDate?: \DateTimeInterface|null,
+     *   docYear?: int|null,
+     *   docUpload?: \DateTimeInterface|null
+     * }> $rows
+     */
+    private function countOutstanding(array $rows, int $year): int
+    {
+        $count = 0;
+        foreach ($rows as $row) {
+            $invoiceYear = $this->resolveInvoiceYear($row);
+            if ($invoiceYear !== $year) {
+                continue;
+            }
+            if ((bool) ($row['outstanding'] ?? false)) {
+                ++$count;
+            }
+        }
+
+        return $count;
     }
 }

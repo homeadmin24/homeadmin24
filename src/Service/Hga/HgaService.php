@@ -6,10 +6,12 @@ namespace App\Service\Hga;
 
 use App\Entity\Weg;
 use App\Entity\WegEinheit;
+use App\Repository\UmlageschluesselRepository;
 use App\Service\Hga\Calculation\BalanceCalculationService;
 use App\Service\Hga\Calculation\CostCalculationService;
 use App\Service\Hga\Calculation\DistributionService;
 use App\Service\Hga\Calculation\ExternalCostService;
+use App\Service\Hga\Calculation\KontostandCalculationService;
 use App\Service\Hga\Calculation\PaymentCalculationService;
 use App\Service\Hga\Calculation\TaxCalculationService;
 use Psr\Log\LoggerInterface;
@@ -29,7 +31,9 @@ class HgaService implements HgaServiceInterface
         private ExternalCostService $externalCostService,
         private BalanceCalculationService $balanceCalculationService,
         private DistributionService $distributionService,
+        private KontostandCalculationService $kontostandCalculationService,
         private ConfigurationInterface $configurationService,
+        private UmlageschluesselRepository $umlageschluesselRepository,
         private LoggerInterface $logger,
     ) {
     }
@@ -51,7 +55,37 @@ class HgaService implements HgaServiceInterface
             $taxDeductible = $this->calculateTaxDeductible($einheit, $year);
             $externalCosts = $this->externalCostService->getAllExternalCosts($einheit, $year);
             $balanceData = $this->balanceCalculationService->getBalanceData($einheit->getWeg(), $year);
-            $wirtschaftsplanData = $this->configurationService->getWirtschaftsplanData();
+            $previousBalanceData = $this->balanceCalculationService->getBalanceData($einheit->getWeg(), $year - 1);
+            $wirtschaftsplanData = $this->configurationService->getWirtschaftsplanData($year);
+            $wirtschaftsplanPlanData = $this->configurationService->getWirtschaftsplanData($year + 1);
+            $vermoegenFromConfig = $this->buildVermoegenFromConfig($wirtschaftsplanData, $year);
+            $vermoegenOverview = $vermoegenFromConfig['overview'];
+            $vermoegenTimeline = $vermoegenFromConfig['timeline'];
+            $paymentYearTotals = $this->paymentCalculationService->getPaymentTotalsByDateYear($year);
+            $vermoegenPayments = $this->paymentCalculationService->getVermoegenPaymentSummary($year);
+            $balanceDate = $this->parseBalanceDate($wirtschaftsplanData['bank_balances'] ?? []);
+            $vermoegenPaymentsStichtag = $balanceDate
+                ? $this->paymentCalculationService->getVermoegenPaymentSummaryUntil($year, $balanceDate)
+                : $vermoegenPayments;
+            $vermoegenInvoices = $this->paymentCalculationService->getInvoiceOpenItemsSummary($einheit->getWeg(), $year);
+            $prevYear = $year - 1;
+            $vermoegenPrevFromConfig = $this->buildPreviousVermoegenFromConfig($wirtschaftsplanData, $prevYear);
+            $vermoegenPrevPayments = $this->paymentCalculationService->getVermoegenPaymentSummary($prevYear);
+            $vermoegenPrevInvoices = $this->paymentCalculationService->getInvoiceOpenItemsSummary($einheit->getWeg(), $prevYear);
+
+            // Calculate Vermögensabgrenzung (new approach) - both accounts
+            $vermoegenAbgrenzungHausgeld = $this->kontostandCalculationService->calculateVermoegensabgrenzung(
+                $einheit->getWeg(),
+                $year,
+                'hausgeld'
+            );
+            $vermoegenAbgrenzungRuecklage = $this->kontostandCalculationService->calculateVermoegensabgrenzung(
+                $einheit->getWeg(),
+                $year,
+                'ruecklage'
+            );
+
+            $wirtschaftsplanPlanData = $this->applyPlannedIncomeDefaults($wirtschaftsplanPlanData);
 
             // Get WEG totals
             $wegCostTotals = $this->calculateTotalCosts($einheit->getWeg(), $year);
@@ -83,7 +117,25 @@ class HgaService implements HgaServiceInterface
                 'tax_deductible' => $taxDeductible,
                 'external_costs' => $externalCosts,
                 'balance' => $balanceData,
-                'wirtschaftsplan' => $wirtschaftsplanData,
+                'balance_previous' => $previousBalanceData,
+                'vermoegen' => $vermoegenOverview,
+                'vermoegen_timeline' => $vermoegenTimeline,
+                'vermoegen_payments' => $vermoegenPayments,
+                'vermoegen_payments_stichtag' => $vermoegenPaymentsStichtag,
+                'vermoegen_invoices' => $vermoegenInvoices,
+                'vermoegen_previous' => [
+                    'year' => $prevYear,
+                    'overview' => $vermoegenPrevFromConfig['overview'],
+                    'timeline' => $vermoegenPrevFromConfig['timeline'],
+                    'payments' => $vermoegenPrevPayments,
+                    'invoices' => $vermoegenPrevInvoices,
+                ],
+                'vermoegen_payments_raw' => $paymentYearTotals,
+                'vermoegen_abgrenzung' => [
+                    'hausgeld' => $vermoegenAbgrenzungHausgeld,
+                    'ruecklage' => $vermoegenAbgrenzungRuecklage,
+                ],
+                'wirtschaftsplan' => $wirtschaftsplanPlanData,
                 'umlageschluessel' => $umlageschluessel,
                 'weg_totals' => [
                     'gesamtkosten' => $wegCostTotals['gesamtkosten'],
@@ -150,6 +202,7 @@ class HgaService implements HgaServiceInterface
     {
         $balance = $this->paymentCalculationService->calculatePaymentBalance($einheit, $year);
         $paymentDetails = $this->paymentCalculationService->getPaymentDetails($einheit, $year);
+        $allPaymentDetails = $this->paymentCalculationService->getAllPaymentDetails($year);
 
         // Get WEG totals for context
         $wegSollTotal = $this->paymentCalculationService->calculateTotalAdvancePaymentsForWeg($einheit, $year);
@@ -173,7 +226,7 @@ class HgaService implements HgaServiceInterface
 
             // Use category to identify payment types
             $kategorie = $payment['kategorie'] ?? null;
-            if ($kategorie === 'Hausgeld-Zahlung') {
+            if ('Hausgeld-Zahlung' === $kategorie) {
                 $monthlyUnitPayments[$month]['wohngeld'] += $payment['betrag'];
             } else {
                 $monthlyUnitPayments[$month]['other'][] = $payment;
@@ -189,6 +242,7 @@ class HgaService implements HgaServiceInterface
 
         return array_merge($balance, [
             'payment_details' => $paymentDetails,
+            'all_payment_details' => $allPaymentDetails,
             'monthly_unit_payments' => $monthlyUnitPayments,
             'weg_category_totals' => $wegCategoryTotals,
             'weg_totals' => [
@@ -201,54 +255,6 @@ class HgaService implements HgaServiceInterface
                 'monthly_weg_ist' => $monthlyWegIstDisplay,
             ],
         ]);
-    }
-
-    /**
-     * Get WEG totals for other payments (Nachzahlungen, Sonderumlagen).
-     * Returns totals grouped by category.
-     *
-     * @return array<string, float> Kategorie => WEG total
-     */
-    private function getWegOtherPayments(Weg $weg, int $year): array
-    {
-        $units = $weg->getEinheiten();
-
-        // Calculate totals by category
-        $categoryTotals = [];
-        foreach ($units as $unit) {
-            $payments = $this->paymentCalculationService->getPaymentDetails($unit, $year);
-
-            foreach ($payments as $payment) {
-                $kategorie = $payment['kategorie'] ?? 'Unbekannt';
-                // Only process non-Hausgeld payments (Nachzahlungen, Sonderumlagen, etc.)
-                if ($kategorie !== 'Hausgeld-Zahlung') {
-                    if (!isset($categoryTotals[$kategorie])) {
-                        $categoryTotals[$kategorie] = 0.0;
-                    }
-                    $categoryTotals[$kategorie] += $payment['betrag'];
-                }
-            }
-        }
-
-        return $categoryTotals;
-    }
-
-    /**
-     * Calculate total Rücklagenzuführung for all units in the WEG.
-     */
-    private function calculateTotalRuecklagenForWeg(Weg $weg, int $year): float
-    {
-        $units = $weg->getEinheiten();
-
-        $total = 0.0;
-        foreach ($units as $unit) {
-            $ruecklagen = $this->costCalculationService->calculateRuecklagenzufuehrung($unit, $year);
-            foreach ($ruecklagen as $item) {
-                $total += $item['anteil'];
-            }
-        }
-
-        return $total;
     }
 
     /**
@@ -289,10 +295,317 @@ class HgaService implements HgaServiceInterface
     }
 
     /**
+     * Ensure planned income has a monthly total, derived from planned costs if missing.
+     *
+     * @param array<string, mixed> $wirtschaftsplanData
+     *
+     * @return array<string, mixed>
+     */
+    private function applyPlannedIncomeDefaults(array $wirtschaftsplanData): array
+    {
+        $plannedIncome = $wirtschaftsplanData['planned_income'] ?? [];
+        if (isset($plannedIncome['monthly_total'])) {
+            $plannedIncome['monthly_total_final'] = (float) $plannedIncome['monthly_total'];
+            $plannedIncome['monthly_total_source'] = 'config';
+            $wirtschaftsplanData['planned_income'] = $plannedIncome;
+
+            return $wirtschaftsplanData;
+        }
+
+        $umlagefaehig = $wirtschaftsplanData['planned_expenses']['umlagefaehig'] ?? [];
+        $nichtUmlagefaehig = $wirtschaftsplanData['planned_expenses']['nicht_umlagefaehig'] ?? [];
+
+        $totalPlanned = 0.0;
+        foreach ([$umlagefaehig, $nichtUmlagefaehig] as $expenses) {
+            foreach ($expenses as $expense) {
+                $includeInTotal = $expense['include_in_total'] ?? true;
+                if ($includeInTotal) {
+                    $totalPlanned += (float) ($expense['amount'] ?? 0);
+                }
+            }
+        }
+
+        $monthlyTotal = $totalPlanned > 0 ? $totalPlanned / 12 : 0.0;
+        $plannedIncome['monthly_total_final'] = $monthlyTotal;
+        $plannedIncome['monthly_total_source'] = 'calculated';
+        $wirtschaftsplanData['planned_income'] = $plannedIncome;
+
+        return $wirtschaftsplanData;
+    }
+
+    /**
+     * Build Vermoegen overview/timeline from config overrides.
+     *
+     * @param array<string, mixed> $wirtschaftsplanData
+     *
+     * @return array{overview: array<string, mixed>, timeline: array<string, mixed>}
+     */
+    private function buildVermoegenFromConfig(array $wirtschaftsplanData, int $year): array
+    {
+        $overrides = $wirtschaftsplanData['balance_overrides'] ?? [];
+
+        $prevYearBalances = $this->getVermoegenYearBalances($overrides, $year - 2);
+        $startYearBalances = $this->getVermoegenYearBalances($overrides, $year - 1);
+        $currentYearBalances = $this->getVermoegenYearBalances($overrides, $year);
+
+        $prevHausgeld = $prevYearBalances['hausgeld_end'];
+        $prevRuecklage = $prevYearBalances['ruecklage_end'];
+        $startHausgeld = $startYearBalances['hausgeld_end'];
+        $startRuecklage = $startYearBalances['ruecklage_end'];
+        $endHausgeld = $currentYearBalances['hausgeld_end'];
+        $endRuecklage = $currentYearBalances['ruecklage_end'];
+
+        if (null !== $currentYearBalances['hausgeld_start'] || null !== $currentYearBalances['ruecklage_start']) {
+            $startHausgeld = $currentYearBalances['hausgeld_start'];
+            $startRuecklage = $currentYearBalances['ruecklage_start'];
+        }
+
+        $hasData = null !== $prevHausgeld
+            || null !== $prevRuecklage
+            || null !== $startHausgeld
+            || null !== $startRuecklage
+            || null !== $endHausgeld
+            || null !== $endRuecklage;
+
+        $years = [$year - 2, $year - 1, $year];
+
+        $timeline = [
+            'hasData' => $hasData,
+            'years' => $years,
+            'accounts' => [
+                'hausgeld' => [
+                    'label' => 'Kontostand Hausgeld',
+                    'values' => [
+                        $years[0] => $prevHausgeld,
+                        $years[1] => $startHausgeld,
+                        $years[2] => $endHausgeld,
+                    ],
+                ],
+                'ruecklage' => [
+                    'label' => 'Kontostand Rücklage',
+                    'values' => [
+                        $years[0] => $prevRuecklage,
+                        $years[1] => $startRuecklage,
+                        $years[2] => $endRuecklage,
+                    ],
+                ],
+                'gesamt' => [
+                    'label' => 'Gesamt',
+                    'values' => [
+                        $years[0] => (null !== $prevHausgeld && null !== $prevRuecklage) ? (float) $prevHausgeld + (float) $prevRuecklage : null,
+                        $years[1] => (null !== $startHausgeld && null !== $startRuecklage) ? (float) $startHausgeld + (float) $startRuecklage : null,
+                        $years[2] => (null !== $endHausgeld && null !== $endRuecklage) ? (float) $endHausgeld + (float) $endRuecklage : null,
+                    ],
+                ],
+            ],
+        ];
+
+        $overview = [
+            'hasData' => $hasData,
+            'year' => $year,
+            'bank_balances' => $wirtschaftsplanData['bank_balances'] ?? [],
+            'accounts' => [
+                'hausgeld' => [
+                    'label' => 'Kontostand Hausgeld',
+                    'start' => $startHausgeld,
+                    'end' => $endHausgeld,
+                    'change' => (null !== $startHausgeld && null !== $endHausgeld) ? (float) $endHausgeld - (float) $startHausgeld : null,
+                ],
+                'ruecklage' => [
+                    'label' => 'Kontostand Rücklage',
+                    'start' => $startRuecklage,
+                    'end' => $endRuecklage,
+                    'change' => (null !== $startRuecklage && null !== $endRuecklage) ? (float) $endRuecklage - (float) $startRuecklage : null,
+                ],
+                'gesamt' => [
+                    'label' => 'Gesamt',
+                    'start' => (null !== $startHausgeld && null !== $startRuecklage) ? (float) $startHausgeld + (float) $startRuecklage : null,
+                    'end' => (null !== $endHausgeld && null !== $endRuecklage) ? (float) $endHausgeld + (float) $endRuecklage : null,
+                    'change' => (null !== $startHausgeld && null !== $startRuecklage && null !== $endHausgeld && null !== $endRuecklage)
+                        ? ((float) $endHausgeld + (float) $endRuecklage) - ((float) $startHausgeld + (float) $startRuecklage)
+                        : null,
+                ],
+            ],
+        ];
+
+        return [
+            'overview' => $overview,
+            'timeline' => $timeline,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $bankBalances
+     */
+    private function parseBalanceDate(array $bankBalances): ?\DateTimeInterface
+    {
+        $balanceDateRaw = $bankBalances['balance_date'] ?? null;
+        if (!$balanceDateRaw) {
+            return null;
+        }
+
+        $balanceDate = \DateTime::createFromFormat('d.m.Y', (string) $balanceDateRaw);
+
+        return $balanceDate instanceof \DateTimeInterface ? $balanceDate : null;
+    }
+
+    /**
+     * Build Vermoegen overview for the previous year from current-year overrides.
+     *
+     * @param array<string, mixed> $wirtschaftsplanData
+     *
+     * @return array{overview: array<string, mixed>, timeline: array<string, mixed>}
+     */
+    private function buildPreviousVermoegenFromConfig(array $wirtschaftsplanData, int $year): array
+    {
+        $overrides = $wirtschaftsplanData['balance_overrides'] ?? [];
+
+        $balances = $this->getVermoegenYearBalances($overrides, $year);
+
+        $startHausgeld = $balances['hausgeld_start'];
+        $startRuecklage = $balances['ruecklage_start'];
+        $endHausgeld = $balances['hausgeld_end'];
+        $endRuecklage = $balances['ruecklage_end'];
+
+        $hasData = null !== $startHausgeld
+            || null !== $startRuecklage
+            || null !== $endHausgeld
+            || null !== $endRuecklage;
+
+        $overview = [
+            'hasData' => $hasData,
+            'year' => $year,
+            'accounts' => [
+                'hausgeld' => [
+                    'label' => 'Kontostand Hausgeld',
+                    'start' => $startHausgeld,
+                    'end' => $endHausgeld,
+                    'change' => (null !== $startHausgeld && null !== $endHausgeld) ? (float) $endHausgeld - (float) $startHausgeld : null,
+                ],
+                'ruecklage' => [
+                    'label' => 'Kontostand Rücklage',
+                    'start' => $startRuecklage,
+                    'end' => $endRuecklage,
+                    'change' => (null !== $startRuecklage && null !== $endRuecklage) ? (float) $endRuecklage - (float) $startRuecklage : null,
+                ],
+                'gesamt' => [
+                    'label' => 'Gesamt',
+                    'start' => (null !== $startHausgeld && null !== $startRuecklage) ? (float) $startHausgeld + (float) $startRuecklage : null,
+                    'end' => (null !== $endHausgeld && null !== $endRuecklage) ? (float) $endHausgeld + (float) $endRuecklage : null,
+                    'change' => (null !== $startHausgeld && null !== $startRuecklage && null !== $endHausgeld && null !== $endRuecklage)
+                        ? ((float) $endHausgeld + (float) $endRuecklage) - ((float) $startHausgeld + (float) $startRuecklage)
+                        : null,
+                ],
+            ],
+        ];
+
+        return [
+            'overview' => $overview,
+            'timeline' => [
+                'hasData' => false,
+                'years' => [],
+                'accounts' => [],
+            ],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     *
+     * @return array{hausgeld_start: ?float, hausgeld_end: ?float, ruecklage_start: ?float, ruecklage_end: ?float}
+     */
+    private function getVermoegenYearBalances(array $overrides, int $year): array
+    {
+        $yearKey = (string) $year;
+        $yearData = $overrides[$yearKey] ?? $overrides[$year] ?? null;
+
+        if (\is_array($yearData)) {
+            return [
+                'hausgeld_start' => $this->readAccountAmount($yearData, 'hausgeld', 'start'),
+                'hausgeld_end' => $this->readAccountAmount($yearData, 'hausgeld', 'end'),
+                'ruecklage_start' => $this->readAccountAmount($yearData, 'ruecklagen', 'start'),
+                'ruecklage_end' => $this->readAccountAmount($yearData, 'ruecklagen', 'end'),
+            ];
+        }
+
+        return [
+            'hausgeld_start' => null,
+            'hausgeld_end' => null,
+            'ruecklage_start' => null,
+            'ruecklage_end' => null,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $yearData
+     */
+    private function readAccountAmount(array $yearData, string $accountKey, string $field): ?float
+    {
+        $accountData = $yearData[$accountKey] ?? $yearData[str_replace('ruecklagen', 'ruecklage', $accountKey)] ?? null;
+        if (!\is_array($accountData)) {
+            return null;
+        }
+
+        if (!\array_key_exists($field, $accountData)) {
+            return null;
+        }
+
+        return null === $accountData[$field] ? null : (float) $accountData[$field];
+    }
+
+    /**
+     * Get WEG totals for other payments (Nachzahlungen, Sonderumlagen).
+     * Returns totals grouped by category.
+     *
+     * @return array<string, float> Kategorie => WEG total
+     */
+    private function getWegOtherPayments(Weg $weg, int $year): array
+    {
+        $units = $weg->getEinheiten();
+
+        // Calculate totals by category
+        $categoryTotals = [];
+        foreach ($units as $unit) {
+            $payments = $this->paymentCalculationService->getPaymentDetails($unit, $year);
+
+            foreach ($payments as $payment) {
+                $kategorie = $payment['kategorie'] ?? 'Unbekannt';
+                // Only process non-Hausgeld payments (Nachzahlungen, Sonderumlagen, etc.)
+                if ('Hausgeld-Zahlung' !== $kategorie) {
+                    if (!isset($categoryTotals[$kategorie])) {
+                        $categoryTotals[$kategorie] = 0.0;
+                    }
+                    $categoryTotals[$kategorie] += $payment['betrag'];
+                }
+            }
+        }
+
+        return $categoryTotals;
+    }
+
+    /**
+     * Calculate total Rücklagenzuführung for all units in the WEG.
+     */
+    private function calculateTotalRuecklagenForWeg(Weg $weg, int $year): float
+    {
+        $units = $weg->getEinheiten();
+
+        $total = 0.0;
+        foreach ($units as $unit) {
+            $ruecklagen = $this->costCalculationService->calculateRuecklagenzufuehrung($unit, $year);
+            foreach ($ruecklagen as $item) {
+                $total += $item['anteil'];
+            }
+        }
+
+        return $total;
+    }
+
+    /**
      * Calculate final totals for ABRECHNUNGSÜBERSICHT and display.
      *
      * This centralizes the calculation logic that was previously duplicated
-     * in TxtReportGenerator and pdf_report.html.twig.
+     * in pdf_report.html.twig.
      *
      * BGH V ZR 44/09 compliant: Rücklagen are NOT included in Gesamtkosten.
      *
@@ -390,7 +703,8 @@ class HgaService implements HgaServiceInterface
         }
 
         // Unit specific values
-        $unitCount = 4.0; // Fixed for this WEG
+        $weg = $einheit->getWeg();
+        $unitCount = (float) \count($weg->getEinheiten());
         $hebeanlageShare = $einheit->getHebeanlage() ? 1.0 : 0.0;
 
         // Get 02* custom distribution share
@@ -404,61 +718,75 @@ class HgaService implements HgaServiceInterface
             }
         }
 
-        return [
-            [
-                'nummer' => '01*',
-                'bezeichnung' => 'ext. berechn. Heiz-/Wasserkosten',
-                'umlage_typ' => '€ Festbetrag',
+        // Load Umlageschlüssel from database in correct order
+        $allSchluessel = $this->umlageschluesselRepository->findAll();
+        $hgaOrder = ['01*', '02*', '03*', '04*', '05*', '06*', '07*'];
+        usort($allSchluessel, function ($a, $b) use ($hgaOrder) {
+            $posA = array_search($a->getSchluessel(), $hgaOrder, true);
+            $posB = array_search($b->getSchluessel(), $hgaOrder, true);
+            if (false === $posA) {
+                $posA = 999;
+            }
+            if (false === $posB) {
+                $posB = 999;
+            }
+
+            return $posA <=> $posB;
+        });
+
+        $result = [];
+        foreach ($allSchluessel as $schluessel) {
+            // Skip deprecated/unused keys
+            if ('07*' === $schluessel->getSchluessel()) {
+                continue;
+            }
+
+            // Get gesamtumlage and umlageTyp from database
+            $gesamtumlage = $schluessel->getGesamtumlage() ?? 'Beträge siehe Ergebnisliste';
+            $umlageTyp = $schluessel->getUmlageTyp() ?? '€ Festbetrag';
+
+            // Calculate unit-specific anteil based on key
+            $anteil = null;
+
+            switch ($schluessel->getSchluessel()) {
+                case '01*': // Heiz-/Wasserkosten - from external calculations
+                    $anteil = null;
+                    break;
+
+                case '02*': // Selbstverwaltung - custom distribution
+                    $anteil = $customShare02;
+                    break;
+
+                case '03*': // Anzahl Einheit - equal per unit
+                    $anteil = 1.0;
+                    // Override gesamtumlage with dynamic unit count
+                    $gesamtumlage = (string) $unitCount;
+                    break;
+
+                case '04*': // Festumlage - fixed amounts per cost account
+                    $anteil = null;
+                    break;
+
+                case '05*': // MEA - ownership percentage
+                    $anteil = $mea * 1000;
+                    break;
+
+                case '06*': // Hebeanlage - special distribution
+                    $anteil = $hebeanlageShare;
+                    break;
+            }
+
+            $result[] = [
+                'nummer' => $schluessel->getSchluessel(),
+                'bezeichnung' => $schluessel->getBezeichnung(),
+                'umlage_typ' => $umlageTyp,
                 'zeitraum' => $year,
                 'tage' => 365,
-                'gesamtumlage' => 'Beträge siehe Ergebnisliste',
-                'anteil' => null,
-            ],
-            [
-                'nummer' => '03*',
-                'bezeichnung' => 'Anzahl Einheit',
-                'umlage_typ' => 'Einheiten-anteilig',
-                'zeitraum' => $year,
-                'tage' => 365,
-                'gesamtumlage' => $unitCount,
-                'anteil' => 1.0,
-            ],
-            [
-                'nummer' => '04*',
-                'bezeichnung' => 'Festumlage',
-                'umlage_typ' => '€ Festbetrag',
-                'zeitraum' => $year,
-                'tage' => 365,
-                'gesamtumlage' => 'Beträge siehe Ergebnisliste',
-                'anteil' => null,
-            ],
-            [
-                'nummer' => '05*',
-                'bezeichnung' => 'Miteigentumsanteil',
-                'umlage_typ' => 'Anzahl anteilig',
-                'zeitraum' => $year,
-                'tage' => 365,
-                'gesamtumlage' => '1.000,000',
-                'anteil' => $mea * 1000,
-            ],
-            [
-                'nummer' => '06*',
-                'bezeichnung' => 'Hebeanlage',
-                'umlage_typ' => 'Spezial',
-                'zeitraum' => $year,
-                'tage' => 365,
-                'gesamtumlage' => '6,00',
-                'anteil' => $hebeanlageShare,
-            ],
-            [
-                'nummer' => '02*',
-                'bezeichnung' => 'Selbstverwaltung',
-                'umlage_typ' => 'Spezial',
-                'zeitraum' => $year,
-                'tage' => 365,
-                'gesamtumlage' => '3,00',
-                'anteil' => $customShare02,
-            ],
-        ];
+                'gesamtumlage' => $gesamtumlage,
+                'anteil' => $anteil,
+            ];
+        }
+
+        return $result;
     }
 }

@@ -9,7 +9,7 @@ use App\Form\AbrechnungGenerateType;
 use App\Repository\WegEinheitRepository;
 use App\Repository\WegRepository;
 use App\Service\Hga\HgaServiceInterface;
-use App\Service\Hga\ReportGeneratorInterface;
+use App\Service\Hga\Report\PdfReportGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -22,7 +22,7 @@ class HgaController extends AbstractController
 {
     public function __construct(
         private HgaServiceInterface $hgaService,
-        private ReportGeneratorInterface $txtReportGenerator,
+        private PdfReportGenerator $pdfReportGenerator,
         private EntityManagerInterface $entityManager,
         private WegRepository $wegRepository,
         private WegEinheitRepository $wegEinheitRepository,
@@ -50,7 +50,7 @@ class HgaController extends AbstractController
             $data = $form->getData();
             $weg = $data['weg'];
             $jahr = $data['jahr'];
-            $format = $data['format'];
+            $format = 'pdf';
 
             // Get einheiten from request data since it's unmapped
             $einheitenIds = $request->request->all('abrechnung_generate')['einheiten'] ?? [];
@@ -123,18 +123,17 @@ class HgaController extends AbstractController
                 throw new \InvalidArgumentException('Validation errors: ' . implode(', ', $errors));
             }
 
-            // Generate TXT report
-            $txtContent = $this->txtReportGenerator->generateReport($einheit, $year);
+            $pdfContent = $this->pdfReportGenerator->generateReport($einheit, $year);
 
             // Return as download
-            $filename = \sprintf('hausgeldabrechnung_%d_%s_%s.txt',
+            $filename = \sprintf('hausgeldabrechnung_%d_%s_%s.pdf',
                 $year,
                 $einheit->getWeg()->getId(),
                 $einheit->getNummer()
             );
 
-            return new Response($txtContent, 200, [
-                'Content-Type' => 'text/plain; charset=UTF-8',
+            return new Response($pdfContent, 200, [
+                'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
         } catch (\Exception $e) {
@@ -154,7 +153,7 @@ class HgaController extends AbstractController
         $generatedFiles = [];
 
         foreach ($einheiten as $einheit) {
-            $formats = 'both' === $format ? ['pdf', 'txt'] : [$format];
+            $formats = ['pdf'];
 
             // Generate HGA data once per unit (shared across all formats)
             $hgaData = null;
@@ -174,14 +173,8 @@ class HgaController extends AbstractController
                     }
 
                     // Generate report using new HGA service
-                    if ('pdf' === $currentFormat) {
-                        // For now, use TXT generator until PDF is implemented
-                        $content = $this->txtReportGenerator->generateReport($einheit, $jahr);
-                        $filePath = $this->saveReportToFile($content, $weg, $einheit, $jahr, 'txt');
-                    } else {
-                        $content = $this->txtReportGenerator->generateReport($einheit, $jahr);
-                        $filePath = $this->saveReportToFile($content, $weg, $einheit, $jahr, $currentFormat);
-                    }
+                    $content = $this->pdfReportGenerator->generateReport($einheit, $jahr);
+                    $filePath = $this->saveReportToFile($content, $weg, $einheit, $jahr, $currentFormat);
 
                     // Save to document system with HGA data for quality checks
                     $dokument = $this->saveToDocumentSystem($filePath, $weg, $einheit, $jahr, $currentFormat, $hgaData);

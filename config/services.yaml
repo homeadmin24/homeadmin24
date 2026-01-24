@@ -31,7 +31,11 @@ services:
     App\Service\Parser\ParserFactory:
         arguments:
             $projectDir: '%kernel.project_dir%'
-            
+
+    App\Service\PdfRenderService:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
     App\Service\BankStatementParsingService:
         arguments:
             $projectDir: '%kernel.project_dir%'
@@ -40,10 +44,7 @@ services:
     App\Service\Hga\CalculationInterface:
         alias: App\Service\Hga\Calculation\DistributionService
         
-    App\Service\Hga\Configuration\HgaConfiguration:
-        arguments:
-            $projectDir: '%kernel.project_dir%'
-        
+    App\Service\Hga\Configuration\HgaConfiguration: ~
     App\Service\Hga\ConfigurationInterface:
         alias: App\Service\Hga\Configuration\HgaConfiguration
         
@@ -51,17 +52,15 @@ services:
         alias: App\Service\Hga\HgaService
         
     App\Service\Hga\ReportGeneratorInterface:
-        alias: App\Service\Hga\Report\TxtReportGenerator
+        alias: App\Service\Hga\Report\PdfReportGenerator
 
     App\Command\HgaGenerateCommand:
         arguments:
-            $txtReportGenerator: '@App\Service\Hga\Report\TxtReportGenerator'
             $pdfReportGenerator: '@App\Service\Hga\Report\PdfReportGenerator'
             $projectDir: '%kernel.project_dir%'
     
     App\Controller\AbrechnungController:
         arguments:
-            $txtReportGenerator: '@App\Service\Hga\Report\TxtReportGenerator'
             $pdfReportGenerator: '@App\Service\Hga\Report\PdfReportGenerator'
             
     App\Controller\CsvImportController:
@@ -82,7 +81,11 @@ services:
             $apiKey: '%env(ANTHROPIC_API_KEY)%'
             $enabled: '%env(bool:AI_CLAUDE_ENABLED)%'
 
+    App\Service\AI\DocIntelProvider:
+        arguments:
+            $baseUrl: '%env(DOCINTEL_URL)%'
+            $enabled: '%env(bool:DOCINTEL_ENABLED)%'
+
     App\Service\ZahlungKategorisierungService:
         arguments:
             $aiEnabled: '%env(bool:AI_ENABLED)%'
-
