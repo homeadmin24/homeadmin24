@@ -184,6 +184,13 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
 
+  doc-intel:
+    build: !reset null
+    image: alpine:latest
+    command: ["echo", "doc-intel disabled in demo"]
+    profiles:
+      - donotstart
+
 volumes:
   mysql_data:
     name: homeadmin24-demo_mysql_data
