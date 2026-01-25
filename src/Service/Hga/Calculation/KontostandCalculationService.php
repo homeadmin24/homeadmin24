@@ -101,11 +101,11 @@ class KontostandCalculationService
             ],
             'abweichung' => [
                 'rechnerisch' => $rechnerisch,
-                'tatsaechlich' => $saldoEnd,
+                'tatsaechlich' => $saldoStichtagEnd,
                 'differenz' => $abweichung,
                 'status' => abs($abweichung) < 0.01 ? 'ok' : 'unklar',
             ],
-            'bemerkung' => $kontostand->getBemerkung(),
+            'bemerkung' => $kontostandForPayments->getBemerkung(),
         ];
     }
 
