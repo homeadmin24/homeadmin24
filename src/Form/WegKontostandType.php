@@ -41,7 +41,9 @@ class WegKontostandType extends AbstractType
                 'label' => 'Bankkonto-Typ',
                 'choices' => [
                     'Hausgeld' => 'hausgeld',
+                    'Hausgeld (Stichtag)' => 'hausgeld_stichtag',
                     'Rücklage' => 'ruecklage',
+                    'Rücklage (Stichtag)' => 'ruecklage_stichtag',
                 ],
                 'required' => true,
                 'attr' => [

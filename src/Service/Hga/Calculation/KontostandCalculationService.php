@@ -26,8 +26,14 @@ class KontostandCalculationService
      */
     public function calculateVermoegensabgrenzung(Weg $weg, int $year, string $bankkontoTyp = 'hausgeld'): array
     {
-        // Get Kontostand for this year
-        $kontostand = $this->kontostandRepository->findByWegYearAndType($weg, $year, $bankkontoTyp);
+        // Prefer _stichtag type if available (contains actual opening balance)
+        $stichtagTyp = $bankkontoTyp . '_stichtag';
+        $kontostand = $this->kontostandRepository->findByWegYearAndType($weg, $year, $stichtagTyp);
+
+        // Fallback to regular type if stichtag not found
+        if (!$kontostand) {
+            $kontostand = $this->kontostandRepository->findByWegYearAndType($weg, $year, $bankkontoTyp);
+        }
 
         if (!$kontostand) {
             return [
