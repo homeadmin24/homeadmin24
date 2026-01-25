@@ -863,6 +863,15 @@
                 <tr>
                     <td style="padding-left: 15px;">Kontostand am Ende</td>
                     <td class="center" style="font-size: 8pt; color: #666;">
+                        {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.kontostand.periode_end is defined %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.periode_end.datum }}{% endif %}
+                        {% if hasRuecklage and not hasHausgeld and data.vermoegen_abgrenzung.ruecklage.kontostand.periode_end is defined %}{{ data.vermoegen_abgrenzung.ruecklage.kontostand.periode_end.datum }}{% endif %}
+                    </td>
+                    <td class="amount">{% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.kontostand.periode_end is defined %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.periode_end.saldo|number_format(2, ',', '.') }} €{% else %}-{% endif %}</td>
+                    <td class="amount">{% if hasRuecklage and data.vermoegen_abgrenzung.ruecklage.kontostand.periode_end is defined %}{{ data.vermoegen_abgrenzung.ruecklage.kontostand.periode_end.saldo|number_format(2, ',', '.') }} €{% else %}-{% endif %}</td>
+                </tr>
+                <tr>
+                    <td style="padding-left: 15px;">Kontostand Stichtag</td>
+                    <td class="center" style="font-size: 8pt; color: #666;">
                         {% if hasHausgeld %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_end.datum }}{% endif %}
                         {% if hasRuecklage and not hasHausgeld %}{{ data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_end.datum }}{% endif %}
                     </td>

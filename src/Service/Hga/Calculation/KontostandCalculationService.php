@@ -65,12 +65,27 @@ class KontostandCalculationService
         $rechnerisch = $saldoStart + $periodeGesamt['saldo'];
         $abweichung = $saldoEnd - $rechnerisch;
 
+        // Calculate balance at end of accounting period (30.12.YEAR) for Zufluss-/Abfluss
+        $periodeEndDate = new \DateTime($year . '-12-30');
+        $zahlungenBisPeriodeEnd = $this->zahlungRepository->findByWegAndDateRange(
+            $weg,
+            $stichtagStart,
+            $periodeEndDate,
+            $bankkontoTyp
+        );
+        $periodeTotalsBisPeriodeEnd = $this->calculatePeriodeTotals($zahlungenBisPeriodeEnd);
+        $saldoPeriodeEnd = $saldoStart + $periodeTotalsBisPeriodeEnd['saldo'];
+
         return [
             'available' => true,
             'kontostand' => [
                 'stichtag_start' => [
                     'datum' => $stichtagStart->format('d.m.Y'),
                     'saldo' => $saldoStart,
+                ],
+                'periode_end' => [
+                    'datum' => $periodeEndDate->format('d.m.Y'),
+                    'saldo' => $saldoPeriodeEnd,
                 ],
                 'stichtag_end' => [
                     'datum' => $stichtagEnd->format('d.m.Y'),
