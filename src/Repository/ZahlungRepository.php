@@ -99,7 +99,7 @@ class ZahlungRepository extends ServiceEntityRepository
     }
 
     /**
-     * Get all payments for a WEG and year.
+     * Get all payments for a WEG and year (periodengerecht - uses abrechnungsjahrZuordnung).
      *
      * @return Zahlung[]
      */
@@ -108,6 +108,29 @@ class ZahlungRepository extends ServiceEntityRepository
         // For now, get all payments for the year
         // In the future, could filter by WEG if needed
         return $this->findByAbrechnungsjahrZuordnung($year);
+    }
+
+    /**
+     * Get all payments for a WEG filtered STRICTLY by payment date (Zufluss-/Abfluss-Prinzip).
+     *
+     * This method ignores abrechnungsjahrZuordnung and only considers the actual payment date.
+     * Required for BGH V ZR 271/12 compliant Eigentümer-Abrechnung.
+     *
+     * @return Zahlung[]
+     */
+    public function getPaymentsByPaymentDateYear(int $year): array
+    {
+        $startDate = new \DateTime($year . '-01-01');
+        $endDate = new \DateTime($year . '-12-30'); // 30.12 for Zufluss-/Abfluss
+
+        return $this->createQueryBuilder('z')
+            ->where('z.datum >= :startDate AND z.datum <= :endDate')
+            ->andWhere('z.isSimulation = false')
+            ->setParameter('startDate', $startDate)
+            ->setParameter('endDate', $endDate)
+            ->orderBy('z.datum', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 
     /**

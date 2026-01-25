@@ -524,7 +524,7 @@
         <div class="meta-info">
             Erstellung: {{ generatedAt|date('d.m.Y') }}<br>
             Objekt: {{ data.weg.name }}, {{ data.weg.adresse }}<br>
-            Abrechnungszeitraum: 01.01.{{ data.year }} - 31.12.{{ data.year }}
+            Abrechnungszeitraum: {% if data.calculationMethod is defined %}{{ data.calculationMethod.periodLabel }}{% else %}01.01.{{ data.year }} - 31.12.{{ data.year }}{% endif %}
         </div>
     </div>
 
@@ -626,6 +626,13 @@
         </div>
         <div class="section-title">Umlageschlüssel</div>
 
+        {% if data.calculationMethod is defined %}
+        <div style="background-color: #f0f7ff; border: 1px solid #0066cc; border-left: 4px solid #0066cc; padding: 8px 12px; margin-bottom: 15px; font-size: 8pt;">
+            <strong style="color: #0066cc;">Abrechnungsprinzip:</strong> {{ data.calculationMethod.name }} ({{ data.calculationMethod.periodLabel }})<br>
+            <small>Rechtsgrundlage: {{ data.calculationMethod.legalBasis }}</small>
+        </div>
+        {% endif %}
+
         <table class="umlageschluessel-table">
             <thead>
                 <tr>
@@ -671,8 +678,8 @@
             </tbody>
         </table>
 
-        <div class="section-title">Umlageergebnis</div>
-        
+        <div class="section-title">Umlageergebnis{% if data.calculationMethod is defined %} {{ data.calculationMethod.name }}{% endif %}</div>
+
         <div style="margin-bottom: 20px;">
             <h3>1. Umlagefähige Kosten (Mieter)</h3>
         <table class="cost-table">

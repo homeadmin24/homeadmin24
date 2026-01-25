@@ -41,16 +41,23 @@ class HgaService implements HgaServiceInterface
     /**
      * {@inheritdoc}
      */
-    public function generateReportData(WegEinheit $einheit, int $year): array
+    public function generateReportData(WegEinheit $einheit, int $year, string $reportType = 'eigentuemer'): array
     {
         $errors = $this->validateCalculationInputs($einheit, $year);
         if (!empty($errors)) {
             throw new \InvalidArgumentException('Invalid inputs: ' . implode(', ', $errors));
         }
 
+        // Determine calculation method based on report type
+        $calculationMethod = $this->getCalculationMethod($reportType, $year);
+
+        // Zufluss-/Abfluss-Prinzip (Eigentümer): use payment date
+        // Periodengerecht (Mieter): use abrechnungsjahrZuordnung
+        $usePaymentDate = ('eigentuemer' === $reportType);
+
         try {
-            // Get all calculation data
-            $costs = $this->calculateOwnerCosts($einheit, $year);
+            // Get all calculation data - use payment date filtering for Eigentümer
+            $costs = $this->costCalculationService->calculateTotalCosts($einheit, $year, $usePaymentDate);
             $payments = $this->calculatePaymentBalance($einheit, $year);
             $taxDeductible = $this->calculateTaxDeductible($einheit, $year);
             $externalCosts = $this->externalCostService->getAllExternalCosts($einheit, $year);
@@ -87,8 +94,8 @@ class HgaService implements HgaServiceInterface
 
             $wirtschaftsplanPlanData = $this->applyPlannedIncomeDefaults($wirtschaftsplanPlanData);
 
-            // Get WEG totals
-            $wegCostTotals = $this->calculateTotalCosts($einheit->getWeg(), $year);
+            // Get WEG totals - use payment date filtering for Eigentümer
+            $wegCostTotals = $this->costCalculationService->calculateTotalCostsForWeg($einheit->getWeg(), $year, $usePaymentDate);
 
             // Calculate final totals for display (BGH V ZR 44/09 compliant)
             $calculatedTotals = $this->calculateFinalTotals($costs, $externalCosts, $payments);
@@ -98,6 +105,8 @@ class HgaService implements HgaServiceInterface
 
             // Build complete report data structure
             return [
+                'reportType' => $reportType,
+                'calculationMethod' => $calculationMethod,
                 'einheit' => [
                     'nummer' => $einheit->getNummer(),
                     'beschreibung' => $einheit->getBezeichnung(),
@@ -788,5 +797,26 @@ class HgaService implements HgaServiceInterface
         }
 
         return $result;
+    }
+
+    /**
+     * Get calculation method info based on report type.
+     *
+     * @return array{name: string, periodLabel: string, legalBasis: string}
+     */
+    private function getCalculationMethod(string $reportType, int $year): array
+    {
+        return match ($reportType) {
+            'mieter' => [
+                'name' => 'Mieter-Abrechnung periodengerecht',
+                'periodLabel' => \sprintf('01.01.%d - 31.12.%d', $year, $year),
+                'legalBasis' => '§ 556 BGB, BetrKV',
+            ],
+            default => [
+                'name' => 'Zufluss-/Abfluss-Prinzip',
+                'periodLabel' => \sprintf('01.01.%d - 30.12.%d', $year, $year),
+                'legalBasis' => 'BGH V ZR 271/12',
+            ],
+        };
     }
 }

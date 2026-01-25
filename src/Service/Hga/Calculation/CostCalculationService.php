@@ -28,14 +28,18 @@ class CostCalculationService
     /**
      * Calculate umlagefähige costs for a unit and year.
      *
+     * @param bool $usePaymentDate If true, use Zufluss-/Abfluss (payment date). If false, use periodengerecht (abrechnungsjahrZuordnung).
+     *
      * @return array<int, array<string, mixed>>
      */
-    public function calculateUmlagefaehigeCosts(WegEinheit $einheit, int $year): array
+    public function calculateUmlagefaehigeCosts(WegEinheit $einheit, int $year, bool $usePaymentDate = false): array
     {
         $weg = $einheit->getWeg();
         $mea = $this->extractMEAAsDecimal($einheit);
 
-        $zahlungen = $this->zahlungRepository->getPaymentsByWegAndYear($weg, $year);
+        $zahlungen = $usePaymentDate
+            ? $this->zahlungRepository->getPaymentsByPaymentDateYear($year)
+            : $this->zahlungRepository->getPaymentsByWegAndYear($weg, $year);
 
         return $this->calculateCostsByKategorisierungsTyp(
             $zahlungen,
@@ -49,14 +53,18 @@ class CostCalculationService
     /**
      * Calculate nicht umlagefähige costs for a unit and year.
      *
+     * @param bool $usePaymentDate If true, use Zufluss-/Abfluss (payment date). If false, use periodengerecht (abrechnungsjahrZuordnung).
+     *
      * @return array<int, array<string, mixed>>
      */
-    public function calculateNichtUmlagefaehigeCosts(WegEinheit $einheit, int $year): array
+    public function calculateNichtUmlagefaehigeCosts(WegEinheit $einheit, int $year, bool $usePaymentDate = false): array
     {
         $weg = $einheit->getWeg();
         $mea = $this->extractMEAAsDecimal($einheit);
 
-        $zahlungen = $this->zahlungRepository->getPaymentsByWegAndYear($weg, $year);
+        $zahlungen = $usePaymentDate
+            ? $this->zahlungRepository->getPaymentsByPaymentDateYear($year)
+            : $this->zahlungRepository->getPaymentsByWegAndYear($weg, $year);
 
         return $this->calculateCostsByKategorisierungsTyp(
             $zahlungen,
@@ -70,14 +78,18 @@ class CostCalculationService
     /**
      * Calculate Rücklagenzuführung for a unit and year.
      *
+     * @param bool $usePaymentDate If true, use Zufluss-/Abfluss (payment date). If false, use periodengerecht (abrechnungsjahrZuordnung).
+     *
      * @return array<int, array<string, mixed>>
      */
-    public function calculateRuecklagenzufuehrung(WegEinheit $einheit, int $year): array
+    public function calculateRuecklagenzufuehrung(WegEinheit $einheit, int $year, bool $usePaymentDate = false): array
     {
         $weg = $einheit->getWeg();
         $mea = $this->extractMEAAsDecimal($einheit);
 
-        $zahlungen = $this->zahlungRepository->getPaymentsByWegAndYear($weg, $year);
+        $zahlungen = $usePaymentDate
+            ? $this->zahlungRepository->getPaymentsByPaymentDateYear($year)
+            : $this->zahlungRepository->getPaymentsByWegAndYear($weg, $year);
 
         return $this->calculateCostsByKategorisierungsTyp(
             $zahlungen,
@@ -91,13 +103,15 @@ class CostCalculationService
     /**
      * Calculate total costs for all categories.
      *
+     * @param bool $usePaymentDate If true, use Zufluss-/Abfluss (payment date). If false, use periodengerecht (abrechnungsjahrZuordnung).
+     *
      * @return array<string, mixed>
      */
-    public function calculateTotalCosts(WegEinheit $einheit, int $year): array
+    public function calculateTotalCosts(WegEinheit $einheit, int $year, bool $usePaymentDate = false): array
     {
-        $umlagefaehig = $this->calculateUmlagefaehigeCosts($einheit, $year);
-        $nichtUmlagefaehig = $this->calculateNichtUmlagefaehigeCosts($einheit, $year);
-        $ruecklagen = $this->calculateRuecklagenzufuehrung($einheit, $year);
+        $umlagefaehig = $this->calculateUmlagefaehigeCosts($einheit, $year, $usePaymentDate);
+        $nichtUmlagefaehig = $this->calculateNichtUmlagefaehigeCosts($einheit, $year, $usePaymentDate);
+        $ruecklagen = $this->calculateRuecklagenzufuehrung($einheit, $year, $usePaymentDate);
 
         $totalUmlagefaehig = array_sum(array_column($umlagefaehig, 'anteil'));
         $totalNichtUmlagefaehig = array_sum(array_column($nichtUmlagefaehig, 'anteil'));
@@ -124,11 +138,15 @@ class CostCalculationService
     /**
      * Calculate WEG totals directly from payments (no unit distribution).
      *
+     * @param bool $usePaymentDate If true, use Zufluss-/Abfluss (payment date). If false, use periodengerecht (abrechnungsjahrZuordnung).
+     *
      * @return array<string, float>
      */
-    public function calculateTotalCostsForWeg(Weg $weg, int $year): array
+    public function calculateTotalCostsForWeg(Weg $weg, int $year, bool $usePaymentDate = false): array
     {
-        $zahlungen = $this->zahlungRepository->getPaymentsByWegAndYear($weg, $year);
+        $zahlungen = $usePaymentDate
+            ? $this->zahlungRepository->getPaymentsByPaymentDateYear($year)
+            : $this->zahlungRepository->getPaymentsByWegAndYear($weg, $year);
 
         $totalUmlagefaehig = $this->calculateTotalsByKategorisierungsTyp(
             $zahlungen,

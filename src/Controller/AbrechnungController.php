@@ -428,9 +428,53 @@ class AbrechnungController extends AbstractController
                 throw new \Exception('Validation failed: ' . implode(', ', $errors));
             }
 
-            $reportData = $this->hgaService->generateReportData($einheit, $year);
+            // Generate Eigentümer report (Zufluss-/Abfluss-Prinzip)
+            $reportData = $this->hgaService->generateReportData($einheit, $year, 'eigentuemer');
 
             return $this->render('hga/pdf_report.html.twig', [
+                'data' => $reportData,
+                'generatedAt' => new \DateTime(),
+                'previewMode' => true,
+            ]);
+        } catch (\Exception $e) {
+            // Return error page
+            return $this->render('abrechnung/preview_error.html.twig', [
+                'error' => $e->getMessage(),
+                'year' => $year,
+                'unitNumber' => $unitNumber,
+                'generatedAt' => new \DateTime(),
+            ]);
+        }
+    }
+
+    #[Route('/{year}/preview/{unitNumber}/mieter', name: 'app_abrechnung_preview_mieter', methods: ['GET'])]
+    public function previewMieter(Request $request, int $year, string $unitNumber): Response
+    {
+        try {
+            // Find the unit by number (search across all WEGs)
+            $einheit = $this->wegEinheitRepository->findOneBy([
+                'nummer' => $unitNumber,
+            ]);
+
+            if (!$einheit) {
+                throw new \Exception(\sprintf('Unit %s not found', $unitNumber));
+            }
+
+            $weg = $einheit->getWeg();
+            if (!$weg) {
+                throw new \Exception(\sprintf('WEG for unit %s not found', $unitNumber));
+            }
+
+            // Validate inputs
+            $errors = $this->hgaService->validateCalculationInputs($einheit, $year);
+            if (!empty($errors)) {
+                throw new \Exception('Validation failed: ' . implode(', ', $errors));
+            }
+
+            // Generate Mieter report (periodengerecht)
+            $reportData = $this->hgaService->generateReportData($einheit, $year, 'mieter');
+
+            return $this->render('hga/pdf_report_mieter.html.twig', [
                 'data' => $reportData,
                 'generatedAt' => new \DateTime(),
                 'previewMode' => true,
@@ -458,6 +502,14 @@ class AbrechnungController extends AbstractController
 
         $form = $this->createForm(WegKontostandType::class, $kontostand);
         $form->handleRequest($request);
+
+        if ($form->isSubmitted() && !$form->isValid()) {
+            foreach ($form->getErrors(true) as $error) {
+                $this->addFlash('error', $error->getMessage());
+            }
+
+            return $this->redirectToRoute('app_abrechnung_index', ['tab' => 'kontostaende']);
+        }
 
         if ($form->isSubmitted() && $form->isValid()) {
             $existing = $this->wegKontostandRepository->findOneBy([

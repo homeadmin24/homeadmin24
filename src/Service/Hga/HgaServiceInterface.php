@@ -18,12 +18,13 @@ interface HgaServiceInterface
     /**
      * Generate complete HGA report data for a unit and year.
      *
-     * @param WegEinheit $einheit The unit to calculate for
-     * @param int        $year    The calculation year
+     * @param WegEinheit $einheit    The unit to calculate for
+     * @param int        $year       The calculation year
+     * @param string     $reportType Report type: 'eigentuemer' (Zufluss-/Abfluss) or 'mieter' (periodengerecht)
      *
      * @return array<string, mixed> Complete calculation data
      */
-    public function generateReportData(WegEinheit $einheit, int $year): array;
+    public function generateReportData(WegEinheit $einheit, int $year, string $reportType = 'eigentuemer'): array;
 
     /**
      * Calculate total costs for a WEG and year.
