@@ -26,25 +26,28 @@ class KontostandCalculationService
      */
     public function calculateVermoegensabgrenzung(Weg $weg, int $year, string $bankkontoTyp = 'hausgeld'): array
     {
-        // Prefer _stichtag type if available (contains actual opening balance)
+        // Get regular type for period end (e.g., hausgeld -> 30.12.YYYY)
+        $kontostandPeriode = $this->kontostandRepository->findByWegYearAndType($weg, $year, $bankkontoTyp);
+
+        // Get _stichtag type for actual bank statement date (e.g., hausgeld_stichtag -> 24.01.YYYY+1)
         $stichtagTyp = $bankkontoTyp . '_stichtag';
-        $kontostand = $this->kontostandRepository->findByWegYearAndType($weg, $year, $stichtagTyp);
+        $kontostandStichtag = $this->kontostandRepository->findByWegYearAndType($weg, $year, $stichtagTyp);
 
-        // Fallback to regular type if stichtag not found
-        if (!$kontostand) {
-            $kontostand = $this->kontostandRepository->findByWegYearAndType($weg, $year, $bankkontoTyp);
-        }
-
-        if (!$kontostand) {
+        // Need at least one record
+        if (!$kontostandPeriode && !$kontostandStichtag) {
             return [
                 'available' => false,
                 'message' => 'Keine Kontostände für dieses Jahr erfasst. Bitte unter /abrechnung erfassen.',
             ];
         }
 
+        // Use Stichtag record for payment period calculation (longer range)
+        // Fall back to Periode record if Stichtag not available
+        $kontostandForPayments = $kontostandStichtag ?? $kontostandPeriode;
+
         // Calculate payments in period
-        $stichtagStart = $kontostand->getStichtagStart();
-        $stichtagEnd = $kontostand->getStichtagEnd();
+        $stichtagStart = $kontostandForPayments->getStichtagStart();
+        $stichtagEnd = $kontostandForPayments->getStichtagEnd();
 
         $zahlungen = $this->zahlungRepository->findByWegAndDateRange(
             $weg,
@@ -59,22 +62,20 @@ class KontostandCalculationService
         // Calculate totals
         $periodeGesamt = $this->calculatePeriodeTotals($zahlungen);
 
-        // Calculate Abweichung
-        $saldoStart = (float) $kontostand->getSaldoStart();
-        $saldoEnd = (float) $kontostand->getSaldoEnd();
-        $rechnerisch = $saldoStart + $periodeGesamt['saldo'];
-        $abweichung = $saldoEnd - $rechnerisch;
+        // Get balances from both records
+        $saldoStart = (float) $kontostandForPayments->getSaldoStart();
 
-        // Calculate balance at end of accounting period (30.12.YEAR) for Zufluss-/Abfluss
-        $periodeEndDate = new \DateTime($year . '-12-30');
-        $zahlungenBisPeriodeEnd = $this->zahlungRepository->findByWegAndDateRange(
-            $weg,
-            $stichtagStart,
-            $periodeEndDate,
-            $bankkontoTyp
-        );
-        $periodeTotalsBisPeriodeEnd = $this->calculatePeriodeTotals($zahlungenBisPeriodeEnd);
-        $saldoPeriodeEnd = $saldoStart + $periodeTotalsBisPeriodeEnd['saldo'];
+        // Period end balance from regular type (e.g., hausgeld with 30.12 end date)
+        $periodeEndDate = $kontostandPeriode ? $kontostandPeriode->getStichtagEnd() : null;
+        $saldoPeriodeEnd = $kontostandPeriode ? (float) $kontostandPeriode->getSaldoEnd() : null;
+
+        // Stichtag balance from _stichtag type (e.g., hausgeld_stichtag with actual bank date)
+        $stichtagEndDate = $kontostandStichtag ? $kontostandStichtag->getStichtagEnd() : $stichtagEnd;
+        $saldoStichtagEnd = $kontostandStichtag ? (float) $kontostandStichtag->getSaldoEnd() : (float) $kontostandForPayments->getSaldoEnd();
+
+        // Calculate Abweichung based on Stichtag balance
+        $rechnerisch = $saldoStart + $periodeGesamt['saldo'];
+        $abweichung = $saldoStichtagEnd - $rechnerisch;
 
         return [
             'available' => true,
@@ -83,13 +84,13 @@ class KontostandCalculationService
                     'datum' => $stichtagStart->format('d.m.Y'),
                     'saldo' => $saldoStart,
                 ],
-                'periode_end' => [
+                'periode_end' => $kontostandPeriode ? [
                     'datum' => $periodeEndDate->format('d.m.Y'),
                     'saldo' => $saldoPeriodeEnd,
-                ],
+                ] : null,
                 'stichtag_end' => [
-                    'datum' => $stichtagEnd->format('d.m.Y'),
-                    'saldo' => $saldoEnd,
+                    'datum' => $stichtagEndDate->format('d.m.Y'),
+                    'saldo' => $saldoStichtagEnd,
                 ],
             ],
             'periode' => [
