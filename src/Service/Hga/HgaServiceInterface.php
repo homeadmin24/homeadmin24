@@ -49,12 +49,13 @@ interface HgaServiceInterface
     /**
      * Calculate payment balance for a unit.
      *
-     * @param WegEinheit $einheit The unit to calculate for
-     * @param int        $year    The calculation year
+     * @param WegEinheit $einheit        The unit to calculate for
+     * @param int        $year           The calculation year
+     * @param bool       $usePaymentDate If true, filter by payment date (Zufluss-/Abfluss)
      *
      * @return array<string, mixed> Payment balance data
      */
-    public function calculatePaymentBalance(WegEinheit $einheit, int $year): array;
+    public function calculatePaymentBalance(WegEinheit $einheit, int $year, bool $usePaymentDate = false): array;
 
     /**
      * Calculate tax-deductible amounts for a unit.

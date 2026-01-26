@@ -921,73 +921,21 @@
                         </td>
                     </tr>
 
-                    {# Einnahmen row #}
+                    {# Einnahmen row - [1] only refers to Hausgeld, so show Hausgeld count only #}
                     <tr>
                         <td style="padding-left: 20px;">Einnahmen{% if jahr == data.year %} <sup style="color: #0066cc;">[1]</sup>{% endif %}</td>
-                        <td class="center" style="font-size: 7.5pt; color: #888;">{{ totalZahlungen > 0 ? ((hausgeldData ? hausgeldData.anzahl_einnahmen : 0) + (ruecklageData ? ruecklageData.anzahl_einnahmen : 0)) ~ ' Buchungen' : '' }}</td>
+                        <td class="center" style="font-size: 7.5pt; color: #888;">{{ hausgeldData and hausgeldData.anzahl_einnahmen > 0 ? hausgeldData.anzahl_einnahmen ~ ' Buchungen' : '' }}</td>
                         <td class="amount" style="color: #006600; font-weight: 500;">{{ hausgeldData ? (hausgeldData.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                         <td class="amount" style="color: #006600; font-weight: 500;">{{ ruecklageData ? (ruecklageData.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     </tr>
 
-                    {# Einnahmen details: for non-main years show all, for main year show only Umbuchung #}
-                    {% if hausgeldData and hausgeldData.einnahmen_by_category|default({})|length > 0 %}
-                        {% for kategorie, betrag in hausgeldData.einnahmen_by_category %}
-                            {% if jahr != data.year or 'Umbuchung' in kategorie %}
-                                <tr style="background-color: #fafafa;">
-                                    <td style="padding-left: 40px; font-size: 7.5pt; color: #777;">{{ kategorie }}</td>
-                                    <td class="center"></td>
-                                    <td class="amount" style="font-size: 7.5pt; color: #006600;">{{ betrag|number_format(2, ',', '.') }} €</td>
-                                    <td class="amount"></td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                    {% endif %}
-                    {% if ruecklageData and ruecklageData.einnahmen_by_category|default({})|length > 0 %}
-                        {% for kategorie, betrag in ruecklageData.einnahmen_by_category %}
-                            {% if jahr != data.year or 'Umbuchung' in kategorie %}
-                                <tr style="background-color: #fafafa;">
-                                    <td style="padding-left: 40px; font-size: 7.5pt; color: #777;">{{ kategorie }}</td>
-                                    <td class="center"></td>
-                                    <td class="amount"></td>
-                                    <td class="amount" style="font-size: 7.5pt; color: #006600;">{{ betrag|number_format(2, ',', '.') }} €</td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                    {% endif %}
-
-                    {# Ausgaben row #}
+                    {# Ausgaben row - [2] only refers to Hausgeld, so show Hausgeld count only #}
                     <tr>
                         <td style="padding-left: 20px;">Ausgaben{% if jahr == data.year %} <sup style="color: #0066cc;">[2]</sup>{% endif %}</td>
-                        <td class="center" style="font-size: 7.5pt; color: #888;">{{ totalZahlungen > 0 ? ((hausgeldData ? hausgeldData.anzahl_ausgaben : 0) + (ruecklageData ? ruecklageData.anzahl_ausgaben : 0)) ~ ' Buchungen' : '' }}</td>
+                        <td class="center" style="font-size: 7.5pt; color: #888;">{{ hausgeldData and hausgeldData.anzahl_ausgaben > 0 ? hausgeldData.anzahl_ausgaben ~ ' Buchungen' : '' }}</td>
                         <td class="amount" style="color: #cc0000; font-weight: 500;">{{ hausgeldData ? (hausgeldData.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                         <td class="amount" style="color: #cc0000; font-weight: 500;">{{ ruecklageData ? (ruecklageData.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     </tr>
-
-                    {# Ausgaben details: for non-main years show all, for main year show only Umbuchung #}
-                    {% if hausgeldData and hausgeldData.ausgaben_by_kostenkonto|default({})|length > 0 %}
-                        {% for kostenkonto, betrag in hausgeldData.ausgaben_by_kostenkonto %}
-                            {% if jahr != data.year or 'Umbuchung' in kostenkonto %}
-                                <tr style="background-color: #fafafa;">
-                                    <td style="padding-left: 40px; font-size: 7.5pt; color: #777;">{{ kostenkonto }}</td>
-                                    <td class="center"></td>
-                                    <td class="amount" style="font-size: 7.5pt; color: #cc0000;">{{ betrag|number_format(2, ',', '.') }} €</td>
-                                    <td class="amount"></td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                    {% endif %}
-                    {% if ruecklageData and ruecklageData.ausgaben_by_kostenkonto|default({})|length > 0 %}
-                        {% for kostenkonto, betrag in ruecklageData.ausgaben_by_kostenkonto %}
-                            {% if jahr != data.year or 'Umbuchung' in kostenkonto %}
-                                <tr style="background-color: #fafafa;">
-                                    <td style="padding-left: 40px; font-size: 7.5pt; color: #777;">{{ kostenkonto }}</td>
-                                    <td class="center"></td>
-                                    <td class="amount"></td>
-                                    <td class="amount" style="font-size: 7.5pt; color: #cc0000;">{{ betrag|number_format(2, ',', '.') }} €</td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                    {% endif %}
 
                     {# Saldo row #}
                     <tr style="border-top: 1px solid #ddd;">
@@ -1062,17 +1010,6 @@
                         <td class="amount" style="color: #cc0000;">{{ hausgeldAbgrenzung ? (hausgeldAbgrenzung.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                         <td class="amount" style="color: #cc0000;">{{ ruecklageAbgrenzung ? (ruecklageAbgrenzung.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     </tr>
-                    {# Show expense details #}
-                    {% if hausgeldAbgrenzung and hausgeldAbgrenzung.ausgaben_by_kostenkonto|default({})|length > 0 %}
-                        {% for kostenkonto, betrag in hausgeldAbgrenzung.ausgaben_by_kostenkonto %}
-                            <tr style="background-color: #fffde7;">
-                                <td style="padding-left: 40px; font-size: 7.5pt; color: #777;">{{ kostenkonto }}</td>
-                                <td class="center"></td>
-                                <td class="amount" style="font-size: 7.5pt; color: #cc0000;">{{ betrag|number_format(2, ',', '.') }} €</td>
-                                <td class="amount"></td>
-                            </tr>
-                        {% endfor %}
-                    {% endif %}
                     <tr style="background-color: #fff8e1; border-top: 1px solid #ffcc80;">
                         <td style="padding-left: 20px; font-weight: 600;">Saldo Abgrenzung {{ jahr }}</td>
                         <td class="center"></td>
@@ -1094,7 +1031,7 @@
 
                 {# ========== ABSTIMMUNG (Bank reconciliation with FULL period) ========== #}
                 <tr class="subtotal" style="border-top: 2px solid #999;">
-                    <td colspan="4" style="font-size: 9pt; padding-top: 8px;"><strong>Abstimmung (bis Stichtag)</strong></td>
+                    <td colspan="4" style="font-size: 9pt; padding-top: 8px;"><strong>Abstimmung ({{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_start.datum }} - {{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_end.datum }})</strong></td>
                 </tr>
                 <tr>
                     <td style="padding-left: 15px;">Kontostand Beginn</td>
@@ -1103,7 +1040,21 @@
                     <td class="amount">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_start.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                 </tr>
                 <tr>
-                    <td style="padding-left: 15px;">+ Summe aller Zahlungen</td>
+                    <td style="padding-left: 15px; font-size: 8pt; color: #666;">+ Abrechnungsperiode</td>
+                    <td class="center" style="font-size: 7pt; color: #888;">bis 30.12</td>
+                    <td class="amount" style="font-size: 8pt; color: #666;">{{ hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined ? (data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-size: 8pt; color: #666;">{{ hasRuecklage and data.vermoegen_abgrenzung.ruecklage.periode_abrechnung is defined ? (data.vermoegen_abgrenzung.ruecklage.periode_abrechnung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                </tr>
+                {% if hasAbgrenzungHausgeld or hasAbgrenzungRuecklage %}
+                <tr>
+                    <td style="padding-left: 15px; font-size: 8pt; color: #666;">+ Abgrenzung</td>
+                    <td class="center" style="font-size: 7pt; color: #888;">bis Stichtag</td>
+                    <td class="amount" style="font-size: 8pt; color: #666;">{{ hasAbgrenzungHausgeld ? (data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-size: 8pt; color: #666;">{{ hasAbgrenzungRuecklage ? (data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                </tr>
+                {% endif %}
+                <tr style="border-top: 1px solid #ddd;">
+                    <td style="padding-left: 15px;">= Summe Zahlungen</td>
                     <td class="center"></td>
                     <td class="amount">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.periode.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     <td class="amount">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.periode.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
@@ -1342,7 +1293,7 @@
                         <td class="date">&nbsp;</td>
                         <td class="desc"><strong>Saldo</strong></td>
                         <td class="partner">&nbsp;</td>
-                        <td class="konto">&nbsp;</td>
+                        <td class="konto" style="font-size: 8pt; color: #666;">{{ data.payments.all_payment_details|length }} Buchungen</td>
                         <td class="amount"><strong>{{ overallTotal|number_format(2, ',', '.') }} €</strong></td>
                     </tr>
                 {% endif %}

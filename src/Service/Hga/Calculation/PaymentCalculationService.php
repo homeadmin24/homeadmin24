@@ -157,6 +157,9 @@ class PaymentCalculationService
     /**
      * Get detailed payment list for all payments filtered by transaction date year.
      *
+     * @param bool $usePaymentDate If true, filter by payment date (01.01-30.12) for Zufluss-/Abfluss.
+     *                             If false, filter by abrechnungsjahrZuordnung for periodengerecht.
+     *
      * @return array<array{
      *   datum: \DateTimeInterface,
      *   beschreibung: string,
@@ -167,9 +170,11 @@ class PaymentCalculationService
      *   kostenkonto_bezeichnung: string|null
      * }>
      */
-    public function getAllPaymentDetails(int $year): array
+    public function getAllPaymentDetails(int $year, bool $usePaymentDate = false): array
     {
-        $payments = $this->zahlungRepository->getAllPaymentsByDateYear($year);
+        $payments = $usePaymentDate
+            ? $this->zahlungRepository->getAllPaymentsByPaymentDateYear($year)
+            : $this->zahlungRepository->getAllPaymentsByDateYear($year);
 
         $details = [];
         foreach ($payments as $payment) {

@@ -58,7 +58,7 @@ class HgaService implements HgaServiceInterface
         try {
             // Get all calculation data - use payment date filtering for Eigentümer
             $costs = $this->costCalculationService->calculateTotalCosts($einheit, $year, $usePaymentDate);
-            $payments = $this->calculatePaymentBalance($einheit, $year);
+            $payments = $this->calculatePaymentBalance($einheit, $year, $usePaymentDate);
             $taxDeductible = $this->calculateTaxDeductible($einheit, $year);
             $externalCosts = $this->externalCostService->getAllExternalCosts($einheit, $year);
             $balanceData = $this->balanceCalculationService->getBalanceData($einheit->getWeg(), $year);
@@ -207,11 +207,11 @@ class HgaService implements HgaServiceInterface
     /**
      * {@inheritdoc}
      */
-    public function calculatePaymentBalance(WegEinheit $einheit, int $year): array
+    public function calculatePaymentBalance(WegEinheit $einheit, int $year, bool $usePaymentDate = false): array
     {
         $balance = $this->paymentCalculationService->calculatePaymentBalance($einheit, $year);
         $paymentDetails = $this->paymentCalculationService->getPaymentDetails($einheit, $year);
-        $allPaymentDetails = $this->paymentCalculationService->getAllPaymentDetails($year);
+        $allPaymentDetails = $this->paymentCalculationService->getAllPaymentDetails($year, $usePaymentDate);
 
         // Get WEG totals for context
         $wegSollTotal = $this->paymentCalculationService->calculateTotalAdvancePaymentsForWeg($einheit, $year);

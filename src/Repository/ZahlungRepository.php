@@ -178,6 +178,34 @@ class ZahlungRepository extends ServiceEntityRepository
     }
 
     /**
+     * Get all payments by PAYMENT DATE for Eigentümer (Zufluss-/Abfluss).
+     * Filters by datum 01.01 - 30.12 AND abrechnungsjahrZuordnung = year (or NULL).
+     *
+     * @return Zahlung[]
+     */
+    public function getAllPaymentsByPaymentDateYear(int $year): array
+    {
+        $startDate = new \DateTime($year . '-01-01');
+        $endDate = new \DateTime($year . '-12-30'); // 30.12 for BGH V ZR 271/12
+
+        return $this->createQueryBuilder('z')
+            ->leftJoin('z.hauptkategorie', 'hk')
+            ->andWhere('z.datum >= :startDate AND z.datum <= :endDate')
+            ->andWhere('(z.abrechnungsjahrZuordnung = :year OR z.abrechnungsjahrZuordnung IS NULL)')
+            ->andWhere('z.eigentuemer IS NULL')
+            ->andWhere('z.betrag < 0')
+            ->andWhere('hk.name != :kategorie_umbuchung OR hk.name IS NULL')
+            ->setParameter('startDate', $startDate)
+            ->setParameter('endDate', $endDate)
+            ->setParameter('year', (string) $year)
+            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->orderBy('z.kostenkonto', 'ASC')
+            ->addOrderBy('z.datum', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Get summed income/expense for a calendar year (by booking date).
      *
      * @return array{income: float, expense: float}
