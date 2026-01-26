@@ -22,6 +22,10 @@ class KontostandCalculationService
     /**
      * Calculate Vermögensabgrenzung data for HGA report.
      *
+     * Returns two separate periods:
+     * - periode_abrechnung: 01.01 - 30.12 (BGH V ZR 271/12 compliant)
+     * - periode_abgrenzung: 31.12 - Stichtag (payments after period end)
+     *
      * @return array<string, mixed>
      */
     public function calculateVermoegensabgrenzung(Weg $weg, int $year, string $bankkontoTyp = 'hausgeld'): array
@@ -45,36 +49,62 @@ class KontostandCalculationService
         // Fall back to Periode record if Stichtag not available
         $kontostandForPayments = $kontostandStichtag ?? $kontostandPeriode;
 
-        // Calculate payments in period
+        // Get date boundaries
         $stichtagStart = $kontostandForPayments->getStichtagStart();
         $stichtagEnd = $kontostandForPayments->getStichtagEnd();
 
-        $zahlungen = $this->zahlungRepository->findByWegAndDateRange(
-            $weg,
-            $stichtagStart,
-            $stichtagEnd,
-            $bankkontoTyp
-        );
+        // Period end date from regular Kontostand (30.12.YYYY)
+        // Ensure we have a DateTime (not just DateTimeInterface) for modify() support
+        $periodeEndDateInterface = $kontostandPeriode ? $kontostandPeriode->getStichtagEnd() : null;
+        $periodeEndDate = $periodeEndDateInterface instanceof \DateTime
+            ? $periodeEndDateInterface
+            : new \DateTime($periodeEndDateInterface?->format('Y-m-d') ?? $year . '-12-30');
 
-        // Group by Abrechnungsjahr
-        $byAbrechnungsjahr = $this->groupByAbrechnungsjahr($zahlungen);
-
-        // Calculate totals
-        $periodeGesamt = $this->calculatePeriodeTotals($zahlungen);
-
-        // Get balances from both records
+        // Get balances
         $saldoStart = (float) $kontostandForPayments->getSaldoStart();
-
-        // Period end balance from regular type (e.g., hausgeld with 30.12 end date)
-        $periodeEndDate = $kontostandPeriode ? $kontostandPeriode->getStichtagEnd() : null;
         $saldoPeriodeEnd = $kontostandPeriode ? (float) $kontostandPeriode->getSaldoEnd() : null;
-
-        // Stichtag balance from _stichtag type (e.g., hausgeld_stichtag with actual bank date)
         $stichtagEndDate = $kontostandStichtag ? $kontostandStichtag->getStichtagEnd() : $stichtagEnd;
         $saldoStichtagEnd = $kontostandStichtag ? (float) $kontostandStichtag->getSaldoEnd() : (float) $kontostandForPayments->getSaldoEnd();
 
-        // Calculate Abweichung based on Stichtag balance
-        $rechnerisch = $saldoStart + $periodeGesamt['saldo'];
+        // === PERIODE ABRECHNUNG (01.01 - 30.12) - BGH V ZR 271/12 ===
+        $zahlungenAbrechnung = $this->zahlungRepository->findByWegAndDateRange(
+            $weg,
+            $stichtagStart,
+            $periodeEndDate,
+            $bankkontoTyp
+        );
+        $byAbrechnungsjahrAbrechnung = $this->groupByAbrechnungsjahr($zahlungenAbrechnung);
+        $periodeAbrechnungGesamt = $this->calculatePeriodeTotals($zahlungenAbrechnung);
+
+        // === PERIODE ABGRENZUNG (31.12 - Stichtag) - Nach Periodenende ===
+        $abgrenzungStart = (clone $periodeEndDate)->modify('+1 day');
+        $zahlungenAbgrenzung = [];
+        $byAbrechnungsjahrAbgrenzung = [];
+        $periodeAbgrenzungGesamt = [
+            'einnahmen' => 0.0,
+            'anzahl_einnahmen' => 0,
+            'ausgaben' => 0.0,
+            'anzahl_ausgaben' => 0,
+            'saldo' => 0.0,
+            'anzahl_gesamt' => 0,
+        ];
+
+        // Only calculate Abgrenzung if Stichtag is after Periodenende
+        if ($stichtagEnd > $periodeEndDate) {
+            $zahlungenAbgrenzung = $this->zahlungRepository->findByWegAndDateRange(
+                $weg,
+                $abgrenzungStart,
+                $stichtagEnd,
+                $bankkontoTyp
+            );
+            $byAbrechnungsjahrAbgrenzung = $this->groupByAbrechnungsjahr($zahlungenAbgrenzung);
+            $periodeAbgrenzungGesamt = $this->calculatePeriodeTotals($zahlungenAbgrenzung);
+        }
+
+        // Calculate Abweichung based on full period (for bank reconciliation)
+        $allZahlungen = array_merge($zahlungenAbrechnung, $zahlungenAbgrenzung);
+        $periodeGesamtAll = $this->calculatePeriodeTotals($allZahlungen);
+        $rechnerisch = $saldoStart + $periodeGesamtAll['saldo'];
         $abweichung = $saldoStichtagEnd - $rechnerisch;
 
         return [
@@ -93,11 +123,31 @@ class KontostandCalculationService
                     'saldo' => $saldoStichtagEnd,
                 ],
             ],
+            // Abrechnungsperiode (BGH V ZR 271/12): 01.01 - 30.12
+            'periode_abrechnung' => [
+                'start' => $stichtagStart->format('Y-m-d'),
+                'end' => $periodeEndDate->format('Y-m-d'),
+                'start_formatted' => $stichtagStart->format('d.m.Y'),
+                'end_formatted' => $periodeEndDate->format('d.m.Y'),
+                'gesamt' => $periodeAbrechnungGesamt,
+                'nach_abrechnungsjahr' => $byAbrechnungsjahrAbrechnung,
+            ],
+            // Abgrenzung: Zahlungen nach Periodenende bis Stichtag
+            'periode_abgrenzung' => [
+                'start' => $abgrenzungStart->format('Y-m-d'),
+                'end' => $stichtagEnd->format('Y-m-d'),
+                'start_formatted' => $abgrenzungStart->format('d.m.Y'),
+                'end_formatted' => $stichtagEnd->format('d.m.Y'),
+                'gesamt' => $periodeAbgrenzungGesamt,
+                'nach_abrechnungsjahr' => $byAbrechnungsjahrAbgrenzung,
+                'hinweis' => 'Diese Zahlungen wurden nach dem Abrechnungszeitraum geleistet und erscheinen in der Abrechnung ' . ($year + 1) . '.',
+            ],
+            // Legacy: Full period for backwards compatibility
             'periode' => [
                 'start' => $stichtagStart->format('Y-m-d'),
                 'end' => $stichtagEnd->format('Y-m-d'),
-                'gesamt' => $periodeGesamt,
-                'nach_abrechnungsjahr' => $byAbrechnungsjahr,
+                'gesamt' => $periodeGesamtAll,
+                'nach_abrechnungsjahr' => $this->groupByAbrechnungsjahr($allZahlungen),
             ],
             'abweichung' => [
                 'rechnerisch' => $rechnerisch,

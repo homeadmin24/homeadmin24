@@ -880,20 +880,20 @@
                 </tr>
 
                 <tr class="subtotal" style="border-top: 2px solid #999;">
-                    <td colspan="4" style="font-size: 9pt;"><strong>Zahlungen im Zeitraum
-                        {% if hasHausgeld %}({{ data.vermoegen_abgrenzung.hausgeld.periode.start|date('d.m.Y') }} - {{ data.vermoegen_abgrenzung.hausgeld.periode.end|date('d.m.Y') }}){% endif %}
+                    <td colspan="4" style="font-size: 9pt;"><strong>Zahlungen Abrechnungsperiode
+                        {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined %}({{ data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.start_formatted }} - {{ data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.end_formatted }}){% endif %}
                     </strong></td>
                 </tr>
 
-                {# Combine years from both accounts #}
+                {# Combine years from both accounts - use periode_abrechnung (BGH-konform) #}
                 {% set allYears = [] %}
-                {% if hasHausgeld %}
-                    {% for jahr in data.vermoegen_abgrenzung.hausgeld.periode.nach_abrechnungsjahr|keys %}
+                {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined %}
+                    {% for jahr in data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.nach_abrechnungsjahr|keys %}
                         {% set allYears = allYears|merge([jahr]) %}
                     {% endfor %}
                 {% endif %}
-                {% if hasRuecklage %}
-                    {% for jahr in data.vermoegen_abgrenzung.ruecklage.periode.nach_abrechnungsjahr|keys %}
+                {% if hasRuecklage and data.vermoegen_abgrenzung.ruecklage.periode_abrechnung is defined %}
+                    {% for jahr in data.vermoegen_abgrenzung.ruecklage.periode_abrechnung.nach_abrechnungsjahr|keys %}
                         {% if jahr not in allYears %}
                             {% set allYears = allYears|merge([jahr]) %}
                         {% endif %}
@@ -912,8 +912,8 @@
                 {% endfor %}
 
                 {% for jahr in allYears %}
-                    {% set hausgeldData = hasHausgeld ? data.vermoegen_abgrenzung.hausgeld.periode.nach_abrechnungsjahr[jahr]|default(null) : null %}
-                    {% set ruecklageData = hasRuecklage ? data.vermoegen_abgrenzung.ruecklage.periode.nach_abrechnungsjahr[jahr]|default(null) : null %}
+                    {% set hausgeldData = hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined ? data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.nach_abrechnungsjahr[jahr]|default(null) : null %}
+                    {% set ruecklageData = hasRuecklage and data.vermoegen_abgrenzung.ruecklage.periode_abrechnung is defined ? data.vermoegen_abgrenzung.ruecklage.periode_abrechnung.nach_abrechnungsjahr[jahr]|default(null) : null %}
                     {% set totalZahlungen = (hausgeldData ? hausgeldData.anzahl_gesamt : 0) + (ruecklageData ? ruecklageData.anzahl_gesamt : 0) %}
                     <tr style="background-color: #f5f5f5;">
                         <td colspan="4" style="font-weight: 600; font-size: 8.5pt; padding: 4px 5px 4px 10px; border-top: 1px solid #ccc;">
@@ -999,17 +999,102 @@
                 {% endfor %}
 
                 <tr style="background-color: #e8e8e8; border-top: 2px solid #666;">
-                    <td style="font-weight: 600; padding-top: 5px;">Gesamt alle Zahlungen</td>
+                    <td style="font-weight: 600; padding-top: 5px;">Gesamt Abrechnungsperiode</td>
                     <td class="center" style="font-size: 7.5pt; color: #666; padding-top: 5px;">
-                        {% set totalBuchungen = (hasHausgeld ? data.vermoegen_abgrenzung.hausgeld.periode.gesamt.anzahl_gesamt : 0) + (hasRuecklage ? data.vermoegen_abgrenzung.ruecklage.periode.gesamt.anzahl_gesamt : 0) %}
-                        {{ totalBuchungen }} Buchungen
+                        {% set totalBuchungenAbrechnung = (hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined ? data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.gesamt.anzahl_gesamt : 0) + (hasRuecklage and data.vermoegen_abgrenzung.ruecklage.periode_abrechnung is defined ? data.vermoegen_abgrenzung.ruecklage.periode_abrechnung.gesamt.anzahl_gesamt : 0) %}
+                        {{ totalBuchungenAbrechnung }} Buchungen
                     </td>
-                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.periode.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.periode.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined ? (data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ hasRuecklage and data.vermoegen_abgrenzung.ruecklage.periode_abrechnung is defined ? (data.vermoegen_abgrenzung.ruecklage.periode_abrechnung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                 </tr>
 
+                {# ========== ABGRENZUNG: Zahlungen nach Periodenende ========== #}
+                {% set hasAbgrenzungHausgeld = hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung is defined and data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.gesamt.anzahl_gesamt > 0 %}
+                {% set hasAbgrenzungRuecklage = hasRuecklage and data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung is defined and data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung.gesamt.anzahl_gesamt > 0 %}
+                {% if hasAbgrenzungHausgeld or hasAbgrenzungRuecklage %}
+                <tr class="subtotal" style="border-top: 2px solid #ff9800; background-color: #fff8e1;">
+                    <td colspan="4" style="font-size: 9pt;">
+                        <strong>Abgrenzung: Zahlungen nach Periodenende
+                        {% if hasAbgrenzungHausgeld %}({{ data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.start_formatted }} - {{ data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.end_formatted }}){% endif %}
+                        </strong>
+                    </td>
+                </tr>
+                <tr style="background-color: #fff8e1;">
+                    <td colspan="4" style="font-size: 7.5pt; color: #666; padding: 4px 5px 8px 10px;">
+                        <em>Diese Zahlungen wurden nach dem Abrechnungszeitraum geleistet und erscheinen in der Abrechnung {{ data.year + 1 }} (Zufluss-/Abfluss-Prinzip).</em>
+                    </td>
+                </tr>
+
+                {# Abgrenzung years loop #}
+                {% set abgrenzungYears = [] %}
+                {% if hasAbgrenzungHausgeld %}
+                    {% for jahr in data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.nach_abrechnungsjahr|keys %}
+                        {% set abgrenzungYears = abgrenzungYears|merge([jahr]) %}
+                    {% endfor %}
+                {% endif %}
+                {% if hasAbgrenzungRuecklage %}
+                    {% for jahr in data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung.nach_abrechnungsjahr|keys %}
+                        {% if jahr not in abgrenzungYears %}
+                            {% set abgrenzungYears = abgrenzungYears|merge([jahr]) %}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% set abgrenzungYears = abgrenzungYears|sort %}
+
+                {% for jahr in abgrenzungYears %}
+                    {% set hausgeldAbgrenzung = hasAbgrenzungHausgeld ? data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.nach_abrechnungsjahr[jahr]|default(null) : null %}
+                    {% set ruecklageAbgrenzung = hasAbgrenzungRuecklage ? data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung.nach_abrechnungsjahr[jahr]|default(null) : null %}
+                    {% set totalAbgrenzungZahlungen = (hausgeldAbgrenzung ? hausgeldAbgrenzung.anzahl_gesamt : 0) + (ruecklageAbgrenzung ? ruecklageAbgrenzung.anzahl_gesamt : 0) %}
+                    <tr style="background-color: #fff3e0;">
+                        <td colspan="4" style="font-weight: 600; font-size: 8.5pt; padding: 4px 5px 4px 10px; border-top: 1px solid #ffcc80;">
+                            Zugeordnet {{ jahr }} ({{ totalAbgrenzungZahlungen }} Zahlungen)
+                        </td>
+                    </tr>
+                    <tr style="background-color: #fff8e1;">
+                        <td style="padding-left: 20px;">Einnahmen</td>
+                        <td class="center" style="font-size: 7.5pt; color: #888;">{{ (hausgeldAbgrenzung ? hausgeldAbgrenzung.anzahl_einnahmen : 0) + (ruecklageAbgrenzung ? ruecklageAbgrenzung.anzahl_einnahmen : 0) }} Buchungen</td>
+                        <td class="amount" style="color: #006600;">{{ hausgeldAbgrenzung ? (hausgeldAbgrenzung.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                        <td class="amount" style="color: #006600;">{{ ruecklageAbgrenzung ? (ruecklageAbgrenzung.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    </tr>
+                    <tr style="background-color: #fff8e1;">
+                        <td style="padding-left: 20px;">Ausgaben</td>
+                        <td class="center" style="font-size: 7.5pt; color: #888;">{{ (hausgeldAbgrenzung ? hausgeldAbgrenzung.anzahl_ausgaben : 0) + (ruecklageAbgrenzung ? ruecklageAbgrenzung.anzahl_ausgaben : 0) }} Buchungen</td>
+                        <td class="amount" style="color: #cc0000;">{{ hausgeldAbgrenzung ? (hausgeldAbgrenzung.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                        <td class="amount" style="color: #cc0000;">{{ ruecklageAbgrenzung ? (ruecklageAbgrenzung.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    </tr>
+                    {# Show expense details #}
+                    {% if hausgeldAbgrenzung and hausgeldAbgrenzung.ausgaben_by_kostenkonto|default({})|length > 0 %}
+                        {% for kostenkonto, betrag in hausgeldAbgrenzung.ausgaben_by_kostenkonto %}
+                            <tr style="background-color: #fffde7;">
+                                <td style="padding-left: 40px; font-size: 7.5pt; color: #777;">{{ kostenkonto }}</td>
+                                <td class="center"></td>
+                                <td class="amount" style="font-size: 7.5pt; color: #cc0000;">{{ betrag|number_format(2, ',', '.') }} €</td>
+                                <td class="amount"></td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                    <tr style="background-color: #fff8e1; border-top: 1px solid #ffcc80;">
+                        <td style="padding-left: 20px; font-weight: 600;">Saldo Abgrenzung {{ jahr }}</td>
+                        <td class="center"></td>
+                        <td class="amount" style="font-weight: 600;">{{ hausgeldAbgrenzung ? (hausgeldAbgrenzung.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                        <td class="amount" style="font-weight: 600;">{{ ruecklageAbgrenzung ? (ruecklageAbgrenzung.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    </tr>
+                {% endfor %}
+
+                <tr style="background-color: #ffe0b2; border-top: 2px solid #ff9800;">
+                    <td style="font-weight: 600; padding-top: 5px;">Gesamt Abgrenzung</td>
+                    <td class="center" style="font-size: 7.5pt; color: #666; padding-top: 5px;">
+                        {% set totalAbgrenzungBuchungen = (hasAbgrenzungHausgeld ? data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.gesamt.anzahl_gesamt : 0) + (hasAbgrenzungRuecklage ? data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung.gesamt.anzahl_gesamt : 0) %}
+                        {{ totalAbgrenzungBuchungen }} Buchungen
+                    </td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ hasAbgrenzungHausgeld ? (data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ hasAbgrenzungRuecklage ? (data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                </tr>
+                {% endif %}
+
+                {# ========== ABSTIMMUNG (Bank reconciliation with FULL period) ========== #}
                 <tr class="subtotal" style="border-top: 2px solid #999;">
-                    <td colspan="4" style="font-size: 9pt; padding-top: 8px;"><strong>Abstimmung</strong></td>
+                    <td colspan="4" style="font-size: 9pt; padding-top: 8px;"><strong>Abstimmung (bis Stichtag)</strong></td>
                 </tr>
                 <tr>
                     <td style="padding-left: 15px;">Kontostand Beginn</td>
