@@ -405,32 +405,48 @@
                                             {{ form_widget(kontostandForm.year) }}
                                         </div>
                                         <div>
-                                            {{ form_label(kontostandForm.stichtagStart, 'Stichtag Start') }}
-                                            {{ form_widget(kontostandForm.stichtagStart) }}
-                                            <p class="mt-1 text-xs text-gray-500">Anfang Abrechnungsjahr</p>
-                                        </div>
-                                        <div>
-                                            {{ form_label(kontostandForm.stichtagEnd, 'Stichtag Ende') }}
-                                            {{ form_widget(kontostandForm.stichtagEnd) }}
-                                            <p class="mt-1 text-xs text-gray-500">Kann über Jahresgrenze gehen</p>
-                                        </div>
-                                        <div>
-                                            {{ form_label(kontostandForm.saldoStart, 'Saldo am Stichtag Start (€)') }}
-                                            {{ form_widget(kontostandForm.saldoStart) }}
-                                            <p class="mt-1 text-xs text-gray-500">Aus Bankauszug</p>
-                                        </div>
-                                        <div>
-                                            {{ form_label(kontostandForm.saldoEnd, 'Saldo am Stichtag Ende (€)') }}
-                                            {{ form_widget(kontostandForm.saldoEnd) }}
-                                            <p class="mt-1 text-xs text-gray-500">Aus Bankauszug</p>
-                                        </div>
-                                        <div>
                                             {{ form_label(kontostandForm.bankkontoTyp, 'Bankkonto-Typ') }}
                                             {{ form_widget(kontostandForm.bankkontoTyp) }}
                                         </div>
                                         <div>
                                             {{ form_label(kontostandForm.bemerkung, 'Bemerkung (optional)') }}
                                             {{ form_widget(kontostandForm.bemerkung) }}
+                                        </div>
+                                    </div>
+                                    <hr class="my-4 border-gray-200">
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Start</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            {{ form_label(kontostandForm.stichtagStart, 'Datum') }}
+                                            {{ form_widget(kontostandForm.stichtagStart) }}
+                                        </div>
+                                        <div>
+                                            {{ form_label(kontostandForm.saldoStart, 'Saldo (€)') }}
+                                            {{ form_widget(kontostandForm.saldoStart) }}
+                                        </div>
+                                    </div>
+                                    <hr class="my-4 border-gray-200">
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Periodenende (BGH)</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            {{ form_label(kontostandForm.stichtagEndPeriode, 'Datum') }}
+                                            {{ form_widget(kontostandForm.stichtagEndPeriode) }}
+                                        </div>
+                                        <div>
+                                            {{ form_label(kontostandForm.saldoEndPeriode, 'Saldo (€)') }}
+                                            {{ form_widget(kontostandForm.saldoEndPeriode) }}
+                                        </div>
+                                    </div>
+                                    <hr class="my-4 border-gray-200">
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Stichtag Bankauszug</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            {{ form_label(kontostandForm.stichtagEnd, 'Datum') }}
+                                            {{ form_widget(kontostandForm.stichtagEnd) }}
+                                        </div>
+                                        <div>
+                                            {{ form_label(kontostandForm.saldoEnd, 'Saldo (€)') }}
+                                            {{ form_widget(kontostandForm.saldoEnd) }}
                                         </div>
                                     </div>
                                     <div class="mt-6 flex items-center justify-end gap-2">
@@ -462,31 +478,35 @@
                                 <table class="w-full text-sm text-left text-gray-500">
                                     <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                                         <tr>
-                                            <th scope="col" class="px-6 py-3">Jahr</th>
-                                            <th scope="col" class="px-6 py-3">Konto-Typ</th>
-                                            <th scope="col" class="px-6 py-3">Stichtag Start</th>
-                                            <th scope="col" class="px-6 py-3">Stichtag Ende</th>
-                                            <th scope="col" class="px-6 py-3 text-right">Saldo Start</th>
-                                            <th scope="col" class="px-6 py-3 text-right">Saldo Ende</th>
-                                            <th scope="col" class="px-6 py-3">Bemerkung</th>
-                                            <th scope="col" class="px-6 py-3 text-center">Aktionen</th>
+                                            <th scope="col" class="px-4 py-3">Jahr</th>
+                                            <th scope="col" class="px-4 py-3">Typ</th>
+                                            <th scope="col" class="px-4 py-3">Start</th>
+                                            <th scope="col" class="px-4 py-3 text-right">Saldo Start</th>
+                                            <th scope="col" class="px-4 py-3">Periodenende</th>
+                                            <th scope="col" class="px-4 py-3 text-right">Saldo Periode</th>
+                                            <th scope="col" class="px-4 py-3">Stichtag</th>
+                                            <th scope="col" class="px-4 py-3 text-right">Saldo Stichtag</th>
+                                            <th scope="col" class="px-4 py-3">Bemerkung</th>
+                                            <th scope="col" class="px-4 py-3 text-center">Aktionen</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {% for kontostand in kontostaende %}
                                             <tr class="bg-white border-b hover:bg-gray-50">
-                                                <td class="px-6 py-4">{{ kontostand.year }}</td>
-                                                <td class="px-6 py-4">
+                                                <td class="px-4 py-4">{{ kontostand.year }}</td>
+                                                <td class="px-4 py-4">
                                                     <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ kontostand.bankkontoTyp == 'hausgeld' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
                                                         {{ kontostand.bankkontoTyp|capitalize }}
                                                     </span>
                                                 </td>
-                                                <td class="px-6 py-4">{{ kontostand.stichtagStart|date('d.m.Y') }}</td>
-                                                <td class="px-6 py-4">{{ kontostand.stichtagEnd|date('d.m.Y') }}</td>
-                                                <td class="px-6 py-4 text-right font-mono whitespace-nowrap">{{ kontostand.saldoStart|number_format(2, ',', '.') }} €</td>
-                                                <td class="px-6 py-4 text-right font-mono whitespace-nowrap">{{ kontostand.saldoEnd|number_format(2, ',', '.') }} €</td>
-                                                <td class="px-6 py-4 max-w-xs truncate">{{ kontostand.bemerkung }}</td>
-                                                <td class="px-6 py-4 text-center">
+                                                <td class="px-4 py-4">{{ kontostand.stichtagStart|date('d.m.Y') }}</td>
+                                                <td class="px-4 py-4 text-right font-mono whitespace-nowrap">{{ kontostand.saldoStart|number_format(2, ',', '.') }} €</td>
+                                                <td class="px-4 py-4">{{ kontostand.stichtagEndPeriode ? kontostand.stichtagEndPeriode|date('d.m.Y') : '-' }}</td>
+                                                <td class="px-4 py-4 text-right font-mono whitespace-nowrap">{{ kontostand.saldoEndPeriode is not null ? kontostand.saldoEndPeriode|number_format(2, ',', '.') ~ ' €' : '-' }}</td>
+                                                <td class="px-4 py-4">{{ kontostand.stichtagEnd|date('d.m.Y') }}</td>
+                                                <td class="px-4 py-4 text-right font-mono whitespace-nowrap">{{ kontostand.saldoEnd|number_format(2, ',', '.') }} €</td>
+                                                <td class="px-4 py-4 max-w-xs truncate">{{ kontostand.bemerkung }}</td>
+                                                <td class="px-4 py-4 text-center">
                                                     <div class="flex items-center justify-center gap-2">
                                                         <button type="button"
                                                                 class="rounded-lg p-2 text-blue-600 hover:bg-blue-50"
@@ -547,32 +567,48 @@
                                                     {{ form_widget(editForm.year) }}
                                                 </div>
                                                 <div>
-                                                    {{ form_label(editForm.stichtagStart, 'Stichtag Start') }}
-                                                    {{ form_widget(editForm.stichtagStart) }}
-                                                    <p class="mt-1 text-xs text-gray-500">Anfang Abrechnungsjahr</p>
-                                                </div>
-                                                <div>
-                                                    {{ form_label(editForm.stichtagEnd, 'Stichtag Ende') }}
-                                                    {{ form_widget(editForm.stichtagEnd) }}
-                                                    <p class="mt-1 text-xs text-gray-500">Kann über Jahresgrenze gehen</p>
-                                                </div>
-                                                <div>
-                                                    {{ form_label(editForm.saldoStart, 'Saldo am Stichtag Start (€)') }}
-                                                    {{ form_widget(editForm.saldoStart) }}
-                                                    <p class="mt-1 text-xs text-gray-500">Aus Bankauszug</p>
-                                                </div>
-                                                <div>
-                                                    {{ form_label(editForm.saldoEnd, 'Saldo am Stichtag Ende (€)') }}
-                                                    {{ form_widget(editForm.saldoEnd) }}
-                                                    <p class="mt-1 text-xs text-gray-500">Aus Bankauszug</p>
-                                                </div>
-                                                <div>
                                                     {{ form_label(editForm.bankkontoTyp, 'Bankkonto-Typ') }}
                                                     {{ form_widget(editForm.bankkontoTyp) }}
                                                 </div>
                                                 <div>
                                                     {{ form_label(editForm.bemerkung, 'Bemerkung (optional)') }}
                                                     {{ form_widget(editForm.bemerkung) }}
+                                                </div>
+                                            </div>
+                                            <hr class="my-4 border-gray-200">
+                                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Start</p>
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    {{ form_label(editForm.stichtagStart, 'Datum') }}
+                                                    {{ form_widget(editForm.stichtagStart) }}
+                                                </div>
+                                                <div>
+                                                    {{ form_label(editForm.saldoStart, 'Saldo (€)') }}
+                                                    {{ form_widget(editForm.saldoStart) }}
+                                                </div>
+                                            </div>
+                                            <hr class="my-4 border-gray-200">
+                                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Periodenende (BGH)</p>
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    {{ form_label(editForm.stichtagEndPeriode, 'Datum') }}
+                                                    {{ form_widget(editForm.stichtagEndPeriode) }}
+                                                </div>
+                                                <div>
+                                                    {{ form_label(editForm.saldoEndPeriode, 'Saldo (€)') }}
+                                                    {{ form_widget(editForm.saldoEndPeriode) }}
+                                                </div>
+                                            </div>
+                                            <hr class="my-4 border-gray-200">
+                                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Stichtag Bankauszug</p>
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    {{ form_label(editForm.stichtagEnd, 'Datum') }}
+                                                    {{ form_widget(editForm.stichtagEnd) }}
+                                                </div>
+                                                <div>
+                                                    {{ form_label(editForm.saldoEnd, 'Saldo (€)') }}
+                                                    {{ form_widget(editForm.saldoEnd) }}
                                                 </div>
                                             </div>
                                             <div class="mt-6 flex items-center justify-end gap-2">

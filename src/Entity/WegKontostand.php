@@ -29,11 +29,17 @@ class WegKontostand
     #[ORM\Column(type: Types::DATE_MUTABLE)]
     private ?\DateTimeInterface $stichtagStart = null;
 
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $stichtagEndPeriode = null;
+
     #[ORM\Column(type: Types::DATE_MUTABLE)]
     private ?\DateTimeInterface $stichtagEnd = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     private ?string $saldoStart = null;
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
+    private ?string $saldoEndPeriode = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     private ?string $saldoEnd = null;
@@ -140,6 +146,30 @@ class WegKontostand
     public function setSaldoStart(string $saldoStart): static
     {
         $this->saldoStart = $saldoStart;
+
+        return $this;
+    }
+
+    public function getStichtagEndPeriode(): ?\DateTimeInterface
+    {
+        return $this->stichtagEndPeriode;
+    }
+
+    public function setStichtagEndPeriode(?\DateTimeInterface $stichtagEndPeriode): static
+    {
+        $this->stichtagEndPeriode = $stichtagEndPeriode;
+
+        return $this;
+    }
+
+    public function getSaldoEndPeriode(): ?string
+    {
+        return $this->saldoEndPeriode;
+    }
+
+    public function setSaldoEndPeriode(?string $saldoEndPeriode): static
+    {
+        $this->saldoEndPeriode = $saldoEndPeriode;
 
         return $this;
     }

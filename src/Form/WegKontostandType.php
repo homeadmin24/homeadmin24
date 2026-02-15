@@ -41,9 +41,7 @@ class WegKontostandType extends AbstractType
                 'label' => 'Bankkonto-Typ',
                 'choices' => [
                     'Hausgeld' => 'hausgeld',
-                    'Hausgeld (Stichtag)' => 'hausgeld_stichtag',
                     'Rücklage' => 'ruecklage',
-                    'Rücklage (Stichtag)' => 'ruecklage_stichtag',
                 ],
                 'required' => true,
                 'attr' => [
@@ -51,25 +49,16 @@ class WegKontostandType extends AbstractType
                 ],
             ])
             ->add('stichtagStart', DateType::class, [
-                'label' => 'Stichtag Start (Anfang Abrechnungsjahr)',
+                'label' => 'Stichtag Start',
                 'widget' => 'single_text',
                 'required' => true,
                 'attr' => [
                     'class' => 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5',
                 ],
-                'help' => 'Üblich: 01.01.{Jahr} - Anfang des Abrechnungsjahres',
-            ])
-            ->add('stichtagEnd', DateType::class, [
-                'label' => 'Stichtag Ende (kann über Jahresgrenze gehen)',
-                'widget' => 'single_text',
-                'required' => true,
-                'attr' => [
-                    'class' => 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5',
-                ],
-                'help' => 'z.B. 14.01.{Jahr+1} wenn Stichtag nach Jahreswechsel liegt',
+                'help' => 'Anfang des Abrechnungsjahres (z.B. 01.01.)',
             ])
             ->add('saldoStart', MoneyType::class, [
-                'label' => 'Saldo am Stichtag Start (aus Bankauszug)',
+                'label' => 'Saldo am Start',
                 'currency' => 'EUR',
                 'required' => true,
                 'attr' => [
@@ -77,14 +66,41 @@ class WegKontostandType extends AbstractType
                 ],
                 'help' => 'Kontostand zu Beginn des Abrechnungsjahres',
             ])
+            ->add('stichtagEndPeriode', DateType::class, [
+                'label' => 'Periodenende',
+                'widget' => 'single_text',
+                'required' => false,
+                'attr' => [
+                    'class' => 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5',
+                ],
+                'help' => 'Ende des Abrechnungszeitraums (z.B. 30.12.)',
+            ])
+            ->add('saldoEndPeriode', MoneyType::class, [
+                'label' => 'Saldo am Periodenende',
+                'currency' => 'EUR',
+                'required' => false,
+                'attr' => [
+                    'class' => 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5',
+                ],
+                'help' => 'Kontostand am Periodenende (BGH-Stichtag)',
+            ])
+            ->add('stichtagEnd', DateType::class, [
+                'label' => 'Stichtag Bankauszug',
+                'widget' => 'single_text',
+                'required' => true,
+                'attr' => [
+                    'class' => 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5',
+                ],
+                'help' => 'Datum des Bankauszugs (kann über Jahresgrenze gehen)',
+            ])
             ->add('saldoEnd', MoneyType::class, [
-                'label' => 'Saldo am Stichtag Ende (aus Bankauszug)',
+                'label' => 'Saldo am Stichtag Bankauszug',
                 'currency' => 'EUR',
                 'required' => true,
                 'attr' => [
                     'class' => 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5',
                 ],
-                'help' => 'Tatsächlicher Kontostand am Stichtag Ende',
+                'help' => 'Tatsächlicher Kontostand laut Bankauszug',
             ])
             ->add('bemerkung', TextareaType::class, [
                 'label' => 'Bemerkung (optional)',

@@ -316,103 +316,16 @@
         <small>Rechtsgrundlage: {{ data.calculationMethod.legalBasis }}</small>
     </div>
 
-    <div class="section allow-break">
-        <div class="section-title">Umlageergebnis {{ data.calculationMethod.name }}</div>
-
-        <div style="margin-bottom: 20px;">
-            <h3>Umlagefähige Betriebskosten</h3>
-            <table class="cost-table">
-                <thead>
-                    <tr>
-                        <th>Kostenart</th>
-                        <th style="text-align: center;">Umlageschlüssel</th>
-                        <th style="text-align: right;">Gesamtkosten</th>
-                        <th style="text-align: right;">Ihr Anteil</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if data.external_costs %}
-                    <tr class="subtotal">
-                        <td colspan="4"><strong>HEIZUNG/WASSER/ABRECHNUNG:</strong></td>
-                    </tr>
-                    <tr>
-                        <td>ext. berechn. Heizkosten</td>
-                        <td style="text-align: center;">01*</td>
-                        <td class="amount">{{ data.external_costs.heating.total|default(0)|number_format(2, ',', '.') }} €</td>
-                        <td class="amount">{{ data.external_costs.heating.unit_share|default(0)|number_format(2, ',', '.') }} €</td>
-                    </tr>
-                    <tr>
-                        <td>ext. berechn. Wasser-/sonst. Kosten</td>
-                        <td style="text-align: center;">01*</td>
-                        <td class="amount">{{ data.external_costs.water.total|default(0)|number_format(2, ',', '.') }} €</td>
-                        <td class="amount">{{ data.external_costs.water.unit_share|default(0)|number_format(2, ',', '.') }} €</td>
-                    </tr>
-                    <tr class="subtotal">
-                        <td colspan="2">Zwischensumme: Heizung/Wasser/Abrechnung</td>
-                        <td class="amount">{{ ((data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0)))|number_format(2, ',', '.') }} €</td>
-                        <td class="amount">{{ ((data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0)))|number_format(2, ',', '.') }} €</td>
-                    </tr>
-                    <tr class="subtotal">
-                        <td colspan="4"><strong>SONSTIGE UMLAGEFÄHIGE KOSTEN:</strong></td>
-                    </tr>
-                    {% endif %}
-
-                    {% for item in data.costs.umlagefaehig.items|default([]) %}
-                    {% if item.total|default(0) > 0 %}
-                    <tr>
-                        <td>{{ item.kostenkonto }} - {{ item.beschreibung }}</td>
-                        <td style="text-align: center;">{{ item.verteilungsschluessel|default('05*') }}</td>
-                        <td class="amount">{{ item.total|number_format(2, ',', '.') }} €</td>
-                        <td class="amount">{{ item.anteil|number_format(2, ',', '.') }} €</td>
-                    </tr>
-                    {% endif %}
-                    {% endfor %}
-
-                    {% set sonstigeTotal = 0 %}
-                    {% set sonstigeAnteil = 0 %}
-                    {% for item in data.costs.umlagefaehig.items|default([]) %}
-                        {% if item.total|default(0) > 0 %}
-                        {% set sonstigeTotal = sonstigeTotal + item.total %}
-                        {% set sonstigeAnteil = sonstigeAnteil + item.anteil %}
-                        {% endif %}
-                    {% endfor %}
-
-                    <tr class="subtotal">
-                        <td colspan="2">Zwischensumme: Sonstige</td>
-                        <td class="amount">{{ sonstigeTotal|number_format(2, ',', '.') }} €</td>
-                        <td class="amount">{{ sonstigeAnteil|number_format(2, ',', '.') }} €</td>
-                    </tr>
-
-                    {% set totalUmlagefaehigWeg = ((data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0))) + sonstigeTotal %}
-                    {% set totalUmlagefaehigUnit = ((data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0))) + sonstigeAnteil %}
-
-                    <tr class="total">
-                        <td colspan="2">SUMME: Umlagefähige Betriebskosten</td>
-                        <td class="amount">{{ totalUmlagefaehigWeg|number_format(2, ',', '.') }} €</td>
-                        <td class="amount">{{ totalUmlagefaehigUnit|number_format(2, ',', '.') }} €</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        {# Abrechnungsergebnis #}
-        <div style="margin-top: 20px; border-top: 3px solid #333; padding-top: 10px;">
-            <table class="cost-table">
-                <tbody>
-                    <tr>
-                        <td style="width: 60%;"><strong>Ihre Betriebskosten:</strong></td>
-                        <td class="amount"><strong>{{ totalUmlagefaehigUnit|number_format(2, ',', '.') }} €</strong></td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="result-box" style="margin-top: 15px;">
-                <div class="result-text">
-                    Ihre umlagefähigen Betriebskosten {{ data.year }}: {{ totalUmlagefaehigUnit|number_format(2, ',', '.') }} €
-                </div>
-            </div>
-        </div>
-    </div>
+    {% include 'hga/_mieter_umlageergebnis.html.twig' with {
+        section_class: 'section allow-break',
+        title: 'Umlageergebnis ' ~ data.calculationMethod.name,
+        subtitle: '',
+        year: data.year,
+        cost_items: data.costs.umlagefaehig.items|default([]),
+        external_costs: data.external_costs,
+        show_heading: true,
+        show_result: true
+    } only %}
 
     {# ==================== PAGE 2: §35a EStG ==================== #}
     {% if data.tax_deductible.items|default([]) %}
@@ -437,50 +350,7 @@
             </div>
             {% endif %}
         </div>
-        <div class="tax-section">
-            <div class="section-title">Steuerbegünstigte Leistungen nach §35a EStG</div>
-            <table class="tax-table">
-                <thead>
-                    <tr>
-                        <th>Handwerkerleistungen</th>
-                        <th>Gesamtkosten</th>
-                        <th>anrechenbar</th>
-                        <th>Ihr Anteil (Kosten)</th>
-                        <th>Ihr Anteil (anrechenbar)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in data.tax_deductible.items %}
-                    <tr>
-                        <td class="label">{{ item.kostenkonto }} - {{ item.beschreibung }} {{ item.verteilungsschluessel }}</td>
-                        <td class="amount">{{ item.gesamtkosten|number_format(2, ',', '.') }} €</td>
-                        <td class="amount">{{ item.anrechenbar|number_format(2, ',', '.') }} €</td>
-                        <td class="amount">{{ item.anteil_kosten|number_format(2, ',', '.') }} €</td>
-                        <td class="amount">{{ item.anteil_anrechenbar|number_format(2, ',', '.') }} €</td>
-                    </tr>
-                    {% endfor %}
-                    <tr class="total">
-                        <td class="label"><strong>SUMME Handwerkerleistungen</strong></td>
-                        {% set totalGesamtkosten = data.tax_deductible.items|reduce((sum, item) => sum + item.gesamtkosten, 0) %}
-                        {% set totalAnrechenbar = data.tax_deductible.items|reduce((sum, item) => sum + item.anrechenbar, 0) %}
-                        {% set totalAnteilKosten = data.tax_deductible.items|reduce((sum, item) => sum + item.anteil_kosten, 0) %}
-                        <td class="amount"><strong>{{ totalGesamtkosten|number_format(2, ',', '.') }} €</strong></td>
-                        <td class="amount"><strong>{{ totalAnrechenbar|number_format(2, ',', '.') }} €</strong></td>
-                        <td class="amount"><strong>{{ totalAnteilKosten|number_format(2, ',', '.') }} €</strong></td>
-                        <td class="amount"><strong>{{ data.tax_deductible.total_anrechenbar|number_format(2, ',', '.') }} €</strong></td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div style="margin-top: 10px; padding: 8px; background-color: #f5f5f5; border-left: 4px solid #333;">
-                <strong>Ihr steuerlich absetzbarer Betrag (100% der Arbeits-/Fahrtkosten inkl. MwSt.): {{ data.tax_deductible.total_anrechenbar|number_format(2, ',', '.') }} EUR</strong>
-            </div>
-
-            <div style="margin-top: 8px; font-size: 8pt; color: #333;">
-                <strong>HINWEIS:</strong> Diese Beträge können Sie in Ihrer Steuererklärung als haushaltsnahe
-                Dienstleistungen geltend machen (20% davon, max. 1.200 EUR Steuerermäßigung pro Jahr).
-            </div>
-        </div>
+        {% include 'hga/_tax_35a_content.html.twig' with { tax_deductible: data.tax_deductible } only %}
     </div>
     {% endif %}
 

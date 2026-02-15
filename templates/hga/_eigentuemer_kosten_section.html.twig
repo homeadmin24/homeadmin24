@@ -1,0 +1,153 @@
+    <!-- PAGE 2: KOSTENÜBERSICHT -->
+    <div class="section page-break">
+        <div class="page-header">
+            Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
+        </div>
+
+        <div class="section-title" style="display: flex; justify-content: space-between; align-items: baseline; padding: 4px 5px; margin-bottom: 6px;">
+            <span>Umlageergebnis für Eigentümer {% if data.calculationMethod is defined %}{{ data.calculationMethod.periodLabel }}{% else %}{{ data.year }}{% endif %}</span>
+            <span style="font-size: 7.5pt; color: #666; font-weight: normal; white-space: nowrap; margin-left: 10px;">Zufluss-/Abfluss-Prinzip · {% if data.calculationMethod is defined %}{{ data.calculationMethod.legalBasis }}{% else %}BGH V ZR 271/12{% endif %}</span>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <h3>1. Umlagefähige Kosten</h3>
+        <table class="cost-table">
+            <thead>
+                <tr>
+                    <th>Kostenart</th>
+                    <th style="text-align: center;">Umlageschlüssel</th>
+                    <th style="text-align: right;">Gesamtkosten</th>
+                    <th style="text-align: right;">Ihr Anteil</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if data.external_costs %}
+                <tr class="subtotal">
+                    <td colspan="4"><strong>HEIZUNG/WASSER/ABRECHNUNG:</strong></td>
+                </tr>
+                <tr>
+                    <td>ext. berechn. Heizkosten</td>
+                    <td style="text-align: center;">01*</td>
+                    <td class="amount">{{ data.external_costs.heating.total|default(0)|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ data.external_costs.heating.unit_share|default(0)|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr>
+                    <td>ext. berechn. Wasser-/sonst. Kosten</td>
+                    <td style="text-align: center;">01*</td>
+                    <td class="amount">{{ data.external_costs.water.total|default(0)|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ data.external_costs.water.unit_share|default(0)|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr class="subtotal">
+                    <td colspan="2">Zwischensumme: Heizung/Wasser/Abrechnung</td>
+                    <td class="amount">{{ ((data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0)))|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ ((data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0)))|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr class="subtotal">
+                    <td colspan="4"><strong>SONSTIGE UMLAGEFÄHIGE KOSTEN:</strong></td>
+                </tr>
+                {% endif %}
+                
+                {% for item in data.costs_eigentuemer.umlagefaehig.items|default([]) %}
+                {% if item.total|default(0) > 0 %}
+                <tr>
+                    <td>{{ item.kostenkonto }} - {{ item.beschreibung }}</td>
+                    <td style="text-align: center;">{{ item.verteilungsschluessel|default('05*') }}</td>
+                    <td class="amount">{{ item.total|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ item.anteil|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+
+                {% set sonstigeTotal = 0 %}
+                {% set sonstigeAnteil = 0 %}
+                {% for item in data.costs_eigentuemer.umlagefaehig.items|default([]) %}
+                    {% if item.total|default(0) > 0 %}
+                    {% set sonstigeTotal = sonstigeTotal + item.total %}
+                    {% set sonstigeAnteil = sonstigeAnteil + item.anteil %}
+                    {% endif %}
+                {% endfor %}
+
+                <tr class="subtotal">
+                    <td colspan="2">Zwischensumme: Sonstige</td>
+                    <td class="amount">{{ sonstigeTotal|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ sonstigeAnteil|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr class="total">
+                    <td colspan="2">SUMME: umlagefähig</td>
+                    <td class="amount">{{ (((data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0))) + sonstigeTotal)|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ (((data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0))) + sonstigeAnteil)|number_format(2, ',', '.') }} €</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+        <div style="margin-top: 15px; margin-bottom: 20px;">
+            <h3>2. Nicht umlagefähige Kosten</h3>
+        <table class="cost-table">
+            <thead>
+                <tr>
+                    <th>Kostenart</th>
+                    <th style="text-align: center;">Umlageschlüssel</th>
+                    <th style="text-align: right;">Gesamtkosten</th>
+                    <th style="text-align: right;">Ihr Anteil</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set nichtUmlagefaehigTotal = 0 %}
+                {% set nichtUmlagefaehigAnteil = 0 %}
+                {% for item in data.costs_eigentuemer.nicht_umlagefaehig.items|default([]) %}
+                <tr>
+                    <td>{{ item.kostenkonto }} - {{ item.beschreibung }}</td>
+                    <td style="text-align: center;">{{ item.verteilungsschluessel|default('05*') }}</td>
+                    <td class="amount">{{ item.total|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ item.anteil|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set nichtUmlagefaehigTotal = nichtUmlagefaehigTotal + item.total %}
+                {% set nichtUmlagefaehigAnteil = nichtUmlagefaehigAnteil + item.anteil %}
+                {% endfor %}
+                <tr class="total">
+                    <td colspan="2">SUMME: nicht umlagefähig</td>
+                    <td class="amount">{{ nichtUmlagefaehigTotal|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ nichtUmlagefaehigAnteil|number_format(2, ',', '.') }} €</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+        {# Rücklagen are shown in ZAHLUNGSÜBERSICHT, not here (BGH V ZR 44/09) #}
+
+        <!-- Final cost summary -->
+        {% set finalWegUmlagefaehig = ((data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0))) + 0 %}
+        {% for item in data.costs_eigentuemer.umlagefaehig.items|default([]) %}
+            {% set finalWegUmlagefaehig = finalWegUmlagefaehig + item.total %}
+        {% endfor %}
+
+        {% set finalUnitUmlagefaehig = ((data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0))) + 0 %}
+        {% for item in data.costs_eigentuemer.umlagefaehig.items|default([]) %}
+            {% set finalUnitUmlagefaehig = finalUnitUmlagefaehig + item.anteil %}
+        {% endfor %}
+        
+        {% set finalWegNichtUmlagefaehig = 0 %}
+        {% for item in data.costs_eigentuemer.nicht_umlagefaehig.items|default([]) %}
+            {% set finalWegNichtUmlagefaehig = finalWegNichtUmlagefaehig + item.total %}
+        {% endfor %}
+
+        {% set finalUnitNichtUmlagefaehig = 0 %}
+        {% for item in data.costs_eigentuemer.nicht_umlagefaehig.items|default([]) %}
+            {% set finalUnitNichtUmlagefaehig = finalUnitNichtUmlagefaehig + item.anteil %}
+        {% endfor %}
+        
+        {# Use centralized calculated_totals from HgaService (BGH V ZR 44/09 compliant) #}
+
+        <div style="margin-top: 20px; border-top: 3px solid #333; padding-top: 10px;">
+            <table class="cost-table">
+                <tbody>
+                    <tr class="total" style="font-size: 11pt;">
+                        <td colspan="2" style="font-weight: bold; background-color: #f0f0f0;">GESAMTSUMME ALLER KOSTEN</td>
+                        <td class="amount" style="font-weight: bold; background-color: #f0f0f0;">{{ calc.weg.gesamtkosten|number_format(2, ',', '.') }} €</td>
+                        <td class="amount" style="font-weight: bold; background-color: #f0f0f0;">{{ calc.unit.gesamtkosten|number_format(2, ',', '.') }} €</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>

@@ -1,0 +1,200 @@
+    {% if data.wirtschaftsplan %}
+    <div class="section allow-break page-break">
+        <div class="page-header">
+            Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
+        </div>
+        {% set planYear = data.year + 1 %}
+        <div class="section-title">Wirtschaftsplan {{ planYear }}</div>
+        
+        <h3 style="margin-top: 20px;">Wirtschaftsplan {{ planYear }} - Geplante Ausgaben:</h3>
+        
+        <h4>1. Umlagefähige Kosten (auf Mieter umlegbar):</h4>
+        <table class="cost-table" style="width: 100%;">
+            <colgroup>
+                <col style="width: auto;">
+                <col style="width: 120px;">
+            </colgroup>
+            <tbody>
+                {% set umlagefaehigTotal = 0 %}
+                {% set currentUmlageSection = '' %}
+                {% set planNotesByIndex = {} %}
+                {% set planNoteIndexList = [] %}
+                {% set planNotesValues = [] %}
+                {% set superscripts = {1:'¹',2:'²',3:'³',4:'⁴',5:'⁵',6:'⁶',7:'⁷',8:'⁸',9:'⁹'} %}
+                {# Build note index map using explicit indices only #}
+                {% for expense in data.wirtschaftsplan.planned_expenses.umlagefaehig|default([]) %}
+                    {% set note = expense.notes|default('') %}
+                    {% set noteIndex = expense.note_index|default(0) %}
+                    {% if note and noteIndex > 0 and note not in planNotesValues %}
+                        {% set planNotesByIndex = planNotesByIndex|merge({ ('n' ~ noteIndex): note }) %}
+                        {% set planNoteIndexList = planNoteIndexList|merge([noteIndex]) %}
+                        {% set planNotesValues = planNotesValues|merge([note]) %}
+                    {% endif %}
+                {% endfor %}
+                {% for expense in data.wirtschaftsplan.planned_expenses.nicht_umlagefaehig|default([]) %}
+                    {% set note = expense.notes|default('') %}
+                    {% set noteIndex = expense.note_index|default(0) %}
+                    {% if note and noteIndex > 0 and note not in planNotesValues %}
+                        {% set planNotesByIndex = planNotesByIndex|merge({ ('n' ~ noteIndex): note }) %}
+                        {% set planNoteIndexList = planNoteIndexList|merge([noteIndex]) %}
+                        {% set planNotesValues = planNotesValues|merge([note]) %}
+                    {% endif %}
+                {% endfor %}
+                {% for expense in data.wirtschaftsplan.planned_expenses.umlagefaehig|default([]) %}
+                {% set section = expense.section|default('Laufende Kosten') %}
+                {% if section != currentUmlageSection %}
+                <tr class="subtotal">
+                    <td colspan="2"><strong>{{ section }}</strong></td>
+                </tr>
+                {% set currentUmlageSection = section %}
+                {% endif %}
+                {% set noteIndex = expense.note_index|default(0) %}
+                <tr>
+                    <td>{{ expense.name|default('Unbekannt') }}{% if noteIndex %}{{ superscripts[noteIndex]|default('') }}{% endif %}</td>
+                    <td class="amount">{{ expense.amount|default(0)|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set includeInTotal = expense.include_in_total is defined ? expense.include_in_total : true %}
+                {% if includeInTotal %}
+                    {% set umlagefaehigTotal = umlagefaehigTotal + expense.amount|default(0) %}
+                {% endif %}
+                {% endfor %}
+                <tr class="subtotal">
+                    <td>Zwischensumme umlagefähig:</td>
+                    <td class="amount">{{ umlagefaehigTotal|number_format(2, ',', '.') }} €</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h4>2. Nicht umlagefähige Kosten:</h4>
+        <table class="cost-table" style="width: 100%;">
+            <colgroup>
+                <col style="width: auto;">
+                <col style="width: 120px;">
+            </colgroup>
+            <tbody>
+                {% set nichtUmlagefaehigTotal = 0 %}
+                {% set currentNichtSection = '' %}
+                {% for expense in data.wirtschaftsplan.planned_expenses.nicht_umlagefaehig|default([]) %}
+                {% set section = expense.section|default('Laufende Kosten') %}
+                {% if section != currentNichtSection %}
+                <tr class="subtotal">
+                    <td colspan="2"><strong>{{ section }}</strong></td>
+                </tr>
+                {% set currentNichtSection = section %}
+                {% endif %}
+                {% set noteIndex = expense.note_index|default(0) %}
+                <tr>
+                    <td>{{ expense.name|default('Unbekannt') }}{% if noteIndex %}{{ superscripts[noteIndex]|default('') }}{% endif %}</td>
+                    <td class="amount">{{ expense.amount|default(0)|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set includeInTotal = expense.include_in_total is defined ? expense.include_in_total : true %}
+                {% if includeInTotal %}
+                    {% set nichtUmlagefaehigTotal = nichtUmlagefaehigTotal + expense.amount|default(0) %}
+                {% endif %}
+                {% endfor %}
+                <tr class="subtotal">
+                    <td>Zwischensumme nicht umlagefähig:</td>
+                    <td class="amount">{{ nichtUmlagefaehigTotal|number_format(2, ',', '.') }} €</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <table class="cost-table" style="margin-top: 15px; width: 100%;">
+            <colgroup>
+                <col style="width: auto;">
+                <col style="width: 120px;">
+            </colgroup>
+            <tbody>
+                <tr class="total" style="font-size: 10pt;">
+                    <td><strong>GESAMTAUSGABEN {{ planYear }}:</strong></td>
+                    <td class="amount"><strong>{{ (umlagefaehigTotal + nichtUmlagefaehigTotal)|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+                {% set noteIndices = planNoteIndexList|sort %}
+                {% for index in noteIndices %}
+                <tr>
+                    <td colspan="2" style="font-size: 8pt; color: #555; padding-top: 4px;">
+                        [{{ index }}] {{ planNotesByIndex['n' ~ index] }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <h3 style="margin-top: 20px;">Geplante Einnahmen {{ planYear }}:</h3>
+        <table class="cost-table" style="width: 100%;">
+            <colgroup>
+                <col style="width: auto;">
+                <col style="width: 120px;">
+            </colgroup>
+            <tbody>
+                {% set monthlyTotal = data.wirtschaftsplan.planned_income.monthly_total_final|default(1500) %}
+                {% set previousYear = data.year %}
+                {% set nachzahlungenKey = 'nachzahlungen_' ~ previousYear %}
+                {% set nachzahlungen = attribute(data.wirtschaftsplan.planned_income, nachzahlungenKey)|default(0) %}
+                {% set yearlyVorschuesse = monthlyTotal * 12 %}
+                <tr>
+                    <td>Hausgeld-Vorschüsse (12 × {{ monthlyTotal|number_format(2, ',', '.') }} €)</td>
+                    <td class="amount">{{ yearlyVorschuesse|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr>
+                    <td>Nachzahlungen aus HGA {{ previousYear }}</td>
+                    <td class="amount">{{ nachzahlungen|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr class="subtotal">
+                    <td><strong>GESAMTEINNAHMEN {{ planYear }}:</strong></td>
+                    <td class="amount"><strong>{{ (yearlyVorschuesse + nachzahlungen)|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+                <tr class="total" style="font-size: 10pt;">
+                    <td><strong>SALDO (Einnahmen - Ausgaben):</strong></td>
+                    <td class="amount"><strong>{{ ((yearlyVorschuesse + nachzahlungen) - (umlagefaehigTotal + nichtUmlagefaehigTotal))|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h3 style="margin-top: 20px;">Hausgeld-Vorschuss {{ planYear }} - Ihr Anteil:</h3>
+        {% if '/' in data.einheit.mea %}
+            {% set meaParts = data.einheit.mea|split('/') %}
+            {% set mea = (meaParts[0] + 0) / (meaParts[1] + 0) %}
+        {% else %}
+            {% set mea = (data.einheit.mea + 0) / 1000 %}
+        {% endif %}
+        {% set meaPercent = (mea * 100)|round %}
+        {% set monthlyOwnerShare = monthlyTotal * mea %}
+        
+        <table class="cost-table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th style="width: 60%;"></th>
+                    <th style="text-align: center;">Gesamt WEG</th>
+                    <th style="text-align: center;">Ihr Anteil ({{ meaPercent }}%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Monatlicher Vorschuss WEG gesamt:</td>
+                    <td class="amount">{{ monthlyTotal|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ monthlyOwnerShare|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr class="subtotal">
+                    <td><strong>Ihr NEUER monatlicher Vorschuss:</strong></td>
+                    <td class="amount"></td>
+                    <td class="amount"><strong>{{ monthlyOwnerShare|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+                <tr>
+                    <td>Änderung pro Monat:</td>
+                    <td class="amount"></td>
+                    <td class="amount">0,00 €</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        {% if data.configuration.standard_texts.balance_notice|default(false) %}
+        <div style="margin-top: 15px; padding: 10px; background-color: #f5f5f5; border-left: 4px solid #888;">
+            <p style="margin: 0;">{{ data.configuration.standard_texts.balance_notice }}</p>
+            {% if data.configuration.standard_texts.balance_notice_2|default(false) %}
+            <p style="margin: 5px 0 0 0;">{{ data.configuration.standard_texts.balance_notice_2 }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}

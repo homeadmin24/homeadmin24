@@ -30,41 +30,30 @@ class KontostandCalculationService
      */
     public function calculateVermoegensabgrenzung(Weg $weg, int $year, string $bankkontoTyp = 'hausgeld'): array
     {
-        // Get regular type for period end (e.g., hausgeld -> 30.12.YYYY)
-        $kontostandPeriode = $this->kontostandRepository->findByWegYearAndType($weg, $year, $bankkontoTyp);
+        $kontostand = $this->kontostandRepository->findByWegYearAndType($weg, $year, $bankkontoTyp);
 
-        // Get _stichtag type for actual bank statement date (e.g., hausgeld_stichtag -> 24.01.YYYY+1)
-        $stichtagTyp = $bankkontoTyp . '_stichtag';
-        $kontostandStichtag = $this->kontostandRepository->findByWegYearAndType($weg, $year, $stichtagTyp);
-
-        // Need at least one record
-        if (!$kontostandPeriode && !$kontostandStichtag) {
+        if (!$kontostand) {
             return [
                 'available' => false,
                 'message' => 'Keine Kontostände für dieses Jahr erfasst. Bitte unter /abrechnung erfassen.',
             ];
         }
 
-        // Use Stichtag record for payment period calculation (longer range)
-        // Fall back to Periode record if Stichtag not available
-        $kontostandForPayments = $kontostandStichtag ?? $kontostandPeriode;
+        // All dates and balances from single merged row
+        $stichtagStart = $kontostand->getStichtagStart();
+        $stichtagEnd = $kontostand->getStichtagEnd();
 
-        // Get date boundaries
-        $stichtagStart = $kontostandForPayments->getStichtagStart();
-        $stichtagEnd = $kontostandForPayments->getStichtagEnd();
-
-        // Period end date from regular Kontostand (30.12.YYYY)
-        // Ensure we have a DateTime (not just DateTimeInterface) for modify() support
-        $periodeEndDateInterface = $kontostandPeriode ? $kontostandPeriode->getStichtagEnd() : null;
+        // Period end date (BGH V ZR 271/12, e.g. 30.12.YYYY)
+        $periodeEndDateInterface = $kontostand->getStichtagEndPeriode();
         $periodeEndDate = $periodeEndDateInterface instanceof \DateTime
             ? $periodeEndDateInterface
             : new \DateTime($periodeEndDateInterface?->format('Y-m-d') ?? $year . '-12-30');
 
-        // Get balances
-        $saldoStart = (float) $kontostandForPayments->getSaldoStart();
-        $saldoPeriodeEnd = $kontostandPeriode ? (float) $kontostandPeriode->getSaldoEnd() : null;
-        $stichtagEndDate = $kontostandStichtag ? $kontostandStichtag->getStichtagEnd() : $stichtagEnd;
-        $saldoStichtagEnd = $kontostandStichtag ? (float) $kontostandStichtag->getSaldoEnd() : (float) $kontostandForPayments->getSaldoEnd();
+        // Balances
+        $saldoStart = (float) $kontostand->getSaldoStart();
+        $saldoPeriodeEnd = null !== $kontostand->getSaldoEndPeriode() ? (float) $kontostand->getSaldoEndPeriode() : null;
+        $stichtagEndDate = $stichtagEnd;
+        $saldoStichtagEnd = (float) $kontostand->getSaldoEnd();
 
         // === PERIODE ABRECHNUNG (01.01 - 30.12) - BGH V ZR 271/12 ===
         $zahlungenAbrechnung = $this->zahlungRepository->findByWegAndDateRange(
@@ -114,7 +103,7 @@ class KontostandCalculationService
                     'datum' => $stichtagStart->format('d.m.Y'),
                     'saldo' => $saldoStart,
                 ],
-                'periode_end' => $kontostandPeriode ? [
+                'periode_end' => $kontostand->getStichtagEndPeriode() ? [
                     'datum' => $periodeEndDate->format('d.m.Y'),
                     'saldo' => $saldoPeriodeEnd,
                 ] : null,
@@ -155,7 +144,7 @@ class KontostandCalculationService
                 'differenz' => $abweichung,
                 'status' => abs($abweichung) < 0.01 ? 'ok' : 'unklar',
             ],
-            'bemerkung' => $kontostandForPayments->getBemerkung(),
+            'bemerkung' => $kontostand->getBemerkung(),
         ];
     }
 

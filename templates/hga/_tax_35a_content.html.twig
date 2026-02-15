@@ -1,0 +1,44 @@
+<div class="tax-section">
+    <div class="section-title">Steuerbegünstigte Leistungen nach §35a EStG</div>
+    <table class="tax-table">
+        <thead>
+            <tr>
+                <th>Handwerkerleistungen</th>
+                <th>Gesamtkosten</th>
+                <th>anrechenbar</th>
+                <th>Ihr Anteil (Kosten)</th>
+                <th>Ihr Anteil (anrechenbar)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in tax_deductible.items %}
+            <tr>
+                <td class="label">{{ item.kostenkonto }} - {{ item.beschreibung }} {{ item.verteilungsschluessel }}</td>
+                <td class="amount">{{ item.gesamtkosten|number_format(2, ',', '.') }} €</td>
+                <td class="amount">{{ item.anrechenbar|number_format(2, ',', '.') }} €</td>
+                <td class="amount">{{ item.anteil_kosten|number_format(2, ',', '.') }} €</td>
+                <td class="amount">{{ item.anteil_anrechenbar|number_format(2, ',', '.') }} €</td>
+            </tr>
+            {% endfor %}
+            <tr class="total">
+                <td class="label"><strong>SUMME Handwerkerleistungen</strong></td>
+                {% set totalGesamtkosten = tax_deductible.items|reduce((sum, item) => sum + item.gesamtkosten, 0) %}
+                {% set totalAnrechenbar = tax_deductible.items|reduce((sum, item) => sum + item.anrechenbar, 0) %}
+                {% set totalAnteilKosten = tax_deductible.items|reduce((sum, item) => sum + item.anteil_kosten, 0) %}
+                <td class="amount"><strong>{{ totalGesamtkosten|number_format(2, ',', '.') }} €</strong></td>
+                <td class="amount"><strong>{{ totalAnrechenbar|number_format(2, ',', '.') }} €</strong></td>
+                <td class="amount"><strong>{{ totalAnteilKosten|number_format(2, ',', '.') }} €</strong></td>
+                <td class="amount"><strong>{{ tax_deductible.total_anrechenbar|number_format(2, ',', '.') }} €</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div style="margin-top: 10px; padding: 8px; background-color: #f5f5f5; border-left: 4px solid #333;">
+        <strong>Ihr steuerlich absetzbarer Betrag (100% der Arbeits-/Fahrtkosten inkl. MwSt.): {{ tax_deductible.total_anrechenbar|number_format(2, ',', '.') }} EUR</strong>
+    </div>
+
+    <div style="margin-top: 8px; font-size: 8pt; color: #333;">
+        <strong>HINWEIS:</strong> Diese Beträge können Sie in Ihrer Steuererklärung als haushaltsnahe
+        Dienstleistungen geltend machen (20% davon, max. 1.200 EUR Steuerermäßigung pro Jahr).
+    </div>
+</div>
