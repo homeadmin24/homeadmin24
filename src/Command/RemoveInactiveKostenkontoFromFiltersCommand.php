@@ -40,12 +40,12 @@ class RemoveInactiveKostenkontoFromFiltersCommand extends Command
 
         // Get all inactive Kostenkontos
         $inactiveKostenkontos = $this->kostenkontoRepository->findBy(['isActive' => false]);
-        $inactiveNummern = array_map(fn ($k) => $k->getNummer(), $inactiveKostenkontos);
+        $inactiveNummern = array_map(static fn ($k) => $k->getNummer(), $inactiveKostenkontos);
 
         $io->section(\sprintf('Gefundene inaktive Kostenkontos: %d', \count($inactiveNummern)));
         if (\count($inactiveNummern) > 0) {
             $io->listing(array_map(
-                fn ($k) => \sprintf('%s - %s', $k->getNummer(), $k->getBezeichnung()),
+                static fn ($k) => \sprintf('%s - %s', $k->getNummer(), $k->getBezeichnung()),
                 $inactiveKostenkontos
             ));
         }
@@ -90,7 +90,7 @@ class RemoveInactiveKostenkontoFromFiltersCommand extends Command
             $io->section('Änderungen');
             $io->table(
                 ['Kategorie', 'Entfernte Kostenkontos', 'Vorher', 'Nachher'],
-                array_map(fn ($c) => [$c['name'], $c['removed'], $c['old_count'], $c['new_count']], $changes)
+                array_map(static fn ($c) => [$c['name'], $c['removed'], $c['old_count'], $c['new_count']], $changes)
             );
 
             if ($isDryRun) {
@@ -104,12 +104,12 @@ class RemoveInactiveKostenkontoFromFiltersCommand extends Command
         }
 
         // Show warning if any filter becomes empty
-        $emptyFilters = array_filter($changes, fn ($c) => 0 === $c['new_count']);
+        $emptyFilters = array_filter($changes, static fn ($c) => 0 === $c['new_count']);
         if (\count($emptyFilters) > 0) {
             $io->warning([
                 'Achtung: Folgende Kategorien haben nach der Bereinigung LEERE Filter:',
                 '',
-                ...array_map(fn ($c) => '  • ' . $c['name'], $emptyFilters),
+                ...array_map(static fn ($c) => '  • ' . $c['name'], $emptyFilters),
                 '',
                 'Das bedeutet: "Alle aktiven Kostenkontos erlaubt"',
             ]);

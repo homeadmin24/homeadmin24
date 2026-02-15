@@ -23,8 +23,8 @@ class WegKontostand
     #[ORM\Column(type: Types::INTEGER)]
     private ?int $year = null;
 
-    #[ORM\Column(length: 20)]
-    private string $bankkontoTyp = 'hausgeld';
+    #[ORM\Column(length: 20, enumType: BankkontoTyp::class)]
+    private BankkontoTyp $bankkontoTyp = BankkontoTyp::HAUSGELD;
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
     private ?\DateTimeInterface $stichtagStart = null;
@@ -102,12 +102,12 @@ class WegKontostand
         return $this;
     }
 
-    public function getBankkontoTyp(): string
+    public function getBankkontoTyp(): BankkontoTyp
     {
         return $this->bankkontoTyp;
     }
 
-    public function setBankkontoTyp(string $bankkontoTyp): static
+    public function setBankkontoTyp(BankkontoTyp $bankkontoTyp): static
     {
         $this->bankkontoTyp = $bankkontoTyp;
 

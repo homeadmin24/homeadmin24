@@ -600,7 +600,7 @@ class AbrechnungController extends AbstractController
             $rows[] = $this->formatVermoegenRow($hgaYear, null, null, null, null);
         }
 
-        usort($rows, function (array $left, array $right): int {
+        usort($rows, static function (array $left, array $right): int {
             return $left['year'] <=> $right['year'];
         });
 

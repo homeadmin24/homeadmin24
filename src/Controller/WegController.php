@@ -30,7 +30,7 @@ class WegController extends AbstractController
         // Get Umlageschlüssel and sort in HGA display order (same as HgaService)
         $umlageschluessel = $umlageschluesselRepository->findAll();
         $hgaOrder = ['01*', '02*', '03*', '04*', '05*', '06*', '07*'];
-        usort($umlageschluessel, function ($a, $b) use ($hgaOrder) {
+        usort($umlageschluessel, static function ($a, $b) use ($hgaOrder) {
             $posA = array_search($a->getSchluessel(), $hgaOrder, true);
             $posB = array_search($b->getSchluessel(), $hgaOrder, true);
 

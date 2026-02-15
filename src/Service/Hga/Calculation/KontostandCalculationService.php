@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Service\Hga\Calculation;
 
+use App\Entity\BankkontoTyp;
 use App\Entity\Weg;
+use App\Entity\WegKontostand;
+use App\Entity\Zahlung;
 use App\Repository\WegKontostandRepository;
 use App\Repository\ZahlungRepository;
 
-/**
- * Service for calculating WEG bank balance reconciliation (Vermögensabgrenzung).
- */
 class KontostandCalculationService
 {
     public function __construct(
@@ -22,13 +22,9 @@ class KontostandCalculationService
     /**
      * Calculate Vermögensabgrenzung data for HGA report.
      *
-     * Returns two separate periods:
-     * - periode_abrechnung: 01.01 - 30.12 (BGH V ZR 271/12 compliant)
-     * - periode_abgrenzung: 31.12 - Stichtag (payments after period end)
-     *
      * @return array<string, mixed>
      */
-    public function calculateVermoegensabgrenzung(Weg $weg, int $year, string $bankkontoTyp = 'hausgeld'): array
+    public function calculateVermoegensabgrenzung(Weg $weg, int $year, BankkontoTyp $bankkontoTyp = BankkontoTyp::HAUSGELD): array
     {
         $kontostand = $this->kontostandRepository->findByWegYearAndType($weg, $year, $bankkontoTyp);
 
@@ -39,119 +35,126 @@ class KontostandCalculationService
             ];
         }
 
-        // All dates and balances from single merged row
-        $stichtagStart = $kontostand->getStichtagStart();
-        $stichtagEnd = $kontostand->getStichtagEnd();
-
-        // Period end date (BGH V ZR 271/12, e.g. 30.12.YYYY)
-        $periodeEndDateInterface = $kontostand->getStichtagEndPeriode();
-        $periodeEndDate = $periodeEndDateInterface instanceof \DateTime
-            ? $periodeEndDateInterface
-            : new \DateTime($periodeEndDateInterface?->format('Y-m-d') ?? $year . '-12-30');
-
-        // Balances
+        $periodeEndDate = $this->resolvePeriodeEndDate($kontostand, $year);
         $saldoStart = (float) $kontostand->getSaldoStart();
-        $saldoPeriodeEnd = null !== $kontostand->getSaldoEndPeriode() ? (float) $kontostand->getSaldoEndPeriode() : null;
-        $stichtagEndDate = $stichtagEnd;
         $saldoStichtagEnd = (float) $kontostand->getSaldoEnd();
 
-        // === PERIODE ABRECHNUNG (01.01 - 30.12) - BGH V ZR 271/12 ===
-        $zahlungenAbrechnung = $this->zahlungRepository->findByWegAndDateRange(
-            $weg,
-            $stichtagStart,
-            $periodeEndDate,
-            $bankkontoTyp
-        );
-        $byAbrechnungsjahrAbrechnung = $this->groupByAbrechnungsjahr($zahlungenAbrechnung);
-        $periodeAbrechnungGesamt = $this->calculatePeriodeTotals($zahlungenAbrechnung);
+        $periodeAbrechnung = $this->calculatePeriodeAbrechnung($weg, $kontostand, $periodeEndDate, $bankkontoTyp);
+        $periodeAbgrenzung = $this->calculatePeriodeAbgrenzung($weg, $kontostand, $periodeEndDate, $year, $bankkontoTyp);
 
-        // === PERIODE ABGRENZUNG (31.12 - Stichtag) - Nach Periodenende ===
-        $abgrenzungStart = (clone $periodeEndDate)->modify('+1 day');
-        $zahlungenAbgrenzung = [];
-        $byAbrechnungsjahrAbgrenzung = [];
-        $periodeAbgrenzungGesamt = [
-            'einnahmen' => 0.0,
-            'anzahl_einnahmen' => 0,
-            'ausgaben' => 0.0,
-            'anzahl_ausgaben' => 0,
-            'saldo' => 0.0,
-            'anzahl_gesamt' => 0,
-        ];
-
-        // Only calculate Abgrenzung if Stichtag is after Periodenende
-        if ($stichtagEnd > $periodeEndDate) {
-            $zahlungenAbgrenzung = $this->zahlungRepository->findByWegAndDateRange(
-                $weg,
-                $abgrenzungStart,
-                $stichtagEnd,
-                $bankkontoTyp
-            );
-            $byAbrechnungsjahrAbgrenzung = $this->groupByAbrechnungsjahr($zahlungenAbgrenzung);
-            $periodeAbgrenzungGesamt = $this->calculatePeriodeTotals($zahlungenAbgrenzung);
-        }
-
-        // Calculate Abweichung based on full period (for bank reconciliation)
-        $allZahlungen = array_merge($zahlungenAbrechnung, $zahlungenAbgrenzung);
+        $allZahlungen = array_merge($periodeAbrechnung['zahlungen'], $periodeAbgrenzung['zahlungen']);
         $periodeGesamtAll = $this->calculatePeriodeTotals($allZahlungen);
         $rechnerisch = $saldoStart + $periodeGesamtAll['saldo'];
-        $abweichung = $saldoStichtagEnd - $rechnerisch;
 
         return [
             'available' => true,
-            'kontostand' => [
-                'stichtag_start' => [
-                    'datum' => $stichtagStart->format('d.m.Y'),
-                    'saldo' => $saldoStart,
-                ],
-                'periode_end' => $kontostand->getStichtagEndPeriode() ? [
-                    'datum' => $periodeEndDate->format('d.m.Y'),
-                    'saldo' => $saldoPeriodeEnd,
-                ] : null,
-                'stichtag_end' => [
-                    'datum' => $stichtagEndDate->format('d.m.Y'),
-                    'saldo' => $saldoStichtagEnd,
-                ],
-            ],
-            // Abrechnungsperiode (BGH V ZR 271/12): 01.01 - 30.12
-            'periode_abrechnung' => [
-                'start' => $stichtagStart->format('Y-m-d'),
-                'end' => $periodeEndDate->format('Y-m-d'),
-                'start_formatted' => $stichtagStart->format('d.m.Y'),
-                'end_formatted' => $periodeEndDate->format('d.m.Y'),
-                'gesamt' => $periodeAbrechnungGesamt,
-                'nach_abrechnungsjahr' => $byAbrechnungsjahrAbrechnung,
-            ],
-            // Abgrenzung: Zahlungen nach Periodenende bis Stichtag
-            'periode_abgrenzung' => [
-                'start' => $abgrenzungStart->format('Y-m-d'),
-                'end' => $stichtagEnd->format('Y-m-d'),
-                'start_formatted' => $abgrenzungStart->format('d.m.Y'),
-                'end_formatted' => $stichtagEnd->format('d.m.Y'),
-                'gesamt' => $periodeAbgrenzungGesamt,
-                'nach_abrechnungsjahr' => $byAbrechnungsjahrAbgrenzung,
-                'hinweis' => 'Diese Zahlungen wurden nach dem Abrechnungszeitraum geleistet und erscheinen in der Abrechnung ' . ($year + 1) . '.',
-            ],
-            // Legacy: Full period for backwards compatibility
-            'periode' => [
-                'start' => $stichtagStart->format('Y-m-d'),
-                'end' => $stichtagEnd->format('Y-m-d'),
-                'gesamt' => $periodeGesamtAll,
-                'nach_abrechnungsjahr' => $this->groupByAbrechnungsjahr($allZahlungen),
-            ],
+            'kontostand' => $this->buildKontostandSection($kontostand, $periodeEndDate, $saldoStart, $saldoStichtagEnd),
+            'periode_abrechnung' => $periodeAbrechnung['result'],
+            'periode_abgrenzung' => $periodeAbgrenzung['result'],
             'abweichung' => [
                 'rechnerisch' => $rechnerisch,
                 'tatsaechlich' => $saldoStichtagEnd,
-                'differenz' => $abweichung,
-                'status' => abs($abweichung) < 0.01 ? 'ok' : 'unklar',
+                'differenz' => $saldoStichtagEnd - $rechnerisch,
+                'status' => abs($saldoStichtagEnd - $rechnerisch) < 0.01 ? 'ok' : 'unklar',
             ],
             'bemerkung' => $kontostand->getBemerkung(),
         ];
     }
 
+    private function resolvePeriodeEndDate(WegKontostand $kontostand, int $year): \DateTime
+    {
+        $periodeEndDateInterface = $kontostand->getStichtagEndPeriode();
+
+        return $periodeEndDateInterface instanceof \DateTime
+            ? $periodeEndDateInterface
+            : new \DateTime($periodeEndDateInterface?->format('Y-m-d') ?? $year . '-12-30');
+    }
+
     /**
-     * Group Zahlungen by Abrechnungsjahr.
-     *
-     * @param array<int, \App\Entity\Zahlung> $zahlungen
+     * @return array{zahlungen: Zahlung[], result: array<string, mixed>}
+     */
+    private function calculatePeriodeAbrechnung(Weg $weg, WegKontostand $kontostand, \DateTime $periodeEndDate, BankkontoTyp $bankkontoTyp): array
+    {
+        $stichtagStart = $kontostand->getStichtagStart();
+        $zahlungen = $this->zahlungRepository->findByWegAndDateRange($weg, $stichtagStart, $periodeEndDate, $bankkontoTyp->value);
+
+        return [
+            'zahlungen' => $zahlungen,
+            'result' => [
+                'start' => $stichtagStart->format('Y-m-d'),
+                'end' => $periodeEndDate->format('Y-m-d'),
+                'start_formatted' => $stichtagStart->format('d.m.Y'),
+                'end_formatted' => $periodeEndDate->format('d.m.Y'),
+                'gesamt' => $this->calculatePeriodeTotals($zahlungen),
+                'nach_abrechnungsjahr' => $this->groupByAbrechnungsjahr($zahlungen),
+            ],
+        ];
+    }
+
+    /**
+     * @return array{zahlungen: Zahlung[], result: array<string, mixed>}
+     */
+    private function calculatePeriodeAbgrenzung(Weg $weg, WegKontostand $kontostand, \DateTime $periodeEndDate, int $year, BankkontoTyp $bankkontoTyp): array
+    {
+        $stichtagEnd = $kontostand->getStichtagEnd();
+        $abgrenzungStart = (clone $periodeEndDate)->modify('+1 day');
+
+        if ($stichtagEnd <= $periodeEndDate) {
+            return [
+                'zahlungen' => [],
+                'result' => [
+                    'start' => $abgrenzungStart->format('Y-m-d'),
+                    'end' => $stichtagEnd->format('Y-m-d'),
+                    'start_formatted' => $abgrenzungStart->format('d.m.Y'),
+                    'end_formatted' => $stichtagEnd->format('d.m.Y'),
+                    'gesamt' => $this->calculatePeriodeTotals([]),
+                    'nach_abrechnungsjahr' => [],
+                    'hinweis' => 'Diese Zahlungen wurden nach dem Abrechnungszeitraum geleistet und erscheinen in der Abrechnung ' . ($year + 1) . '.',
+                ],
+            ];
+        }
+
+        $zahlungen = $this->zahlungRepository->findByWegAndDateRange($weg, $abgrenzungStart, $stichtagEnd, $bankkontoTyp->value);
+
+        return [
+            'zahlungen' => $zahlungen,
+            'result' => [
+                'start' => $abgrenzungStart->format('Y-m-d'),
+                'end' => $stichtagEnd->format('Y-m-d'),
+                'start_formatted' => $abgrenzungStart->format('d.m.Y'),
+                'end_formatted' => $stichtagEnd->format('d.m.Y'),
+                'gesamt' => $this->calculatePeriodeTotals($zahlungen),
+                'nach_abrechnungsjahr' => $this->groupByAbrechnungsjahr($zahlungen),
+                'hinweis' => 'Diese Zahlungen wurden nach dem Abrechnungszeitraum geleistet und erscheinen in der Abrechnung ' . ($year + 1) . '.',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildKontostandSection(WegKontostand $kontostand, \DateTime $periodeEndDate, float $saldoStart, float $saldoStichtagEnd): array
+    {
+        $saldoEndPeriode = null !== $kontostand->getSaldoEndPeriode() ? (float) $kontostand->getSaldoEndPeriode() : null;
+
+        return [
+            'stichtag_start' => [
+                'datum' => $kontostand->getStichtagStart()->format('d.m.Y'),
+                'saldo' => $saldoStart,
+            ],
+            'periode_end' => $kontostand->getStichtagEndPeriode() ? [
+                'datum' => $periodeEndDate->format('d.m.Y'),
+                'saldo' => $saldoEndPeriode,
+            ] : null,
+            'stichtag_end' => [
+                'datum' => $kontostand->getStichtagEnd()->format('d.m.Y'),
+                'saldo' => $saldoStichtagEnd,
+            ],
+        ];
+    }
+
+    /**
+     * @param Zahlung[] $zahlungen
      *
      * @return array<int, array<string, mixed>>
      */
@@ -184,34 +187,14 @@ class KontostandCalculationService
                 $grouped[$year]['einnahmen'] += $betrag;
                 ++$grouped[$year]['anzahl_einnahmen'];
 
-                // Group income by category
                 $kategorie = $zahlung->getHauptkategorie()?->getName() ?? 'Sonstige Einnahme';
-                if (!isset($grouped[$year]['einnahmen_by_category'][$kategorie])) {
-                    $grouped[$year]['einnahmen_by_category'][$kategorie] = 0.0;
-                }
-                $grouped[$year]['einnahmen_by_category'][$kategorie] += $betrag;
+                $grouped[$year]['einnahmen_by_category'][$kategorie] = ($grouped[$year]['einnahmen_by_category'][$kategorie] ?? 0.0) + $betrag;
             } else {
                 $grouped[$year]['ausgaben'] += $betrag;
                 ++$grouped[$year]['anzahl_ausgaben'];
 
-                // Group expenses by Kostenkonto
-                $kostenkonto = $zahlung->getKostenkonto();
-                if ($kostenkonto) {
-                    $key = $kostenkonto->getNummer() . ' ' . $kostenkonto->getBezeichnung();
-                    if (!isset($grouped[$year]['ausgaben_by_kostenkonto'][$key])) {
-                        $grouped[$year]['ausgaben_by_kostenkonto'][$key] = 0.0;
-                    }
-                    $grouped[$year]['ausgaben_by_kostenkonto'][$key] += $betrag;
-                } else {
-                    // No Kostenkonto assigned - check if it's a transfer (Umbuchung)
-                    $hauptkategorie = $zahlung->getHauptkategorie();
-                    $isUmbuchung = $hauptkategorie && 'Umbuchung' === $hauptkategorie->getName();
-                    $key = $isUmbuchung ? 'Umbuchung Rücklage' : 'Ohne Kostenkonto';
-                    if (!isset($grouped[$year]['ausgaben_by_kostenkonto'][$key])) {
-                        $grouped[$year]['ausgaben_by_kostenkonto'][$key] = 0.0;
-                    }
-                    $grouped[$year]['ausgaben_by_kostenkonto'][$key] += $betrag;
-                }
+                $key = $this->resolveAusgabenKey($zahlung);
+                $grouped[$year]['ausgaben_by_kostenkonto'][$key] = ($grouped[$year]['ausgaben_by_kostenkonto'][$key] ?? 0.0) + $betrag;
             }
 
             $grouped[$year]['saldo'] += $betrag;
@@ -219,28 +202,34 @@ class KontostandCalculationService
             $grouped[$year]['zahlungen'][] = $zahlung;
         }
 
-        // Sort by year
         ksort($grouped);
 
-        // Sort each year's breakdown by amount (largest first)
         foreach ($grouped as &$yearData) {
-            if (isset($yearData['einnahmen_by_category'])) {
-                arsort($yearData['einnahmen_by_category']);
-            }
-            if (isset($yearData['ausgaben_by_kostenkonto'])) {
-                asort($yearData['ausgaben_by_kostenkonto']); // Ascending because negative values
-            }
+            arsort($yearData['einnahmen_by_category']);
+            asort($yearData['ausgaben_by_kostenkonto']);
         }
 
         return $grouped;
     }
 
+    private function resolveAusgabenKey(Zahlung $zahlung): string
+    {
+        $kostenkonto = $zahlung->getKostenkonto();
+
+        if ($kostenkonto) {
+            return $kostenkonto->getNummer() . ' ' . $kostenkonto->getBezeichnung();
+        }
+
+        $hauptkategorie = $zahlung->getHauptkategorie();
+        $isUmbuchung = $hauptkategorie && 'Umbuchung' === $hauptkategorie->getName();
+
+        return $isUmbuchung ? 'Umbuchung Rücklage' : 'Ohne Kostenkonto';
+    }
+
     /**
-     * Calculate totals for period.
+     * @param Zahlung[] $zahlungen
      *
-     * @param array<int, \App\Entity\Zahlung> $zahlungen
-     *
-     * @return array<string, mixed>
+     * @return array<string, float|int>
      */
     private function calculatePeriodeTotals(array $zahlungen): array
     {

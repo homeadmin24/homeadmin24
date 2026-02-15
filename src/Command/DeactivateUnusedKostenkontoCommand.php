@@ -77,7 +77,7 @@ class DeactivateUnusedKostenkontoCommand extends Command
             $io->section('Kostenkontos to DEACTIVATE (no Zahlungen assigned)');
             $io->table(
                 ['ID', 'Nummer', 'Bezeichnung', 'Currently Active', 'Zahlungen Count'],
-                array_map(fn ($row) => [
+                array_map(static fn ($row) => [
                     $row['id'],
                     $row['nummer'],
                     $row['bezeichnung'],
@@ -94,7 +94,7 @@ class DeactivateUnusedKostenkontoCommand extends Command
             $io->section('Kostenkontos to REACTIVATE (have Zahlungen assigned)');
             $io->table(
                 ['ID', 'Nummer', 'Bezeichnung', 'Currently Active', 'Zahlungen Count'],
-                array_map(fn ($row) => [
+                array_map(static fn ($row) => [
                     $row['id'],
                     $row['nummer'],
                     $row['bezeichnung'],
@@ -143,9 +143,9 @@ class DeactivateUnusedKostenkontoCommand extends Command
 
         // Show summary statistics
         $io->section('Summary');
-        $activeCount = \count(array_filter($result, fn ($row) => (bool) $row['is_active']));
+        $activeCount = \count(array_filter($result, static fn ($row) => (bool) $row['is_active']));
         $inactiveCount = \count($result) - $activeCount;
-        $usedCount = \count(array_filter($result, fn ($row) => (int) $row['zahlungen_count'] > 0));
+        $usedCount = \count(array_filter($result, static fn ($row) => (int) $row['zahlungen_count'] > 0));
         $unusedCount = \count($result) - $usedCount;
 
         $io->text([

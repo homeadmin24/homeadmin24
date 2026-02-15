@@ -668,7 +668,7 @@ class AiQueryService
         }
 
         // Sort by absolute difference (highest changes first)
-        usort($comparison, function ($a, $b) {
+        usort($comparison, static function ($a, $b) {
             return abs($b['difference']) <=> abs($a['difference']);
         });
 

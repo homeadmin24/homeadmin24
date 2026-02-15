@@ -1,6 +1,8 @@
-    {# NEW: Vermögensabgrenzung Section #}
+    {# Vermögensabgrenzung Section #}
     {% set hasHausgeld = data.vermoegen_abgrenzung.hausgeld.available|default(false) %}
     {% set hasRuecklage = data.vermoegen_abgrenzung.ruecklage.available|default(false) %}
+    {# Primary date source: use hausgeld if available, otherwise ruecklage #}
+    {% set dateSource = hasHausgeld ? data.vermoegen_abgrenzung.hausgeld : (hasRuecklage ? data.vermoegen_abgrenzung.ruecklage : null) %}
     {% if hasHausgeld or hasRuecklage %}
     <div class="section allow-break page-break">
         <div class="page-header">
@@ -22,7 +24,7 @@
             <tbody>
                 <tr class="subtotal">
                     <td colspan="4" style="font-size: 9pt;"><strong>Zahlungen Abrechnungsperiode
-                        {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined %}({{ data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.start_formatted }} - {{ data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.end_formatted }}){% endif %}
+                        {% if dateSource and dateSource.periode_abrechnung is defined %}({{ dateSource.periode_abrechnung.start_formatted }} - {{ dateSource.periode_abrechnung.end_formatted }}){% endif %}
                     </strong></td>
                 </tr>
 
@@ -56,7 +58,7 @@
                 {% for jahr in allYears %}
                     {% set hausgeldData = hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined ? data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.nach_abrechnungsjahr[jahr]|default(null) : null %}
                     {% set ruecklageData = hasRuecklage and data.vermoegen_abgrenzung.ruecklage.periode_abrechnung is defined ? data.vermoegen_abgrenzung.ruecklage.periode_abrechnung.nach_abrechnungsjahr[jahr]|default(null) : null %}
-                    {% set totalZahlungen = hausgeldData ? hausgeldData.anzahl_gesamt : (ruecklageData ? ruecklageData.anzahl_gesamt : 0) %}
+                    {% set totalZahlungen = (hausgeldData ? hausgeldData.anzahl_gesamt : 0) + (ruecklageData ? ruecklageData.anzahl_gesamt : 0) %}
                     <tr style="background-color: #f5f5f5;">
                         <td colspan="4" style="font-weight: 600; font-size: 8.5pt; padding: 4px 5px 4px 10px; border-top: 1px solid #ccc;">
                             Abrechnungsjahr {{ jahr }} ({{ totalZahlungen }} Zahlungen)
@@ -64,13 +66,15 @@
                     </tr>
                     <tr>
                         <td style="padding-left: 20px;">Einnahmen</td>
-                        <td class="center" style="font-size: 7.5pt; color: #888;">{{ hausgeldData and hausgeldData.anzahl_einnahmen > 0 ? hausgeldData.anzahl_einnahmen ~ ' Buchungen' : '' }}</td>
+                        {% set countEinnahmen = (hausgeldData ? hausgeldData.anzahl_einnahmen : 0) + (ruecklageData ? ruecklageData.anzahl_einnahmen : 0) %}
+                        <td class="center" style="font-size: 7.5pt; color: #888;">{{ countEinnahmen > 0 ? countEinnahmen ~ ' Buchungen' : '' }}</td>
                         <td class="amount">{{ hausgeldData ? (hausgeldData.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                         <td class="amount">{{ ruecklageData ? (ruecklageData.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     </tr>
                     <tr>
                         <td style="padding-left: 20px;">Ausgaben</td>
-                        <td class="center" style="font-size: 7.5pt; color: #888;">{{ hausgeldData and hausgeldData.anzahl_ausgaben > 0 ? hausgeldData.anzahl_ausgaben ~ ' Buchungen' : '' }}</td>
+                        {% set countAusgaben = (hausgeldData ? hausgeldData.anzahl_ausgaben : 0) + (ruecklageData ? ruecklageData.anzahl_ausgaben : 0) %}
+                        <td class="center" style="font-size: 7.5pt; color: #888;">{{ countAusgaben > 0 ? countAusgaben ~ ' Buchungen' : '' }}</td>
                         <td class="amount">{{ hausgeldData ? (hausgeldData.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                         <td class="amount">{{ ruecklageData ? (ruecklageData.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     </tr>
@@ -82,7 +86,7 @@
                 <tr style="background-color: #f0f0f0; border-top: 2px solid #666;">
                     <td style="font-weight: 600; padding-top: 5px;">Gesamt Einnahmen <sup>[E1]</sup></td>
                     <td class="center" style="font-size: 7.5pt; color: #666; padding-top: 5px;">
-                        {{ gesamtAbrHausgeld ? gesamtAbrHausgeld.anzahl_einnahmen : 0 }} Buchungen
+                        {{ (gesamtAbrHausgeld ? gesamtAbrHausgeld.anzahl_einnahmen : 0) + (gesamtAbrRuecklage ? gesamtAbrRuecklage.anzahl_einnahmen : 0) }} Buchungen
                     </td>
                     <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbrHausgeld ? (gesamtAbrHausgeld.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbrRuecklage ? (gesamtAbrRuecklage.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
@@ -90,7 +94,7 @@
                 <tr style="background-color: #f0f0f0;">
                     <td style="font-weight: 600;">Gesamt Ausgaben <sup>[A1]</sup></td>
                     <td class="center" style="font-size: 7.5pt; color: #666;">
-                        {{ gesamtAbrHausgeld ? gesamtAbrHausgeld.anzahl_ausgaben : 0 }} Buchungen
+                        {{ (gesamtAbrHausgeld ? gesamtAbrHausgeld.anzahl_ausgaben : 0) + (gesamtAbrRuecklage ? gesamtAbrRuecklage.anzahl_ausgaben : 0) }} Buchungen
                     </td>
                     <td class="amount" style="font-weight: 600;">{{ gesamtAbrHausgeld ? (gesamtAbrHausgeld.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     <td class="amount" style="font-weight: 600;">{{ gesamtAbrRuecklage ? (gesamtAbrRuecklage.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
@@ -98,7 +102,7 @@
                 <tr style="background-color: #e8e8e8;">
                     <td style="font-weight: 600; padding-top: 5px;">Saldo Abrechnungsperiode</td>
                     <td class="center" style="font-size: 7.5pt; color: #666; padding-top: 5px;">
-                        {{ gesamtAbrHausgeld ? gesamtAbrHausgeld.anzahl_gesamt : 0 }} Buchungen
+                        {{ (gesamtAbrHausgeld ? gesamtAbrHausgeld.anzahl_gesamt : 0) + (gesamtAbrRuecklage ? gesamtAbrRuecklage.anzahl_gesamt : 0) }} Buchungen
                     </td>
                     <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbrHausgeld ? (gesamtAbrHausgeld.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbrRuecklage ? (gesamtAbrRuecklage.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
@@ -110,8 +114,9 @@
                 {% if hasAbgrenzungHausgeld or hasAbgrenzungRuecklage %}
                 <tr class="subtotal" style="border-top: 2px solid #999; background-color: #f5f5f5;">
                     <td colspan="4" style="font-size: 9pt;">
+                        {% set abgrenzungDateSource = hasAbgrenzungHausgeld ? data.vermoegen_abgrenzung.hausgeld : (hasAbgrenzungRuecklage ? data.vermoegen_abgrenzung.ruecklage : null) %}
                         <strong>Abgrenzung: Zahlungen nach Periodenende
-                        {% if hasAbgrenzungHausgeld %}({{ data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.start_formatted }} - {{ data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.end_formatted }}){% endif %}
+                        {% if abgrenzungDateSource %}({{ abgrenzungDateSource.periode_abgrenzung.start_formatted }} - {{ abgrenzungDateSource.periode_abgrenzung.end_formatted }}){% endif %}
                         </strong>
                     </td>
                 </tr>
@@ -136,7 +141,7 @@
                 {% for jahr in abgrenzungYears %}
                     {% set hausgeldAbgrenzung = hasAbgrenzungHausgeld ? data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.nach_abrechnungsjahr[jahr]|default(null) : null %}
                     {% set ruecklageAbgrenzung = hasAbgrenzungRuecklage ? data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung.nach_abrechnungsjahr[jahr]|default(null) : null %}
-                    {% set totalAbgrenzungZahlungen = hausgeldAbgrenzung ? hausgeldAbgrenzung.anzahl_gesamt : (ruecklageAbgrenzung ? ruecklageAbgrenzung.anzahl_gesamt : 0) %}
+                    {% set totalAbgrenzungZahlungen = (hausgeldAbgrenzung ? hausgeldAbgrenzung.anzahl_gesamt : 0) + (ruecklageAbgrenzung ? ruecklageAbgrenzung.anzahl_gesamt : 0) %}
                     <tr style="background-color: #f5f5f5;">
                         <td colspan="4" style="font-weight: 600; font-size: 8.5pt; padding: 4px 5px 4px 10px; border-top: 1px solid #ccc;">
                             Zugeordnet {{ jahr }} ({{ totalAbgrenzungZahlungen }} Zahlungen)
@@ -162,7 +167,7 @@
                 <tr style="background-color: #f0f0f0; border-top: 2px solid #666;">
                     <td style="font-weight: 600; padding-top: 5px;">Gesamt Einnahmen <sup>[E2]</sup></td>
                     <td class="center" style="font-size: 7.5pt; color: #666; padding-top: 5px;">
-                        {{ gesamtAbgHausgeld ? gesamtAbgHausgeld.anzahl_einnahmen : 0 }} Buchungen
+                        {{ (gesamtAbgHausgeld ? gesamtAbgHausgeld.anzahl_einnahmen : 0) + (gesamtAbgRuecklage ? gesamtAbgRuecklage.anzahl_einnahmen : 0) }} Buchungen
                     </td>
                     <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbgHausgeld ? (gesamtAbgHausgeld.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbgRuecklage ? (gesamtAbgRuecklage.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
@@ -170,7 +175,7 @@
                 <tr style="background-color: #f0f0f0;">
                     <td style="font-weight: 600;">Gesamt Ausgaben <sup>[A2]</sup></td>
                     <td class="center" style="font-size: 7.5pt; color: #666;">
-                        {{ gesamtAbgHausgeld ? gesamtAbgHausgeld.anzahl_ausgaben : 0 }} Buchungen
+                        {{ (gesamtAbgHausgeld ? gesamtAbgHausgeld.anzahl_ausgaben : 0) + (gesamtAbgRuecklage ? gesamtAbgRuecklage.anzahl_ausgaben : 0) }} Buchungen
                     </td>
                     <td class="amount" style="font-weight: 600;">{{ gesamtAbgHausgeld ? (gesamtAbgHausgeld.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     <td class="amount" style="font-weight: 600;">{{ gesamtAbgRuecklage ? (gesamtAbgRuecklage.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
@@ -178,7 +183,7 @@
                 <tr style="background-color: #e8e8e8;">
                     <td style="font-weight: 600; padding-top: 5px;">Saldo Abgrenzungszeitraum</td>
                     <td class="center" style="font-size: 7.5pt; color: #666; padding-top: 5px;">
-                        {{ gesamtAbgHausgeld ? gesamtAbgHausgeld.anzahl_gesamt : 0 }} Buchungen
+                        {{ (gesamtAbgHausgeld ? gesamtAbgHausgeld.anzahl_gesamt : 0) + (gesamtAbgRuecklage ? gesamtAbgRuecklage.anzahl_gesamt : 0) }} Buchungen
                     </td>
                     <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbgHausgeld ? (gesamtAbgHausgeld.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbgRuecklage ? (gesamtAbgRuecklage.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
@@ -188,11 +193,11 @@
                 {# ========== ABSTIMMUNG (Gesamtzeitraum: Beginn - Stichtag) ========== #}
                 <tr class="subtotal" style="border-top: 2px solid #999;">
                     <td colspan="4" style="font-size: 9pt; padding-top: 8px;"><strong>Abstimmung
-                        ({% if hasHausgeld %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_start.datum }}{% endif %} - {% if hasHausgeld %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_end.datum }}{% endif %})
+                        {% if dateSource %}({{ dateSource.kontostand.stichtag_start.datum }} - {{ dateSource.kontostand.stichtag_end.datum }}){% endif %}
                     </strong></td>
                 </tr>
                 <tr>
-                    <td style="padding-left: 15px;">Kontostand {{ hasHausgeld ? data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_start.datum : '' }}</td>
+                    <td style="padding-left: 15px;">Kontostand {{ dateSource ? dateSource.kontostand.stichtag_start.datum : '' }}</td>
                     <td class="center"></td>
                     <td class="amount">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_start.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     <td class="amount">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_start.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
@@ -218,7 +223,7 @@
                     <td class="amount" style="font-weight: 600;">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.abweichung.rechnerisch|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                 </tr>
                 <tr>
-                    <td style="padding-left: 15px;">Kontostand {{ hasHausgeld ? data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_end.datum : '' }} (Bank)</td>
+                    <td style="padding-left: 15px;">Kontostand {{ dateSource ? dateSource.kontostand.stichtag_end.datum : '' }} (Bank)</td>
                     <td class="center"></td>
                     <td class="amount">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_end.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     <td class="amount">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_end.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>

@@ -361,79 +361,6 @@ class PaymentCalculationService
     }
 
     /**
-     * @param array<int, \App\Entity\Zahlung> $payments
-     *
-     * @return array{
-     *   payments: array<array{datum: \DateTimeInterface, abrechnungsjahr: string, beschreibung: string, betrag: float, partner: string|null, kostenkonto_nummer: string|null, kostenkonto_bezeichnung: string|null}>,
-     *   by_abrechnungsjahr: array<string, array{count: int, total: float}>,
-     *   total_count: int,
-     *   total_amount: float
-     * }
-     */
-    private function buildExpenseDetailsPayload(array $payments): array
-    {
-        $payments = array_values($payments);
-        usort($payments, static function ($left, $right): int {
-            $leftKostenkonto = $left->getKostenkonto();
-            $rightKostenkonto = $right->getKostenkonto();
-
-            $leftLabel = $leftKostenkonto
-                ? trim((string) $leftKostenkonto->getNummer() . ' ' . (string) $leftKostenkonto->getBezeichnung())
-                : 'Ohne Kostenkonto';
-            $rightLabel = $rightKostenkonto
-                ? trim((string) $rightKostenkonto->getNummer() . ' ' . (string) $rightKostenkonto->getBezeichnung())
-                : 'Ohne Kostenkonto';
-
-            $kontoCompare = strcmp($leftLabel, $rightLabel);
-            if (0 !== $kontoCompare) {
-                return $kontoCompare;
-            }
-
-            $dateCompare = $left->getDatum() <=> $right->getDatum();
-            if (0 !== $dateCompare) {
-                return $dateCompare;
-            }
-
-            return ((float) $left->getBetrag()) <=> ((float) $right->getBetrag());
-        });
-
-        $details = [];
-        $byAbrechnungsjahr = [];
-        $totalAmount = 0.0;
-
-        foreach ($payments as $payment) {
-            $kostenkonto = $payment->getKostenkonto();
-            $abrechnungsjahr = $payment->getAbrechnungsjahrZuordnung() ?? $payment->getDatum()->format('Y');
-
-            $details[] = [
-                'datum' => $payment->getDatum(),
-                'abrechnungsjahr' => $abrechnungsjahr,
-                'beschreibung' => $payment->getBezeichnung() ?? 'Zahlung',
-                'betrag' => (float) $payment->getBetrag(),
-                'partner' => $payment->getBuchungspartner(),
-                'kostenkonto_nummer' => $kostenkonto?->getNummer(),
-                'kostenkonto_bezeichnung' => $kostenkonto?->getBezeichnung(),
-            ];
-
-            if (!isset($byAbrechnungsjahr[$abrechnungsjahr])) {
-                $byAbrechnungsjahr[$abrechnungsjahr] = ['count' => 0, 'total' => 0.0];
-            }
-            ++$byAbrechnungsjahr[$abrechnungsjahr]['count'];
-            $byAbrechnungsjahr[$abrechnungsjahr]['total'] += (float) $payment->getBetrag();
-            $totalAmount += (float) $payment->getBetrag();
-        }
-
-        ksort($byAbrechnungsjahr);
-
-        return [
-            'payments' => $details,
-            'by_abrechnungsjahr' => $byAbrechnungsjahr,
-            'total_count' => \count($details),
-            'total_amount' => $totalAmount,
-        ];
-    }
-
-    /**
      * Summaries for invoices that are accounted in the year but paid outside the year.
      *
      * @return array{
@@ -593,6 +520,79 @@ class PaymentCalculationService
         }
 
         return $monthlyTotals;
+    }
+
+    /**
+     * @param array<int, \App\Entity\Zahlung> $payments
+     *
+     * @return array{
+     *   payments: array<array{datum: \DateTimeInterface, abrechnungsjahr: string, beschreibung: string, betrag: float, partner: string|null, kostenkonto_nummer: string|null, kostenkonto_bezeichnung: string|null}>,
+     *   by_abrechnungsjahr: array<string, array{count: int, total: float}>,
+     *   total_count: int,
+     *   total_amount: float
+     * }
+     */
+    private function buildExpenseDetailsPayload(array $payments): array
+    {
+        $payments = array_values($payments);
+        usort($payments, static function ($left, $right): int {
+            $leftKostenkonto = $left->getKostenkonto();
+            $rightKostenkonto = $right->getKostenkonto();
+
+            $leftLabel = $leftKostenkonto
+                ? mb_trim((string) $leftKostenkonto->getNummer() . ' ' . (string) $leftKostenkonto->getBezeichnung())
+                : 'Ohne Kostenkonto';
+            $rightLabel = $rightKostenkonto
+                ? mb_trim((string) $rightKostenkonto->getNummer() . ' ' . (string) $rightKostenkonto->getBezeichnung())
+                : 'Ohne Kostenkonto';
+
+            $kontoCompare = strcmp($leftLabel, $rightLabel);
+            if (0 !== $kontoCompare) {
+                return $kontoCompare;
+            }
+
+            $dateCompare = $left->getDatum() <=> $right->getDatum();
+            if (0 !== $dateCompare) {
+                return $dateCompare;
+            }
+
+            return ((float) $left->getBetrag()) <=> ((float) $right->getBetrag());
+        });
+
+        $details = [];
+        $byAbrechnungsjahr = [];
+        $totalAmount = 0.0;
+
+        foreach ($payments as $payment) {
+            $kostenkonto = $payment->getKostenkonto();
+            $abrechnungsjahr = $payment->getAbrechnungsjahrZuordnung() ?? $payment->getDatum()->format('Y');
+
+            $details[] = [
+                'datum' => $payment->getDatum(),
+                'abrechnungsjahr' => $abrechnungsjahr,
+                'beschreibung' => $payment->getBezeichnung() ?? 'Zahlung',
+                'betrag' => (float) $payment->getBetrag(),
+                'partner' => $payment->getBuchungspartner(),
+                'kostenkonto_nummer' => $kostenkonto?->getNummer(),
+                'kostenkonto_bezeichnung' => $kostenkonto?->getBezeichnung(),
+            ];
+
+            if (!isset($byAbrechnungsjahr[$abrechnungsjahr])) {
+                $byAbrechnungsjahr[$abrechnungsjahr] = ['count' => 0, 'total' => 0.0];
+            }
+            ++$byAbrechnungsjahr[$abrechnungsjahr]['count'];
+            $byAbrechnungsjahr[$abrechnungsjahr]['total'] += (float) $payment->getBetrag();
+            $totalAmount += (float) $payment->getBetrag();
+        }
+
+        ksort($byAbrechnungsjahr);
+
+        return [
+            'payments' => $details,
+            'by_abrechnungsjahr' => $byAbrechnungsjahr,
+            'total_count' => \count($details),
+            'total_amount' => $totalAmount,
+        ];
     }
 
     /**

@@ -491,7 +491,7 @@ class HgaQualityCheckService
         $einheitMea = $einheit['mea'] ?? 'N/A';
 
         // Build failed checks list
-        $failedChecks = array_filter($checks, fn ($c) => 'pass' !== $c['status']);
+        $failedChecks = array_filter($checks, static fn ($c) => 'pass' !== $c['status']);
         $failedChecksList = '';
         foreach ($failedChecks as $check) {
             $failedChecksList .= \sprintf(

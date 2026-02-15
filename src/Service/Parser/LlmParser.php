@@ -117,7 +117,7 @@ class LlmParser extends AbstractPdfParser
             'duration' => $duration,
             'confidence' => $extractedData['confidence'],
             'docintel_used' => $usedDocIntel,
-            'extracted_fields' => array_keys(array_filter($extractedData, fn ($v) => null !== $v && 'confidence' !== $v && 'reasoning' !== $v)),
+            'extracted_fields' => array_keys(array_filter($extractedData, static fn ($v) => null !== $v && 'confidence' !== $v && 'reasoning' !== $v)),
         ]);
 
         // Create Rechnung entity from extracted data

@@ -100,7 +100,7 @@ class ExportTrainingDataCommand extends Command
 
         // Optionally mark as used
         if ($markUsed) {
-            $ids = array_map(fn ($ex) => $ex->getId(), $examples);
+            $ids = array_map(static fn ($ex) => $ex->getId(), $examples);
             $this->repository->markAsUsedForTraining($ids);
             $io->success(\sprintf('Marked %d examples as used_for_training', \count($ids)));
         }
@@ -110,7 +110,7 @@ class ExportTrainingDataCommand extends Command
             "📊 Stats: %d good ratings from Claude\n" .
             '🔥 Next: Use for Ollama fine-tuning or few-shot learning',
             \count($examples),
-            \count(array_filter($examples, fn ($ex) => 'good' === $ex->getUserRating()))
+            \count(array_filter($examples, static fn ($ex) => 'good' === $ex->getUserRating()))
         ), OutputInterface::VERBOSITY_VERBOSE);
 
         return Command::SUCCESS;

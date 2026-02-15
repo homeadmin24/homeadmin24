@@ -106,12 +106,12 @@ class ZahlungController extends AbstractController
 
         // Apply transaction type filter (income/expense) after fetching
         if ('income' === $transactionType) {
-            $zahlungen = array_values(array_filter($zahlungen, fn ($z) => $z->getBetrag() > 0));
+            $zahlungen = array_values(array_filter($zahlungen, static fn ($z) => $z->getBetrag() > 0));
         } elseif ('expense' === $transactionType) {
-            $zahlungen = array_values(array_filter($zahlungen, fn ($z) => $z->getBetrag() < 0));
+            $zahlungen = array_values(array_filter($zahlungen, static fn ($z) => $z->getBetrag() < 0));
         }
         if (!$showSimulations) {
-            $zahlungen = array_values(array_filter($zahlungen, fn ($z) => !$z->isSimulation()));
+            $zahlungen = array_values(array_filter($zahlungen, static fn ($z) => !$z->isSimulation()));
         }
 
         // Calculate saldo (sum of all filtered payments)

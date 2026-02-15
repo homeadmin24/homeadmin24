@@ -25,7 +25,7 @@ class RechnungType extends AbstractType
                 'label' => 'Dienstleister',
                 'required' => false,
                 'placeholder' => '-- Dienstleister auswählen --',
-                'query_builder' => function (EntityRepository $er) {
+                'query_builder' => static function (EntityRepository $er) {
                     return $er->createQueryBuilder('d')
                         ->orderBy('d.bezeichnung', 'ASC');
                 },

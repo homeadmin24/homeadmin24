@@ -44,7 +44,7 @@ class DokumentType extends AbstractType
             ])
             ->add('rechnung', EntityType::class, [
                 'class' => Rechnung::class,
-                'choice_label' => function (Rechnung $rechnung): string {
+                'choice_label' => static function (Rechnung $rechnung): string {
                     return \sprintf('#%d - %s (%s)',
                         $rechnung->getId(),
                         $rechnung->getInformation(),

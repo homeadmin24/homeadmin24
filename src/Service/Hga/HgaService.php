@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Hga;
 
+use App\Entity\BankkontoTyp;
 use App\Entity\Weg;
 use App\Entity\WegEinheit;
 use App\Entity\Zahlungskategorie;
@@ -87,16 +88,16 @@ class HgaService implements HgaServiceInterface
             $vermoegenAbgrenzungHausgeld = $this->kontostandCalculationService->calculateVermoegensabgrenzung(
                 $einheit->getWeg(),
                 $year,
-                'hausgeld'
+                BankkontoTyp::HAUSGELD
             );
             $vermoegenAbgrenzungRuecklage = $this->kontostandCalculationService->calculateVermoegensabgrenzung(
                 $einheit->getWeg(),
                 $year,
-                'ruecklage'
+                BankkontoTyp::RUECKLAGE
             );
 
             // Get expense details by period (for detail pages)
-            $expensesByPeriod = $this->getExpensesByPeriod($einheit->getWeg(), $vermoegenAbgrenzungHausgeld, $year, 'hausgeld');
+            $expensesByPeriod = $this->getExpensesByPeriod($einheit->getWeg(), $vermoegenAbgrenzungHausgeld, $year, BankkontoTyp::HAUSGELD->value);
             $payments['expenses_abrechnung'] = $expensesByPeriod['abrechnung'];
             $payments['expenses_abgrenzung'] = $expensesByPeriod['abgrenzung'];
             $incomeByPeriod = $this->getIncomeByPeriod($einheit, $vermoegenAbgrenzungHausgeld, $year);
@@ -801,7 +802,7 @@ class HgaService implements HgaServiceInterface
         // Load Umlageschlüssel from database in correct order
         $allSchluessel = $this->umlageschluesselRepository->findAll();
         $hgaOrder = ['01*', '02*', '03*', '04*', '05*', '06*', '07*'];
-        usort($allSchluessel, function ($a, $b) use ($hgaOrder) {
+        usort($allSchluessel, static function ($a, $b) use ($hgaOrder) {
             $posA = array_search($a->getSchluessel(), $hgaOrder, true);
             $posB = array_search($b->getSchluessel(), $hgaOrder, true);
             if (false === $posA) {

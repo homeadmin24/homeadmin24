@@ -60,7 +60,7 @@ class AnalyzeZahlungskategorieCommand extends Command
 
         // Show all Zahlungskategorien with usage statistics
         $io->section('All Zahlungskategorien with Usage Statistics');
-        $tableData = array_map(fn ($row) => [
+        $tableData = array_map(static fn ($row) => [
             $row['id'],
             $row['name'],
             $row['ist_positiver_betrag'] ? 'Einnahme' : 'Ausgabe',
@@ -97,7 +97,7 @@ class AnalyzeZahlungskategorieCommand extends Command
             $io->section('⚠️  UNUSED Zahlungskategorien (no Zahlungen assigned)');
             $io->table(
                 ['ID', 'Name', 'Typ', 'Beschreibung'],
-                array_map(fn ($row) => [
+                array_map(static fn ($row) => [
                     $row['id'],
                     $row['name'],
                     $row['ist_positiver_betrag'] ? 'Einnahme' : 'Ausgabe',
@@ -117,7 +117,7 @@ class AnalyzeZahlungskategorieCommand extends Command
             $io->section('Inactive Zahlungskategorien with Zahlungen (should be reactivated)');
             $io->table(
                 ['ID', 'Name', 'Typ', 'Zahlungen Count'],
-                array_map(fn ($row) => [
+                array_map(static fn ($row) => [
                     $row['id'],
                     $row['name'],
                     $row['ist_positiver_betrag'] ? 'Einnahme' : 'Ausgabe',
@@ -165,11 +165,11 @@ class AnalyzeZahlungskategorieCommand extends Command
 
         // Show summary statistics
         $io->section('Summary');
-        $activeCount = \count(array_filter($result, fn ($row) => (bool) $row['is_active']));
+        $activeCount = \count(array_filter($result, static fn ($row) => (bool) $row['is_active']));
         $inactiveCount = \count($result) - $activeCount;
-        $usedCount = \count(array_filter($result, fn ($row) => (int) $row['zahlungen_count'] > 0));
+        $usedCount = \count(array_filter($result, static fn ($row) => (int) $row['zahlungen_count'] > 0));
         $unusedCount = \count($result) - $usedCount;
-        $einnahmenCount = \count(array_filter($result, fn ($row) => (bool) $row['ist_positiver_betrag']));
+        $einnahmenCount = \count(array_filter($result, static fn ($row) => (bool) $row['ist_positiver_betrag']));
         $ausgabenCount = \count($result) - $einnahmenCount;
 
         $io->text([

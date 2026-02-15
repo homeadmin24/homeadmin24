@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\BankkontoTyp;
 use App\Entity\Weg;
 use App\Entity\WegKontostand;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -17,10 +18,7 @@ class WegKontostandRepository extends ServiceEntityRepository
         parent::__construct($registry, WegKontostand::class);
     }
 
-    /**
-     * Get Kontostand for specific WEG, year and account type.
-     */
-    public function findByWegYearAndType(Weg $weg, int $year, string $bankkontoTyp = 'hausgeld'): ?WegKontostand
+    public function findByWegYearAndType(Weg $weg, int $year, BankkontoTyp $bankkontoTyp = BankkontoTyp::HAUSGELD): ?WegKontostand
     {
         return $this->findOneBy([
             'weg' => $weg,
@@ -30,11 +28,9 @@ class WegKontostandRepository extends ServiceEntityRepository
     }
 
     /**
-     * Get all Kontostände for a WEG, ordered by year DESC.
-     *
      * @return WegKontostand[]
      */
-    public function findByWeg(Weg $weg, string $bankkontoTyp = 'hausgeld'): array
+    public function findByWeg(Weg $weg, BankkontoTyp $bankkontoTyp = BankkontoTyp::HAUSGELD): array
     {
         return $this->findBy(
             ['weg' => $weg, 'bankkontoTyp' => $bankkontoTyp],
@@ -42,10 +38,7 @@ class WegKontostandRepository extends ServiceEntityRepository
         );
     }
 
-    /**
-     * Get latest Kontostand for a WEG (most recent year).
-     */
-    public function findLatestByWeg(Weg $weg, string $bankkontoTyp = 'hausgeld'): ?WegKontostand
+    public function findLatestByWeg(Weg $weg, BankkontoTyp $bankkontoTyp = BankkontoTyp::HAUSGELD): ?WegKontostand
     {
         return $this->createQueryBuilder('k')
             ->andWhere('k.weg = :weg')
@@ -58,10 +51,7 @@ class WegKontostandRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Check if Kontostand exists for given parameters.
-     */
-    public function exists(Weg $weg, int $year, string $bankkontoTyp = 'hausgeld'): bool
+    public function exists(Weg $weg, int $year, BankkontoTyp $bankkontoTyp = BankkontoTyp::HAUSGELD): bool
     {
         return null !== $this->findByWegYearAndType($weg, $year, $bankkontoTyp);
     }

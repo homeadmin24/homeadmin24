@@ -115,7 +115,7 @@ class ZahlungKategorisierungService
         return null !== $kategorie && null !== $kostenkonto;
     }
 
-    private function findKategorie(string $bezeichnung, string $dienstleisterName, string $dienstleisterArt): ?\App\Entity\Zahlungskategorie
+    private function findKategorie(string $bezeichnung, string $dienstleisterName, string $dienstleisterArt): ?Zahlungskategorie
     {
         // Expense patterns - Hausmeister (check BEFORE Hausgeld to avoid false matches)
         if (str_contains($bezeichnung, 'hausmeister') || str_contains($dienstleisterArt, 'hausmeister')) {
@@ -394,7 +394,7 @@ class ZahlungKategorisierungService
         return (int) $matches[2];
     }
 
-    private function isKostenkontoAllowed(\App\Entity\Zahlungskategorie $kategorie, \App\Entity\Kostenkonto $kostenkonto): bool
+    private function isKostenkontoAllowed(Zahlungskategorie $kategorie, \App\Entity\Kostenkonto $kostenkonto): bool
     {
         $fieldConfig = $kategorie->getFieldConfig();
         $allowedKostenkontos = $fieldConfig['kostenkonto_filter'] ?? [];

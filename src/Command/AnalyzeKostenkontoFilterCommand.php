@@ -73,7 +73,7 @@ class AnalyzeKostenkontoFilterCommand extends Command
             $io->section('✅ Zahlungskategorien MIT Kostenkonto-Filter (' . \count($withFilter) . ')');
             $io->table(
                 ['ID', 'Name', 'Aktiv', 'Erlaubte Kostenkontos'],
-                array_map(fn ($row) => [
+                array_map(static fn ($row) => [
                     $row['id'],
                     $row['name'],
                     $row['is_active'] ? '✓' : '✗',
@@ -89,7 +89,7 @@ class AnalyzeKostenkontoFilterCommand extends Command
             $io->section('Zahlungskategorien OHNE Filter (' . \count($withoutFilter) . ') - "Alle Kostenkontos erlaubt"');
             $io->table(
                 ['ID', 'Name', 'Aktiv'],
-                array_map(fn ($row) => [
+                array_map(static fn ($row) => [
                     $row['id'],
                     $row['name'],
                     $row['is_active'] ? '✓' : '✗',
@@ -103,7 +103,7 @@ class AnalyzeKostenkontoFilterCommand extends Command
             arsort($filterStats);
             $io->table(
                 ['Kostenkonto-Nummer', 'Verwendet in X Kategorien'],
-                array_map(fn ($nummer, $count) => [$nummer, $count], array_keys($filterStats), $filterStats)
+                array_map(static fn ($nummer, $count) => [$nummer, $count], array_keys($filterStats), $filterStats)
             );
         }
 

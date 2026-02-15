@@ -221,7 +221,7 @@ class BankStatementParsingService
     private function getMinDate(array $transactions): string
     {
         $dates = array_column($transactions, 'booking_date');
-        usort($dates, fn ($a, $b) => $a <=> $b);
+        usort($dates, static fn ($a, $b) => $a <=> $b);
 
         return reset($dates)->format('d.m.Y');
     }
@@ -229,14 +229,14 @@ class BankStatementParsingService
     private function getMaxDate(array $transactions): string
     {
         $dates = array_column($transactions, 'booking_date');
-        usort($dates, fn ($a, $b) => $b <=> $a);
+        usort($dates, static fn ($a, $b) => $b <=> $a);
 
         return reset($dates)->format('d.m.Y');
     }
 
     private function countByType(array $transactions, string $type): int
     {
-        return \count(array_filter($transactions, fn ($t) => ('income' === $type && $t['amount'] > 0)
+        return \count(array_filter($transactions, static fn ($t) => ('income' === $type && $t['amount'] > 0)
             || ('expense' === $type && $t['amount'] < 0)
         ));
     }
@@ -244,7 +244,7 @@ class BankStatementParsingService
     private function sumByType(array $transactions, string $type): float
     {
         return array_sum(array_map(
-            fn ($t) => ('income' === $type && $t['amount'] > 0)
+            static fn ($t) => ('income' === $type && $t['amount'] > 0)
                      || ('expense' === $type && $t['amount'] < 0) ? $t['amount'] : 0,
             $transactions
         ));

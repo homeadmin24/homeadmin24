@@ -48,13 +48,13 @@ abstract class BaseZahlungType extends AbstractType
                 'attr' => [
                     'data-zahlung-form-target' => 'hauptkategorie',
                 ],
-                'query_builder' => function (EntityRepository $er) {
+                'query_builder' => static function (EntityRepository $er) {
                     return $er->createQueryBuilder('zk')
                         ->where('zk.isActive = true')
                         ->orderBy('zk.sortOrder', 'ASC')
                         ->addOrderBy('zk.name', 'ASC');
                 },
-                'choice_attr' => function (Zahlungskategorie $kategorie) {
+                'choice_attr' => static function (Zahlungskategorie $kategorie) {
                     return [
                         'data-is-positive' => $kategorie->isIstPositiverBetrag() ? '1' : '0',
                         'data-allows-zero-amount' => $kategorie->isAllowsZeroAmount() ? '1' : '0',
@@ -67,10 +67,10 @@ abstract class BaseZahlungType extends AbstractType
             ])
             ->add('kostenkonto', EntityType::class, [
                 'class' => Kostenkonto::class,
-                'choice_label' => function (Kostenkonto $kostenkonto) {
+                'choice_label' => static function (Kostenkonto $kostenkonto) {
                     return $kostenkonto->getNummer() . ' - ' . $kostenkonto->getBezeichnung();
                 },
-                'choice_attr' => function (Kostenkonto $kostenkonto) {
+                'choice_attr' => static function (Kostenkonto $kostenkonto) {
                     return [
                         'data-kostenkonto-nummer' => $kostenkonto->getNummer(), // Add nummer as data attribute
                     ];
@@ -81,7 +81,7 @@ abstract class BaseZahlungType extends AbstractType
                 'attr' => [
                     'data-zahlung-form-target' => 'kostenkonto',
                 ],
-                'query_builder' => function (EntityRepository $er) {
+                'query_builder' => static function (EntityRepository $er) {
                     return $er->createQueryBuilder('k')
                         ->where('k.isActive = true')
                         ->orderBy('k.nummer', 'ASC');
@@ -89,7 +89,7 @@ abstract class BaseZahlungType extends AbstractType
             ])
             ->add('eigentuemer', EntityType::class, [
                 'class' => WegEinheit::class,
-                'choice_label' => function (WegEinheit $wegEinheit) {
+                'choice_label' => static function (WegEinheit $wegEinheit) {
                     return $wegEinheit->getBezeichnung() . ' - ' . $wegEinheit->getMiteigentuemer();
                 },
                 'label' => 'Eigentümer',
@@ -98,7 +98,7 @@ abstract class BaseZahlungType extends AbstractType
                 'attr' => [
                     'data-zahlung-form-target' => 'eigentuemer',
                 ],
-                'query_builder' => function (EntityRepository $er) {
+                'query_builder' => static function (EntityRepository $er) {
                     return $er->createQueryBuilder('we')
                         ->orderBy('we.bezeichnung', 'ASC');
                 },
@@ -112,7 +112,7 @@ abstract class BaseZahlungType extends AbstractType
                 'attr' => [
                     'data-zahlung-form-target' => 'dienstleister',
                 ],
-                'query_builder' => function (EntityRepository $er) {
+                'query_builder' => static function (EntityRepository $er) {
                     return $er->createQueryBuilder('d')
                         ->orderBy('d.bezeichnung', 'ASC');
                 },
@@ -142,7 +142,7 @@ abstract class BaseZahlungType extends AbstractType
             ])
             ->add('rechnung', EntityType::class, [
                 'class' => Rechnung::class,
-                'choice_label' => function (Rechnung $rechnung) {
+                'choice_label' => static function (Rechnung $rechnung) {
                     return $rechnung->getInformation() .
                         ($rechnung->getRechnungsnummer() ? ' (' . $rechnung->getRechnungsnummer() . ')' : '') .
                         ' - ' . $rechnung->getBetragMitSteuern() . ' €';
@@ -153,7 +153,7 @@ abstract class BaseZahlungType extends AbstractType
                 'attr' => [
                     'data-zahlung-form-target' => 'rechnung',
                 ],
-                'query_builder' => function (EntityRepository $er) {
+                'query_builder' => static function (EntityRepository $er) {
                     return $er->createQueryBuilder('r')
                         ->orderBy('r.id', 'DESC');
                 },
@@ -206,7 +206,7 @@ abstract class BaseZahlungType extends AbstractType
     protected function addDynamicValidation(FormBuilderInterface $builder): void
     {
         // Add form event listener to handle rechnung field based on dienstleister
-        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) {
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, static function (FormEvent $event) {
             $zahlung = $event->getData();
             $form = $event->getForm();
 
@@ -216,7 +216,7 @@ abstract class BaseZahlungType extends AbstractType
 
                 $form->add('rechnung', EntityType::class, [
                     'class' => Rechnung::class,
-                    'choice_label' => function (Rechnung $rechnung) {
+                    'choice_label' => static function (Rechnung $rechnung) {
                         return $rechnung->getInformation() .
                             ($rechnung->getRechnungsnummer() ? ' (' . $rechnung->getRechnungsnummer() . ')' : '') .
                             ' - ' . $rechnung->getBetragMitSteuern() . ' €';
@@ -227,7 +227,7 @@ abstract class BaseZahlungType extends AbstractType
                     'attr' => [
                         'data-zahlung-form-target' => 'rechnung',
                     ],
-                    'query_builder' => function (EntityRepository $er) use ($dienstleister) {
+                    'query_builder' => static function (EntityRepository $er) use ($dienstleister) {
                         return $er->createQueryBuilder('r')
                             ->where('r.dienstleister = :dienstleister')
                             ->setParameter('dienstleister', $dienstleister)
@@ -238,7 +238,7 @@ abstract class BaseZahlungType extends AbstractType
         });
 
         // Handle form submission
-        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
+        $builder->addEventListener(FormEvents::PRE_SUBMIT, static function (FormEvent $event) {
             $data = $event->getData();
             $form = $event->getForm();
 
@@ -246,7 +246,7 @@ abstract class BaseZahlungType extends AbstractType
             if (!empty($data['dienstleister'])) {
                 $form->add('rechnung', EntityType::class, [
                     'class' => Rechnung::class,
-                    'choice_label' => function (Rechnung $rechnung) {
+                    'choice_label' => static function (Rechnung $rechnung) {
                         return $rechnung->getInformation() .
                             ($rechnung->getRechnungsnummer() ? ' (' . $rechnung->getRechnungsnummer() . ')' : '') .
                             ' - ' . $rechnung->getBetragMitSteuern() . ' €';
@@ -257,7 +257,7 @@ abstract class BaseZahlungType extends AbstractType
                     'attr' => [
                         'data-zahlung-form-target' => 'rechnung',
                     ],
-                    'query_builder' => function (EntityRepository $er) use ($data) {
+                    'query_builder' => static function (EntityRepository $er) use ($data) {
                         return $er->createQueryBuilder('r')
                             ->where('r.dienstleister = :dienstleister')
                             ->setParameter('dienstleister', $data['dienstleister'])
