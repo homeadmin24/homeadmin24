@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service\Hga\Calculation;
 
 use App\Entity\WegEinheit;
+use App\Entity\Zahlungskategorie;
 use App\Repository\RechnungRepository;
 use App\Repository\ZahlungRepository;
 use App\Service\Hga\ConfigurationInterface;
@@ -46,7 +47,7 @@ class PaymentCalculationService
         $total = 0.0;
         foreach ($payments as $payment) {
             // Only count Hausgeld-Zahlung category
-            if ('Hausgeld-Zahlung' === $payment->getHauptkategorie()?->getName()) {
+            if (Zahlungskategorie::NAME_HAUSGELD_ZAHLUNG === $payment->getHauptkategorie()?->getName()) {
                 $total += (float) $payment->getBetrag();
             }
         }
@@ -113,6 +114,130 @@ class PaymentCalculationService
                 'partner' => $payment->getBuchungspartner(),
                 'kostenkonto_nummer' => $kostenkonto?->getNummer(),
                 'kostenkonto_bezeichnung' => $kostenkonto?->getBezeichnung(),
+            ];
+        }
+
+        return $details;
+    }
+
+    /**
+     * Get detailed payment list for a unit by payment date (Zufluss-/Abfluss-Prinzip).
+     *
+     * @return array<array{
+     *   datum: \DateTimeInterface,
+     *   abrechnungsjahr_zuordnung: string|null,
+     *   beschreibung: string,
+     *   betrag: float,
+     *   kategorie: string|null,
+     *   partner: string|null
+     * }>
+     */
+    public function getPaymentDetailsByPaymentDate(WegEinheit $einheit, int $year): array
+    {
+        $payments = $this->zahlungRepository->getOwnerPaymentsByPaymentDate($einheit, $year);
+
+        $details = [];
+        foreach ($payments as $payment) {
+            $details[] = [
+                'datum' => $payment->getDatum(),
+                'abrechnungsjahr_zuordnung' => $payment->getAbrechnungsjahrZuordnung() ?? $payment->getDatum()->format('Y'),
+                'beschreibung' => $payment->getBezeichnung() ?? 'Zahlung',
+                'betrag' => (float) $payment->getBetrag(),
+                'kategorie' => $payment->getHauptkategorie()?->getName(),
+                'partner' => $payment->getBuchungspartner(),
+            ];
+        }
+
+        return $details;
+    }
+
+    /**
+     * Get detailed payment list for a unit by payment date in an inclusive range.
+     *
+     * @return array<array{
+     *   datum: \DateTimeInterface,
+     *   abrechnungsjahr_zuordnung: string|null,
+     *   beschreibung: string,
+     *   betrag: float,
+     *   kategorie: string|null,
+     *   partner: string|null
+     * }>
+     */
+    public function getPaymentDetailsByPaymentDateRange(WegEinheit $einheit, \DateTimeInterface $startDate, \DateTimeInterface $endDate): array
+    {
+        $payments = $this->zahlungRepository->getOwnerPaymentsByPaymentDateRange($einheit, $startDate, $endDate);
+
+        $details = [];
+        foreach ($payments as $payment) {
+            $details[] = [
+                'datum' => $payment->getDatum(),
+                'abrechnungsjahr_zuordnung' => $payment->getAbrechnungsjahrZuordnung() ?? $payment->getDatum()->format('Y'),
+                'beschreibung' => $payment->getBezeichnung() ?? 'Zahlung',
+                'betrag' => (float) $payment->getBetrag(),
+                'kategorie' => $payment->getHauptkategorie()?->getName(),
+                'partner' => $payment->getBuchungspartner(),
+            ];
+        }
+
+        return $details;
+    }
+
+    /**
+     * Get WEG-level income payments by payment date (not linked to any owner).
+     *
+     * @return array<array{
+     *   datum: \DateTimeInterface,
+     *   abrechnungsjahr_zuordnung: int|string,
+     *   beschreibung: string,
+     *   betrag: float,
+     *   kategorie: string|null,
+     *   partner: string|null
+     * }>
+     */
+    public function getWegLevelIncomeByPaymentDate(\App\Entity\Weg $weg, int $year): array
+    {
+        $payments = $this->zahlungRepository->getWegLevelIncomeByPaymentDate($weg, $year);
+
+        $details = [];
+        foreach ($payments as $payment) {
+            $details[] = [
+                'datum' => $payment->getDatum(),
+                'abrechnungsjahr_zuordnung' => $payment->getAbrechnungsjahrZuordnung() ?? $payment->getDatum()->format('Y'),
+                'beschreibung' => $payment->getBezeichnung() ?? 'Zahlung',
+                'betrag' => (float) $payment->getBetrag(),
+                'kategorie' => $payment->getHauptkategorie()?->getName(),
+                'partner' => $payment->getBuchungspartner(),
+            ];
+        }
+
+        return $details;
+    }
+
+    /**
+     * Get WEG-level income payments by payment date (not linked to any owner) in an inclusive range.
+     *
+     * @return array<array{
+     *   datum: \DateTimeInterface,
+     *   abrechnungsjahr_zuordnung: int|string,
+     *   beschreibung: string,
+     *   betrag: float,
+     *   kategorie: string|null,
+     *   partner: string|null
+     * }>
+     */
+    public function getWegLevelIncomeByPaymentDateRange(\App\Entity\Weg $weg, \DateTimeInterface $startDate, \DateTimeInterface $endDate): array
+    {
+        $payments = $this->zahlungRepository->getWegLevelIncomeByPaymentDateRange($weg, $startDate, $endDate);
+
+        $details = [];
+        foreach ($payments as $payment) {
+            $details[] = [
+                'datum' => $payment->getDatum(),
+                'abrechnungsjahr_zuordnung' => $payment->getAbrechnungsjahrZuordnung() ?? $payment->getDatum()->format('Y'),
+                'beschreibung' => $payment->getBezeichnung() ?? 'Zahlung',
+                'betrag' => (float) $payment->getBetrag(),
+                'kategorie' => $payment->getHauptkategorie()?->getName(),
+                'partner' => $payment->getBuchungspartner(),
             ];
         }
 
@@ -192,6 +317,120 @@ class PaymentCalculationService
         }
 
         return $details;
+    }
+
+    /**
+     * Get expense payment details for a specific date range with abrechnungsjahr grouping.
+     *
+     * @return array{
+     *   payments: array<array{datum: \DateTimeInterface, abrechnungsjahr: string, beschreibung: string, betrag: float, partner: string|null, kostenkonto_nummer: string|null, kostenkonto_bezeichnung: string|null}>,
+     *   by_abrechnungsjahr: array<string, array{count: int, total: float}>,
+     *   total_count: int,
+     *   total_amount: float
+     * }
+     */
+    public function getExpenseDetailsByDateRange(\DateTimeInterface $startDate, \DateTimeInterface $endDate): array
+    {
+        $payments = $this->zahlungRepository->getAllExpensesByDateRange($startDate, $endDate);
+
+        return $this->buildExpenseDetailsPayload($payments);
+    }
+
+    /**
+     * Get expense payment details for a WEG/date range based on Vermögensabgrenzung source data.
+     * Includes owner-linked and WEG-level payments and keeps Umbuchungen for full traceability.
+     *
+     * @return array{
+     *   payments: array<array{datum: \DateTimeInterface, abrechnungsjahr: string, beschreibung: string, betrag: float, partner: string|null, kostenkonto_nummer: string|null, kostenkonto_bezeichnung: string|null}>,
+     *   by_abrechnungsjahr: array<string, array{count: int, total: float}>,
+     *   total_count: int,
+     *   total_amount: float
+     * }
+     */
+    public function getExpenseDetailsByWegAndDateRange(\App\Entity\Weg $weg, \DateTimeInterface $startDate, \DateTimeInterface $endDate, int $defaultYear, string $bankkontoTyp = 'hausgeld'): array
+    {
+        $payments = $this->zahlungRepository->findByWegAndDateRange($weg, $startDate, $endDate, $bankkontoTyp);
+
+        // Detail sections for expenses only: keep the same sign split as Vermögensabgrenzung.
+        $expensePayments = array_filter(
+            $payments,
+            static fn ($payment): bool => (float) $payment->getBetrag() < 0
+        );
+
+        return $this->buildExpenseDetailsPayload($expensePayments);
+    }
+
+    /**
+     * @param array<int, \App\Entity\Zahlung> $payments
+     *
+     * @return array{
+     *   payments: array<array{datum: \DateTimeInterface, abrechnungsjahr: string, beschreibung: string, betrag: float, partner: string|null, kostenkonto_nummer: string|null, kostenkonto_bezeichnung: string|null}>,
+     *   by_abrechnungsjahr: array<string, array{count: int, total: float}>,
+     *   total_count: int,
+     *   total_amount: float
+     * }
+     */
+    private function buildExpenseDetailsPayload(array $payments): array
+    {
+        $payments = array_values($payments);
+        usort($payments, static function ($left, $right): int {
+            $leftKostenkonto = $left->getKostenkonto();
+            $rightKostenkonto = $right->getKostenkonto();
+
+            $leftLabel = $leftKostenkonto
+                ? trim((string) $leftKostenkonto->getNummer() . ' ' . (string) $leftKostenkonto->getBezeichnung())
+                : 'Ohne Kostenkonto';
+            $rightLabel = $rightKostenkonto
+                ? trim((string) $rightKostenkonto->getNummer() . ' ' . (string) $rightKostenkonto->getBezeichnung())
+                : 'Ohne Kostenkonto';
+
+            $kontoCompare = strcmp($leftLabel, $rightLabel);
+            if (0 !== $kontoCompare) {
+                return $kontoCompare;
+            }
+
+            $dateCompare = $left->getDatum() <=> $right->getDatum();
+            if (0 !== $dateCompare) {
+                return $dateCompare;
+            }
+
+            return ((float) $left->getBetrag()) <=> ((float) $right->getBetrag());
+        });
+
+        $details = [];
+        $byAbrechnungsjahr = [];
+        $totalAmount = 0.0;
+
+        foreach ($payments as $payment) {
+            $kostenkonto = $payment->getKostenkonto();
+            $abrechnungsjahr = $payment->getAbrechnungsjahrZuordnung() ?? $payment->getDatum()->format('Y');
+
+            $details[] = [
+                'datum' => $payment->getDatum(),
+                'abrechnungsjahr' => $abrechnungsjahr,
+                'beschreibung' => $payment->getBezeichnung() ?? 'Zahlung',
+                'betrag' => (float) $payment->getBetrag(),
+                'partner' => $payment->getBuchungspartner(),
+                'kostenkonto_nummer' => $kostenkonto?->getNummer(),
+                'kostenkonto_bezeichnung' => $kostenkonto?->getBezeichnung(),
+            ];
+
+            if (!isset($byAbrechnungsjahr[$abrechnungsjahr])) {
+                $byAbrechnungsjahr[$abrechnungsjahr] = ['count' => 0, 'total' => 0.0];
+            }
+            ++$byAbrechnungsjahr[$abrechnungsjahr]['count'];
+            $byAbrechnungsjahr[$abrechnungsjahr]['total'] += (float) $payment->getBetrag();
+            $totalAmount += (float) $payment->getBetrag();
+        }
+
+        ksort($byAbrechnungsjahr);
+
+        return [
+            'payments' => $details,
+            'by_abrechnungsjahr' => $byAbrechnungsjahr,
+            'total_count' => \count($details),
+            'total_amount' => $totalAmount,
+        ];
     }
 
     /**
@@ -346,7 +585,7 @@ class PaymentCalculationService
 
             foreach ($payments as $payment) {
                 // Only count Hausgeld-Zahlung category
-                if ('Hausgeld-Zahlung' === $payment->getHauptkategorie()?->getName()) {
+                if (Zahlungskategorie::NAME_HAUSGELD_ZAHLUNG === $payment->getHauptkategorie()?->getName()) {
                     $month = (int) $payment->getDatum()->format('n');
                     $monthlyTotals[$month] += (float) $payment->getBetrag();
                 }

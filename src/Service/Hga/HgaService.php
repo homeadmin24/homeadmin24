@@ -6,6 +6,7 @@ namespace App\Service\Hga;
 
 use App\Entity\Weg;
 use App\Entity\WegEinheit;
+use App\Entity\Zahlungskategorie;
 use App\Repository\UmlageschluesselRepository;
 use App\Service\Hga\Calculation\BalanceCalculationService;
 use App\Service\Hga\Calculation\CostCalculationService;
@@ -56,8 +57,10 @@ class HgaService implements HgaServiceInterface
         $usePaymentDate = ('eigentuemer' === $reportType);
 
         try {
-            // Get all calculation data - use payment date filtering for Eigentümer
+            // Get all calculation data - both methods for dual display
             $costs = $this->costCalculationService->calculateTotalCosts($einheit, $year, $usePaymentDate);
+            $costsMieter = $this->costCalculationService->calculateTotalCosts($einheit, $year, false);
+            $costsEigentuemer = $this->costCalculationService->calculateTotalCosts($einheit, $year, true);
             $payments = $this->calculatePaymentBalance($einheit, $year, $usePaymentDate);
             $taxDeductible = $this->calculateTaxDeductible($einheit, $year);
             $externalCosts = $this->externalCostService->getAllExternalCosts($einheit, $year);
@@ -92,6 +95,14 @@ class HgaService implements HgaServiceInterface
                 'ruecklage'
             );
 
+            // Get expense details by period (for detail pages)
+            $expensesByPeriod = $this->getExpensesByPeriod($einheit->getWeg(), $vermoegenAbgrenzungHausgeld, $year, 'hausgeld');
+            $payments['expenses_abrechnung'] = $expensesByPeriod['abrechnung'];
+            $payments['expenses_abgrenzung'] = $expensesByPeriod['abgrenzung'];
+            $incomeByPeriod = $this->getIncomeByPeriod($einheit, $vermoegenAbgrenzungHausgeld, $year);
+            $payments['income_abrechnung'] = $incomeByPeriod['abrechnung'];
+            $payments['income_abgrenzung'] = $incomeByPeriod['abgrenzung'];
+
             $wirtschaftsplanPlanData = $this->applyPlannedIncomeDefaults($wirtschaftsplanPlanData);
 
             // Get WEG totals - use payment date filtering for Eigentümer
@@ -122,6 +133,8 @@ class HgaService implements HgaServiceInterface
                 ],
                 'year' => $year,
                 'costs' => $costs,
+                'costs_mieter' => $costsMieter,
+                'costs_eigentuemer' => $costsEigentuemer,
                 'payments' => $payments,
                 'tax_deductible' => $taxDeductible,
                 'external_costs' => $externalCosts,
@@ -154,6 +167,7 @@ class HgaService implements HgaServiceInterface
                 ],
                 'calculated_totals' => $calculatedTotals,
                 'calculation_date' => new \DateTime(),
+                'income_categories' => Zahlungskategorie::INCOME_CATEGORIES,
                 'configuration' => [
                     'section_headers' => $this->configurationService->getSectionHeaders(),
                     'standard_texts' => $this->configurationService->getStandardTexts(),
@@ -211,6 +225,7 @@ class HgaService implements HgaServiceInterface
     {
         $balance = $this->paymentCalculationService->calculatePaymentBalance($einheit, $year);
         $paymentDetails = $this->paymentCalculationService->getPaymentDetails($einheit, $year);
+        $paymentDetailsByDate = $this->paymentCalculationService->getPaymentDetailsByPaymentDate($einheit, $year);
         $allPaymentDetails = $this->paymentCalculationService->getAllPaymentDetails($year, $usePaymentDate);
 
         // Get WEG totals for context
@@ -235,7 +250,7 @@ class HgaService implements HgaServiceInterface
 
             // Use category to identify payment types
             $kategorie = $payment['kategorie'] ?? null;
-            if ('Hausgeld-Zahlung' === $kategorie) {
+            if (Zahlungskategorie::NAME_HAUSGELD_ZAHLUNG === $kategorie) {
                 $monthlyUnitPayments[$month]['wohngeld'] += $payment['betrag'];
             } else {
                 $monthlyUnitPayments[$month]['other'][] = $payment;
@@ -245,15 +260,28 @@ class HgaService implements HgaServiceInterface
         // Calculate WEG totals for other payments by category
         $wegCategoryTotals = $this->getWegOtherPayments($einheit->getWeg(), $year);
 
+        // Calculate WEG totals by payment date (for ZAHLUNGSÜBERSICHT EINNAHMEN)
+        $wegCategoryTotalsByDate = $this->getWegPaymentsByDate($einheit->getWeg(), $year);
+        $wegEinnahmenByDate = array_sum($wegCategoryTotalsByDate);
+
+        // Get WEG-level income payment details (not linked to any owner)
+        $wegLevelIncomeDetails = $this->paymentCalculationService->getWegLevelIncomeByPaymentDate($einheit->getWeg(), $year);
+
+        // Calculate unit's total income by payment date
+        $unitEinnahmenByDate = array_sum(array_column($paymentDetailsByDate, 'betrag'));
+
         // For ZAHLUNGSÜBERSICHT display: use monthly SOLL values for consistent display
         // Create array with SOLL value for all 12 months
         $monthlyWegIstDisplay = array_fill(1, 12, $monthlyWegSoll);
 
         return array_merge($balance, [
             'payment_details' => $paymentDetails,
+            'payment_details_by_date' => $paymentDetailsByDate,
             'all_payment_details' => $allPaymentDetails,
             'monthly_unit_payments' => $monthlyUnitPayments,
             'weg_category_totals' => $wegCategoryTotals,
+            'weg_category_totals_by_date' => $wegCategoryTotalsByDate,
+            'weg_level_income_details' => $wegLevelIncomeDetails,
             'weg_totals' => [
                 'soll' => $wegSollTotal,
                 'ist' => $wegIstTotal,
@@ -262,6 +290,8 @@ class HgaService implements HgaServiceInterface
                 'monthly_weg_soll' => $monthlyWegSoll,
                 'monthly_unit_soll' => $monthlyUnitSoll,
                 'monthly_weg_ist' => $monthlyWegIstDisplay,
+                'einnahmen_by_date' => $wegEinnahmenByDate,
+                'unit_einnahmen_by_date' => $unitEinnahmenByDate,
             ],
         ]);
     }
@@ -580,13 +610,54 @@ class HgaService implements HgaServiceInterface
             foreach ($payments as $payment) {
                 $kategorie = $payment['kategorie'] ?? 'Unbekannt';
                 // Only process non-Hausgeld payments (Nachzahlungen, Sonderumlagen, etc.)
-                if ('Hausgeld-Zahlung' !== $kategorie) {
+                if (Zahlungskategorie::NAME_HAUSGELD_ZAHLUNG !== $kategorie) {
                     if (!isset($categoryTotals[$kategorie])) {
                         $categoryTotals[$kategorie] = 0.0;
                     }
                     $categoryTotals[$kategorie] += $payment['betrag'];
                 }
             }
+        }
+
+        return $categoryTotals;
+    }
+
+    /**
+     * Get WEG-wide payment totals by payment date (Zufluss-/Abfluss-Prinzip).
+     *
+     * @return array<string, float> Kategorie => WEG total
+     */
+    private function getWegPaymentsByDate(Weg $weg, int $year, ?\DateTimeInterface $startDate = null, ?\DateTimeInterface $endDate = null): array
+    {
+        $units = $weg->getEinheiten();
+
+        $categoryTotals = [];
+
+        // Add owner-linked payments
+        foreach ($units as $unit) {
+            $payments = ($startDate && $endDate)
+                ? $this->paymentCalculationService->getPaymentDetailsByPaymentDateRange($unit, $startDate, $endDate)
+                : $this->paymentCalculationService->getPaymentDetailsByPaymentDate($unit, $year);
+
+            foreach ($payments as $payment) {
+                $kategorie = $payment['kategorie'] ?? 'Unbekannt';
+                if (!isset($categoryTotals[$kategorie])) {
+                    $categoryTotals[$kategorie] = 0.0;
+                }
+                $categoryTotals[$kategorie] += $payment['betrag'];
+            }
+        }
+
+        // Add WEG-level payments (not linked to any owner)
+        $wegLevelPayments = ($startDate && $endDate)
+            ? $this->paymentCalculationService->getWegLevelIncomeByPaymentDateRange($weg, $startDate, $endDate)
+            : $this->paymentCalculationService->getWegLevelIncomeByPaymentDate($weg, $year);
+        foreach ($wegLevelPayments as $payment) {
+            $kategorie = $payment['kategorie'] ?? 'Unbekannt';
+            if (!isset($categoryTotals[$kategorie])) {
+                $categoryTotals[$kategorie] = 0.0;
+            }
+            $categoryTotals[$kategorie] += $payment['betrag'];
         }
 
         return $categoryTotals;
@@ -797,6 +868,140 @@ class HgaService implements HgaServiceInterface
         }
 
         return $result;
+    }
+
+    /**
+     * Get expense details by period (Abrechnungsperiode and Abgrenzung).
+     *
+     * @param array<string, mixed> $vermoegenAbgrenzung Vermögensabgrenzung data (from KontostandCalculationService)
+     *
+     * @return array{abrechnung: array<string, mixed>, abgrenzung: array<string, mixed>}
+     */
+    private function getExpensesByPeriod(Weg $weg, array $vermoegenAbgrenzung, int $year, string $bankkontoTyp = 'hausgeld'): array
+    {
+        $emptyResult = [
+            'payments' => [],
+            'by_abrechnungsjahr' => [],
+            'total_count' => 0,
+            'total_amount' => 0.0,
+            'start_date' => null,
+            'end_date' => null,
+        ];
+
+        if (!($vermoegenAbgrenzung['available'] ?? false)) {
+            return ['abrechnung' => $emptyResult, 'abgrenzung' => $emptyResult];
+        }
+
+        // Get dates from Vermögensabgrenzung
+        $abrechnungStart = isset($vermoegenAbgrenzung['periode_abrechnung']['start'])
+            ? new \DateTime($vermoegenAbgrenzung['periode_abrechnung']['start'])
+            : new \DateTime($year . '-01-01');
+        $abrechnungEnd = isset($vermoegenAbgrenzung['periode_abrechnung']['end'])
+            ? new \DateTime($vermoegenAbgrenzung['periode_abrechnung']['end'])
+            : new \DateTime($year . '-12-30');
+
+        $abgrenzungStart = isset($vermoegenAbgrenzung['periode_abgrenzung']['start'])
+            ? new \DateTime($vermoegenAbgrenzung['periode_abgrenzung']['start'])
+            : (clone $abrechnungEnd)->modify('+1 day');
+        $abgrenzungEnd = isset($vermoegenAbgrenzung['periode_abgrenzung']['end'])
+            ? new \DateTime($vermoegenAbgrenzung['periode_abgrenzung']['end'])
+            : null;
+
+        // Get expense details for Abrechnungsperiode
+        $abrechnungData = $this->paymentCalculationService->getExpenseDetailsByWegAndDateRange(
+            $weg,
+            $abrechnungStart,
+            $abrechnungEnd,
+            $year,
+            $bankkontoTyp
+        );
+        $abrechnungData['start_date'] = $abrechnungStart;
+        $abrechnungData['end_date'] = $abrechnungEnd;
+
+        // Get expense details for Abgrenzung (only if we have an end date)
+        $abgrenzungData = $emptyResult;
+        if ($abgrenzungEnd && $abgrenzungEnd > $abrechnungEnd) {
+            $abgrenzungData = $this->paymentCalculationService->getExpenseDetailsByWegAndDateRange(
+                $weg,
+                $abgrenzungStart,
+                $abgrenzungEnd,
+                $year,
+                $bankkontoTyp
+            );
+            $abgrenzungData['start_date'] = $abgrenzungStart;
+            $abgrenzungData['end_date'] = $abgrenzungEnd;
+        }
+
+        return [
+            'abrechnung' => $abrechnungData,
+            'abgrenzung' => $abgrenzungData,
+        ];
+    }
+
+    /**
+     * Get income details by period (Abrechnungsperiode and Abgrenzung).
+     *
+     * @param array<string, mixed> $vermoegenAbgrenzung Vermögensabgrenzung data (from KontostandCalculationService)
+     *
+     * @return array{abrechnung: array<string, mixed>, abgrenzung: array<string, mixed>}
+     */
+    private function getIncomeByPeriod(WegEinheit $einheit, array $vermoegenAbgrenzung, int $year): array
+    {
+        $emptyResult = [
+            'unit_payments' => [],
+            'weg_category_totals' => [],
+            'weg_level_income_details' => [],
+            'total_unit_amount' => 0.0,
+            'total_weg_amount' => 0.0,
+            'start_date' => null,
+            'end_date' => null,
+        ];
+
+        if (!($vermoegenAbgrenzung['available'] ?? false)) {
+            return ['abrechnung' => $emptyResult, 'abgrenzung' => $emptyResult];
+        }
+
+        $abrechnungStart = isset($vermoegenAbgrenzung['periode_abrechnung']['start'])
+            ? new \DateTime($vermoegenAbgrenzung['periode_abrechnung']['start'])
+            : new \DateTime($year . '-01-01');
+        $abrechnungEnd = isset($vermoegenAbgrenzung['periode_abrechnung']['end'])
+            ? new \DateTime($vermoegenAbgrenzung['periode_abrechnung']['end'])
+            : new \DateTime($year . '-12-30');
+
+        $abgrenzungStart = isset($vermoegenAbgrenzung['periode_abgrenzung']['start'])
+            ? new \DateTime($vermoegenAbgrenzung['periode_abgrenzung']['start'])
+            : (clone $abrechnungEnd)->modify('+1 day');
+        $abgrenzungEnd = isset($vermoegenAbgrenzung['periode_abgrenzung']['end'])
+            ? new \DateTime($vermoegenAbgrenzung['periode_abgrenzung']['end'])
+            : null;
+
+        $buildResult = function (\DateTimeInterface $startDate, \DateTimeInterface $endDate) use ($einheit, $year): array {
+            $unitPayments = $this->paymentCalculationService->getPaymentDetailsByPaymentDateRange($einheit, $startDate, $endDate);
+            $wegCategoryTotals = $this->getWegPaymentsByDate($einheit->getWeg(), $year, $startDate, $endDate);
+            $wegLevelIncomeDetails = $this->paymentCalculationService->getWegLevelIncomeByPaymentDateRange($einheit->getWeg(), $startDate, $endDate);
+
+            return [
+                'unit_payments' => $unitPayments,
+                'weg_category_totals' => $wegCategoryTotals,
+                'weg_level_income_details' => $wegLevelIncomeDetails,
+                'total_unit_amount' => array_sum(array_column($unitPayments, 'betrag')),
+                'total_weg_amount' => array_sum($wegCategoryTotals),
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ];
+        };
+
+        $abrechnungData = $buildResult($abrechnungStart, $abrechnungEnd);
+        $abgrenzungData = $emptyResult;
+
+        if ($abgrenzungEnd && $abgrenzungEnd > $abrechnungEnd) {
+            $abgrenzungData = $buildResult($abgrenzungStart, $abgrenzungEnd);
+        }
+
+        return [
+            'abrechnung' => $abrechnungData,
+            'abgrenzung' => $abgrenzungData,
+        ];
     }
 
     /**

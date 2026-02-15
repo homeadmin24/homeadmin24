@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Zahlung;
+use App\Entity\Zahlungskategorie;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -170,7 +171,7 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('year', $year)
             ->setParameter('startDate', $startDate)
             ->setParameter('endDate', $endDate)
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->orderBy('z.kostenkonto', 'ASC')
             ->addOrderBy('z.datum', 'DESC')
             ->getQuery()
@@ -198,9 +199,33 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('startDate', $startDate)
             ->setParameter('endDate', $endDate)
             ->setParameter('year', (string) $year)
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->orderBy('z.kostenkonto', 'ASC')
             ->addOrderBy('z.datum', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Get all expense payments by date range (for detail pages).
+     * Returns ALL payments in the date range regardless of abrechnungsjahrZuordnung.
+     *
+     * @return Zahlung[]
+     */
+    public function getAllExpensesByDateRange(\DateTimeInterface $startDate, \DateTimeInterface $endDate): array
+    {
+        return $this->createQueryBuilder('z')
+            ->leftJoin('z.hauptkategorie', 'hk')
+            ->andWhere('z.datum >= :startDate AND z.datum <= :endDate')
+            ->andWhere('z.eigentuemer IS NULL')
+            ->andWhere('z.betrag < 0')
+            ->andWhere('z.isSimulation = false')
+            ->andWhere('hk.name != :kategorie_umbuchung OR hk.name IS NULL')
+            ->setParameter('startDate', $startDate)
+            ->setParameter('endDate', $endDate)
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
+            ->orderBy('z.kostenkonto', 'ASC')
+            ->addOrderBy('z.datum', 'ASC')
             ->getQuery()
             ->getResult();
     }
@@ -269,9 +294,9 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('hausgeld', 'hausgeld')
             ->setParameter('ruecklage', 'ruecklage')
             ->setParameter('ruecklage_typ', \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG)
-            ->setParameter('kategorie_hausgeld', 'Hausgeld-Zahlung')
-            ->setParameter('kategorie_sonderumlage', 'Sonderumlage')
-            ->setParameter('kategorie_nachzahlung', 'Nachzahlung')
+            ->setParameter('kategorie_hausgeld', Zahlungskategorie::NAME_HAUSGELD_ZAHLUNG)
+            ->setParameter('kategorie_sonderumlage', Zahlungskategorie::NAME_SONDERUMLAGE)
+            ->setParameter('kategorie_nachzahlung', Zahlungskategorie::NAME_NACHZAHLUNG)
             ->setParameter('kategorie_erstattung', 'Rückzahlung an Eigentümer')
             ->setParameter('ruecklage_zufuehrung', 'ruecklage_zufuehrung')
             ->setParameter('ruecklage_aufloesung', 'ruecklage_aufloesung')
@@ -362,7 +387,7 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('endDate', $endDate)
             ->setParameter('hausgeld', 'hausgeld')
             ->setParameter('ruecklage_typ', \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG)
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->getQuery()
             ->getSingleResult();
 
@@ -382,7 +407,7 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('year', $year)
             ->setParameter('hausgeld', 'hausgeld')
             ->setParameter('ruecklage_typ', \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG)
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->getQuery()
             ->getResult();
 
@@ -402,7 +427,7 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('year', $year)
             ->setParameter('hausgeld', 'hausgeld')
             ->setParameter('ruecklage_typ', \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG)
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->getQuery()
             ->getResult();
 
@@ -422,7 +447,7 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('year', $year)
             ->setParameter('hausgeld', 'hausgeld')
             ->setParameter('ruecklage_typ', \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG)
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->getQuery()
             ->getResult();
 
@@ -442,7 +467,7 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('year', $year)
             ->setParameter('hausgeld', 'hausgeld')
             ->setParameter('ruecklage_typ', \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG)
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->getQuery()
             ->getResult();
 
@@ -462,7 +487,7 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('year', $year)
             ->setParameter('hausgeld', 'hausgeld')
             ->setParameter('ruecklage_typ', \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG)
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->getQuery()
             ->getResult();
 
@@ -480,7 +505,7 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('endDate', $endDate)
             ->setParameter('hausgeld', 'hausgeld')
             ->setParameter('ruecklage_typ', \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG)
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->getQuery()
             ->getResult();
 
@@ -498,7 +523,7 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('endDate', $endDate)
             ->setParameter('hausgeld', 'hausgeld')
             ->setParameter('ruecklage_typ', \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG)
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->getQuery()
             ->getResult();
 
@@ -512,7 +537,7 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('year', $year)
             ->setParameter('hausgeld', 'hausgeld')
             ->setParameter('ruecklage_typ', \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG)
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->getQuery()
             ->getSingleResult();
 
@@ -529,7 +554,7 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('year', $year)
             ->setParameter('hausgeld', 'hausgeld')
             ->setParameter('ruecklage_typ', \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG)
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->getQuery()
             ->getResult();
 
@@ -546,7 +571,7 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('year', $year)
             ->setParameter('hausgeld', 'hausgeld')
             ->setParameter('ruecklage_typ', \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG)
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->getQuery()
             ->getResult();
 
@@ -698,7 +723,7 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('endDate', $endDate)
             ->setParameter('hausgeld', 'hausgeld')
             ->setParameter('ruecklage_typ', \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG)
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->getQuery()
             ->getSingleResult();
 
@@ -719,7 +744,7 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('endDate', $endDate)
             ->setParameter('year', $year)
             ->setParameter('hausgeld', 'hausgeld')
-            ->setParameter('kategorie_umbuchung', 'Umbuchung')
+            ->setParameter('kategorie_umbuchung', Zahlungskategorie::NAME_UMBUCHUNG)
             ->setParameter('ruecklage_typ', \App\Entity\KategorisierungsTyp::RUECKLAGENZUFUEHRUNG)
             ->getQuery()
             ->getResult();
@@ -823,6 +848,74 @@ class ZahlungRepository extends ServiceEntityRepository
             ->setParameter('endDate', $endDate)
             ->setParameter('year', $year)
             ->setParameter('eigentuemer', $einheit)
+            ->orderBy('z.datum', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Get owner payments by payment date (Zufluss-/Abfluss-Prinzip).
+     * Returns all income payments linked to the owner within the date range.
+     *
+     * @return Zahlung[]
+     */
+    public function getOwnerPaymentsByPaymentDate(\App\Entity\WegEinheit $einheit, int $year): array
+    {
+        $startDate = new \DateTime($year . '-01-01');
+        $endDate = new \DateTime($year . '-12-31');
+
+        return $this->getOwnerPaymentsByPaymentDateRange($einheit, $startDate, $endDate);
+    }
+
+    /**
+     * Get owner payments by payment date in an inclusive date range (Zufluss-/Abfluss-Prinzip).
+     *
+     * @return Zahlung[]
+     */
+    public function getOwnerPaymentsByPaymentDateRange(\App\Entity\WegEinheit $einheit, \DateTimeInterface $startDate, \DateTimeInterface $endDate): array
+    {
+        return $this->createQueryBuilder('z')
+            ->where('z.datum >= :startDate AND z.datum <= :endDate')
+            ->andWhere('z.isSimulation = false')
+            ->andWhere('z.betrag > 0') // Only positive payments (income)
+            ->andWhere('z.eigentuemer = :eigentuemer')
+            ->setParameter('startDate', $startDate)
+            ->setParameter('endDate', $endDate)
+            ->setParameter('eigentuemer', $einheit)
+            ->orderBy('z.datum', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Get WEG-level income payments by payment date (not linked to any owner).
+     *
+     * @return Zahlung[]
+     */
+    public function getWegLevelIncomeByPaymentDate(\App\Entity\Weg $weg, int $year): array
+    {
+        $startDate = new \DateTime($year . '-01-01');
+        $endDate = new \DateTime($year . '-12-31');
+
+        return $this->getWegLevelIncomeByPaymentDateRange($weg, $startDate, $endDate);
+    }
+
+    /**
+     * Get WEG-level income payments by payment date in an inclusive date range.
+     *
+     * @return Zahlung[]
+     */
+    public function getWegLevelIncomeByPaymentDateRange(\App\Entity\Weg $weg, \DateTimeInterface $startDate, \DateTimeInterface $endDate): array
+    {
+        return $this->createQueryBuilder('z')
+            ->where('z.datum >= :startDate AND z.datum <= :endDate')
+            ->andWhere('z.isSimulation = false')
+            ->andWhere('z.betrag > 0') // Only positive payments (income)
+            ->andWhere('z.eigentuemer IS NULL') // WEG-level, not linked to owner
+            ->andWhere('z.bankkontoTyp = :bankkontoTyp')
+            ->setParameter('startDate', $startDate)
+            ->setParameter('endDate', $endDate)
+            ->setParameter('bankkontoTyp', 'hausgeld')
             ->orderBy('z.datum', 'ASC')
             ->getQuery()
             ->getResult();

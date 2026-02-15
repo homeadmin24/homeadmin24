@@ -619,21 +619,10 @@
     </div>
     {% endif %}
 
-    <!-- PAGE 2: KOSTENÜBERSICHT -->
-    <div class="section page-break">
-        <div class="page-header">
-            Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
-        </div>
-        <div class="section-title">Umlageschlüssel</div>
-
-        {% if data.calculationMethod is defined %}
-        <div style="background-color: #f0f7ff; border: 1px solid #0066cc; border-left: 4px solid #0066cc; padding: 8px 12px; margin-bottom: 15px; font-size: 8pt;">
-            <strong style="color: #0066cc;">Abrechnungsprinzip:</strong> {{ data.calculationMethod.name }} ({{ data.calculationMethod.periodLabel }})<br>
-            <small>Rechtsgrundlage: {{ data.calculationMethod.legalBasis }}</small>
-        </div>
-        {% endif %}
-
-        <table class="umlageschluessel-table">
+    {# Umlageschlüssel (compact, on page 1) #}
+    {% if data.umlageschluessel|default([]) %}
+    <div class="section allow-break">
+        <table class="umlageschluessel-table" style="font-size: 7pt;">
             <thead>
                 <tr>
                     <th>Nr.</th>
@@ -646,42 +635,123 @@
                 </tr>
             </thead>
             <tbody>
-                {% if data.umlageschluessel|default([]) %}
-                    {% for schluessel in data.umlageschluessel %}
-                    <tr>
-                        <td><strong>{{ schluessel.nummer }}</strong></td>
-                        <td class="label">{{ schluessel.bezeichnung }}</td>
-                        <td>{{ schluessel.umlage_typ }}</td>
-                        <td>{{ schluessel.zeitraum }}</td>
-                        <td>{{ schluessel.tage }}</td>
-                        <td>
-                            {% if schluessel.gesamtumlage is same as('Beträge siehe Ergebnisliste') %}
-                                Beträge siehe Ergebnisliste
-                            {% elseif schluessel.gesamtumlage matches '/^\\d/' %}
-                                {{ schluessel.gesamtumlage }}
-                            {% else %}
-                                {{ schluessel.gesamtumlage }}
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if schluessel.anteil is null %}
-                                -
-                            {% elseif schluessel.nummer == '05*' %}
-                                {{ schluessel.anteil|number_format(4, ',', '.') }}
-                            {% else %}
-                                {{ schluessel.anteil|number_format(2, ',', '.') }}
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
+                {% for schluessel in data.umlageschluessel %}
+                <tr>
+                    <td><strong>{{ schluessel.nummer }}</strong></td>
+                    <td class="label">{{ schluessel.bezeichnung }}</td>
+                    <td>{{ schluessel.umlage_typ }}</td>
+                    <td>{{ schluessel.zeitraum }}</td>
+                    <td>{{ schluessel.tage }}</td>
+                    <td>{{ schluessel.gesamtumlage }}</td>
+                    <td>{% if schluessel.anteil is null %}-{% elseif schluessel.nummer == '05*' %}{{ schluessel.anteil|number_format(4, ',', '.') }}{% else %}{{ schluessel.anteil|number_format(2, ',', '.') }}{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {# Umlageergebnis Mieter-Abrechnung (periodengerecht) - uses costs_mieter #}
+    {% if data.costs_mieter.umlagefaehig.items|default([]) or data.external_costs %}
+    <div class="section allow-break">
+        <div class="section-title" style="display: flex; justify-content: space-between; align-items: baseline; padding: 4px 5px; margin-bottom: 6px;">
+            <span>Umlageergebnis Mieter-Abrechnung {{ data.year }}</span>
+            <span style="font-size: 7.5pt; color: #666; font-weight: normal; white-space: nowrap; margin-left: 10px;">periodengerecht · § 556 BGB, BetrKV</span>
+        </div>
+
+        <table class="cost-table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th style="text-align: left;">Kostenart</th>
+                    <th style="text-align: center; width: 20%;">Umlageschlüssel</th>
+                    <th style="text-align: right; width: 20%;">Gesamtkosten</th>
+                    <th style="text-align: right; width: 20%;">Ihr Anteil</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set totalUmlagefaehigWeg = 0 %}
+                {% set totalUmlagefaehigUnit = 0 %}
+
+                {# External costs (heating/water) #}
+                {% if data.external_costs %}
+                <tr class="subtotal">
+                    <td colspan="4"><strong>HEIZUNG/WASSER/ABRECHNUNG:</strong></td>
+                </tr>
+                <tr>
+                    <td>ext. berechn. Heizkosten</td>
+                    <td style="text-align: center;">01*</td>
+                    <td class="amount">{{ data.external_costs.heating.total|default(0)|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ data.external_costs.heating.unit_share|default(0)|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr>
+                    <td>ext. berechn. Wasser-/sonst. Kosten</td>
+                    <td style="text-align: center;">01*</td>
+                    <td class="amount">{{ data.external_costs.water.total|default(0)|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ data.external_costs.water.unit_share|default(0)|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set extTotal = (data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0)) %}
+                {% set extUnit = (data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0)) %}
+                <tr class="subtotal">
+                    <td colspan="2">Zwischensumme: Heizung/Wasser</td>
+                    <td class="amount">{{ extTotal|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ extUnit|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set totalUmlagefaehigWeg = totalUmlagefaehigWeg + extTotal %}
+                {% set totalUmlagefaehigUnit = totalUmlagefaehigUnit + extUnit %}
                 {% endif %}
+
+                {# Sonstige umlagefähige Kosten (periodengerecht) #}
+                {% if data.costs_mieter.umlagefaehig.items|default([])|length > 0 %}
+                <tr class="subtotal">
+                    <td colspan="4"><strong>SONSTIGE UMLAGEFÄHIGE KOSTEN:</strong></td>
+                </tr>
+                {% set sonstigeTotal = 0 %}
+                {% set sonstigeAnteil = 0 %}
+                {% for item in data.costs_mieter.umlagefaehig.items|default([]) %}
+                    {% if item.total|default(0) > 0 %}
+                    <tr>
+                        <td>{{ item.kostenkonto }} - {{ item.beschreibung }}</td>
+                        <td style="text-align: center;">{{ item.verteilungsschluessel|default('05*') }}</td>
+                        <td class="amount">{{ item.total|number_format(2, ',', '.') }} €</td>
+                        <td class="amount">{{ item.anteil|number_format(2, ',', '.') }} €</td>
+                    </tr>
+                    {% set sonstigeTotal = sonstigeTotal + item.total %}
+                    {% set sonstigeAnteil = sonstigeAnteil + item.anteil %}
+                    {% endif %}
+                {% endfor %}
+                <tr class="subtotal">
+                    <td colspan="2">Zwischensumme: Sonstige</td>
+                    <td class="amount">{{ sonstigeTotal|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ sonstigeAnteil|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set totalUmlagefaehigWeg = totalUmlagefaehigWeg + sonstigeTotal %}
+                {% set totalUmlagefaehigUnit = totalUmlagefaehigUnit + sonstigeAnteil %}
+                {% endif %}
+
+                <tr class="total">
+                    <td colspan="2"><strong>SUMME: Umlagefähige Betriebskosten</strong></td>
+                    <td class="amount"><strong>{{ totalUmlagefaehigWeg|number_format(2, ',', '.') }} €</strong></td>
+                    <td class="amount"><strong>{{ totalUmlagefaehigUnit|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
             </tbody>
         </table>
 
-        <div class="section-title">Umlageergebnis{% if data.calculationMethod is defined %} {{ data.calculationMethod.name }}{% endif %}</div>
+    </div>
+    {% endif %}
+
+    <!-- PAGE 2: KOSTENÜBERSICHT -->
+    <div class="section page-break">
+        <div class="page-header">
+            Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
+        </div>
+
+        <div class="section-title" style="display: flex; justify-content: space-between; align-items: baseline; padding: 4px 5px; margin-bottom: 6px;">
+            <span>Umlageergebnis für Eigentümer {% if data.calculationMethod is defined %}{{ data.calculationMethod.periodLabel }}{% else %}{{ data.year }}{% endif %}</span>
+            <span style="font-size: 7.5pt; color: #666; font-weight: normal; white-space: nowrap; margin-left: 10px;">Zufluss-/Abfluss-Prinzip · {% if data.calculationMethod is defined %}{{ data.calculationMethod.legalBasis }}{% else %}BGH V ZR 271/12{% endif %}</span>
+        </div>
 
         <div style="margin-bottom: 20px;">
-            <h3>1. Umlagefähige Kosten (Mieter)</h3>
+            <h3>1. Umlagefähige Kosten</h3>
         <table class="cost-table">
             <thead>
                 <tr>
@@ -718,7 +788,7 @@
                 </tr>
                 {% endif %}
                 
-                {% for item in data.costs.umlagefaehig.items|default([]) %}
+                {% for item in data.costs_eigentuemer.umlagefaehig.items|default([]) %}
                 {% if item.total|default(0) > 0 %}
                 <tr>
                     <td>{{ item.kostenkonto }} - {{ item.beschreibung }}</td>
@@ -728,23 +798,23 @@
                 </tr>
                 {% endif %}
                 {% endfor %}
-                
+
                 {% set sonstigeTotal = 0 %}
                 {% set sonstigeAnteil = 0 %}
-                {% for item in data.costs.umlagefaehig.items|default([]) %}
+                {% for item in data.costs_eigentuemer.umlagefaehig.items|default([]) %}
                     {% if item.total|default(0) > 0 %}
                     {% set sonstigeTotal = sonstigeTotal + item.total %}
                     {% set sonstigeAnteil = sonstigeAnteil + item.anteil %}
                     {% endif %}
                 {% endfor %}
-                
+
                 <tr class="subtotal">
                     <td colspan="2">Zwischensumme: Sonstige</td>
                     <td class="amount">{{ sonstigeTotal|number_format(2, ',', '.') }} €</td>
                     <td class="amount">{{ sonstigeAnteil|number_format(2, ',', '.') }} €</td>
                 </tr>
                 <tr class="total">
-                    <td colspan="2">SUMME: umlagefähig (Mieter)</td>
+                    <td colspan="2">SUMME: umlagefähig</td>
                     <td class="amount">{{ (((data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0))) + sonstigeTotal)|number_format(2, ',', '.') }} €</td>
                     <td class="amount">{{ (((data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0))) + sonstigeAnteil)|number_format(2, ',', '.') }} €</td>
                 </tr>
@@ -753,7 +823,7 @@
     </div>
 
         <div style="margin-top: 15px; margin-bottom: 20px;">
-            <h3>2. Nicht umlagefähige Kosten (Mieter)</h3>
+            <h3>2. Nicht umlagefähige Kosten</h3>
         <table class="cost-table">
             <thead>
                 <tr>
@@ -766,7 +836,7 @@
             <tbody>
                 {% set nichtUmlagefaehigTotal = 0 %}
                 {% set nichtUmlagefaehigAnteil = 0 %}
-                {% for item in data.costs.nicht_umlagefaehig.items|default([]) %}
+                {% for item in data.costs_eigentuemer.nicht_umlagefaehig.items|default([]) %}
                 <tr>
                     <td>{{ item.kostenkonto }} - {{ item.beschreibung }}</td>
                     <td style="text-align: center;">{{ item.verteilungsschluessel|default('05*') }}</td>
@@ -777,7 +847,7 @@
                 {% set nichtUmlagefaehigAnteil = nichtUmlagefaehigAnteil + item.anteil %}
                 {% endfor %}
                 <tr class="total">
-                    <td colspan="2">SUMME: nicht umlagefähig (Mieter)</td>
+                    <td colspan="2">SUMME: nicht umlagefähig</td>
                     <td class="amount">{{ nichtUmlagefaehigTotal|number_format(2, ',', '.') }} €</td>
                     <td class="amount">{{ nichtUmlagefaehigAnteil|number_format(2, ',', '.') }} €</td>
                 </tr>
@@ -789,22 +859,22 @@
 
         <!-- Final cost summary -->
         {% set finalWegUmlagefaehig = ((data.external_costs.heating.total|default(0)) + (data.external_costs.water.total|default(0))) + 0 %}
-        {% for item in data.costs.umlagefaehig.items|default([]) %}
+        {% for item in data.costs_eigentuemer.umlagefaehig.items|default([]) %}
             {% set finalWegUmlagefaehig = finalWegUmlagefaehig + item.total %}
         {% endfor %}
-        
+
         {% set finalUnitUmlagefaehig = ((data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0))) + 0 %}
-        {% for item in data.costs.umlagefaehig.items|default([]) %}
+        {% for item in data.costs_eigentuemer.umlagefaehig.items|default([]) %}
             {% set finalUnitUmlagefaehig = finalUnitUmlagefaehig + item.anteil %}
         {% endfor %}
         
         {% set finalWegNichtUmlagefaehig = 0 %}
-        {% for item in data.costs.nicht_umlagefaehig.items|default([]) %}
+        {% for item in data.costs_eigentuemer.nicht_umlagefaehig.items|default([]) %}
             {% set finalWegNichtUmlagefaehig = finalWegNichtUmlagefaehig + item.total %}
         {% endfor %}
-        
+
         {% set finalUnitNichtUmlagefaehig = 0 %}
-        {% for item in data.costs.nicht_umlagefaehig.items|default([]) %}
+        {% for item in data.costs_eigentuemer.nicht_umlagefaehig.items|default([]) %}
             {% set finalUnitNichtUmlagefaehig = finalUnitNichtUmlagefaehig + item.anteil %}
         {% endfor %}
         
@@ -832,11 +902,9 @@
         <div class="page-header">
             Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
         </div>
-        <div class="section-title">Vermögensabgrenzung {{ data.year }}</div>
-
-        <p style="margin-bottom: 15px; font-size: 8.5pt; color: #666;">
-            Abstimmung der Bankstände mit den gebuchten Zahlungen im Abrechnungszeitraum.
-        </p>
+        <div class="section-title" style="padding: 4px 5px; margin-bottom: 6px;">
+            Vermögensabgrenzung {{ data.year }}
+        </div>
 
         <table class="cost-table vermoegen-table" style="width: 100%; margin-bottom: 20px;">
             <thead>
@@ -849,37 +917,6 @@
             </thead>
             <tbody>
                 <tr class="subtotal">
-                    <td colspan="4" style="font-size: 9pt;"><strong>Kontostände</strong></td>
-                </tr>
-                <tr>
-                    <td style="padding-left: 15px;">Kontostand zu Beginn</td>
-                    <td class="center" style="font-size: 8pt; color: #666;">
-                        {% if hasHausgeld %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_start.datum }}{% endif %}
-                        {% if hasRuecklage and not hasHausgeld %}{{ data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_start.datum }}{% endif %}
-                    </td>
-                    <td class="amount">{% if hasHausgeld %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_start.saldo|number_format(2, ',', '.') }} €{% else %}-{% endif %}</td>
-                    <td class="amount">{% if hasRuecklage %}{{ data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_start.saldo|number_format(2, ',', '.') }} €{% else %}-{% endif %}</td>
-                </tr>
-                <tr>
-                    <td style="padding-left: 15px;">Kontostand am Ende</td>
-                    <td class="center" style="font-size: 8pt; color: #666;">
-                        {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.kontostand.periode_end is defined %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.periode_end.datum }}{% endif %}
-                        {% if hasRuecklage and not hasHausgeld and data.vermoegen_abgrenzung.ruecklage.kontostand.periode_end is defined %}{{ data.vermoegen_abgrenzung.ruecklage.kontostand.periode_end.datum }}{% endif %}
-                    </td>
-                    <td class="amount">{% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.kontostand.periode_end is defined %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.periode_end.saldo|number_format(2, ',', '.') }} €{% else %}-{% endif %}</td>
-                    <td class="amount">{% if hasRuecklage and data.vermoegen_abgrenzung.ruecklage.kontostand.periode_end is defined %}{{ data.vermoegen_abgrenzung.ruecklage.kontostand.periode_end.saldo|number_format(2, ',', '.') }} €{% else %}-{% endif %}</td>
-                </tr>
-                <tr>
-                    <td style="padding-left: 15px;">Kontostand Stichtag</td>
-                    <td class="center" style="font-size: 8pt; color: #666;">
-                        {% if hasHausgeld %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_end.datum }}{% endif %}
-                        {% if hasRuecklage and not hasHausgeld %}{{ data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_end.datum }}{% endif %}
-                    </td>
-                    <td class="amount">{% if hasHausgeld %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_end.saldo|number_format(2, ',', '.') }} €{% else %}-{% endif %}</td>
-                    <td class="amount">{% if hasRuecklage %}{{ data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_end.saldo|number_format(2, ',', '.') }} €{% else %}-{% endif %}</td>
-                </tr>
-
-                <tr class="subtotal" style="border-top: 2px solid #999;">
                     <td colspan="4" style="font-size: 9pt;"><strong>Zahlungen Abrechnungsperiode
                         {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined %}({{ data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.start_formatted }} - {{ data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.end_formatted }}){% endif %}
                     </strong></td>
@@ -911,65 +948,67 @@
                     {% endif %}
                 {% endfor %}
 
+                {% if allYears|length > 1 %}
                 {% for jahr in allYears %}
                     {% set hausgeldData = hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined ? data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.nach_abrechnungsjahr[jahr]|default(null) : null %}
                     {% set ruecklageData = hasRuecklage and data.vermoegen_abgrenzung.ruecklage.periode_abrechnung is defined ? data.vermoegen_abgrenzung.ruecklage.periode_abrechnung.nach_abrechnungsjahr[jahr]|default(null) : null %}
-                    {% set totalZahlungen = (hausgeldData ? hausgeldData.anzahl_gesamt : 0) + (ruecklageData ? ruecklageData.anzahl_gesamt : 0) %}
+                    {% set totalZahlungen = hausgeldData ? hausgeldData.anzahl_gesamt : (ruecklageData ? ruecklageData.anzahl_gesamt : 0) %}
                     <tr style="background-color: #f5f5f5;">
                         <td colspan="4" style="font-weight: 600; font-size: 8.5pt; padding: 4px 5px 4px 10px; border-top: 1px solid #ccc;">
                             Abrechnungsjahr {{ jahr }} ({{ totalZahlungen }} Zahlungen)
                         </td>
                     </tr>
-
-                    {# Einnahmen row - [1] only refers to Hausgeld, so show Hausgeld count only #}
                     <tr>
-                        <td style="padding-left: 20px;">Einnahmen{% if jahr == data.year %} <sup style="color: #0066cc;">[1]</sup>{% endif %}</td>
+                        <td style="padding-left: 20px;">Einnahmen</td>
                         <td class="center" style="font-size: 7.5pt; color: #888;">{{ hausgeldData and hausgeldData.anzahl_einnahmen > 0 ? hausgeldData.anzahl_einnahmen ~ ' Buchungen' : '' }}</td>
-                        <td class="amount" style="color: #006600; font-weight: 500;">{{ hausgeldData ? (hausgeldData.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                        <td class="amount" style="color: #006600; font-weight: 500;">{{ ruecklageData ? (ruecklageData.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                        <td class="amount">{{ hausgeldData ? (hausgeldData.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                        <td class="amount">{{ ruecklageData ? (ruecklageData.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     </tr>
-
-                    {# Ausgaben row - [2] only refers to Hausgeld, so show Hausgeld count only #}
                     <tr>
-                        <td style="padding-left: 20px;">Ausgaben{% if jahr == data.year %} <sup style="color: #0066cc;">[2]</sup>{% endif %}</td>
+                        <td style="padding-left: 20px;">Ausgaben</td>
                         <td class="center" style="font-size: 7.5pt; color: #888;">{{ hausgeldData and hausgeldData.anzahl_ausgaben > 0 ? hausgeldData.anzahl_ausgaben ~ ' Buchungen' : '' }}</td>
-                        <td class="amount" style="color: #cc0000; font-weight: 500;">{{ hausgeldData ? (hausgeldData.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                        <td class="amount" style="color: #cc0000; font-weight: 500;">{{ ruecklageData ? (ruecklageData.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                    </tr>
-
-                    {# Saldo row #}
-                    <tr style="border-top: 1px solid #ddd;">
-                        <td style="padding-left: 20px; font-weight: 600;">Saldo {{ jahr }}</td>
-                        <td class="center"></td>
-                        <td class="amount" style="font-weight: 600;">{{ hausgeldData ? (hausgeldData.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                        <td class="amount" style="font-weight: 600;">{{ ruecklageData ? (ruecklageData.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                        <td class="amount">{{ hausgeldData ? (hausgeldData.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                        <td class="amount">{{ ruecklageData ? (ruecklageData.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     </tr>
                 {% endfor %}
+                {% endif %}
 
-                <tr style="background-color: #e8e8e8; border-top: 2px solid #666;">
-                    <td style="font-weight: 600; padding-top: 5px;">Gesamt Abrechnungsperiode</td>
+                {% set gesamtAbrHausgeld = hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined ? data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.gesamt : null %}
+                {% set gesamtAbrRuecklage = hasRuecklage and data.vermoegen_abgrenzung.ruecklage.periode_abrechnung is defined ? data.vermoegen_abgrenzung.ruecklage.periode_abrechnung.gesamt : null %}
+                <tr style="background-color: #f0f0f0; border-top: 2px solid #666;">
+                    <td style="font-weight: 600; padding-top: 5px;">Gesamt Einnahmen <sup>[E1]</sup></td>
                     <td class="center" style="font-size: 7.5pt; color: #666; padding-top: 5px;">
-                        {% set totalBuchungenAbrechnung = (hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined ? data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.gesamt.anzahl_gesamt : 0) + (hasRuecklage and data.vermoegen_abgrenzung.ruecklage.periode_abrechnung is defined ? data.vermoegen_abgrenzung.ruecklage.periode_abrechnung.gesamt.anzahl_gesamt : 0) %}
-                        {{ totalBuchungenAbrechnung }} Buchungen
+                        {{ gesamtAbrHausgeld ? gesamtAbrHausgeld.anzahl_einnahmen : 0 }} Buchungen
                     </td>
-                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined ? (data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ hasRuecklage and data.vermoegen_abgrenzung.ruecklage.periode_abrechnung is defined ? (data.vermoegen_abgrenzung.ruecklage.periode_abrechnung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbrHausgeld ? (gesamtAbrHausgeld.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbrRuecklage ? (gesamtAbrRuecklage.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                </tr>
+                <tr style="background-color: #f0f0f0;">
+                    <td style="font-weight: 600;">Gesamt Ausgaben <sup>[A1]</sup></td>
+                    <td class="center" style="font-size: 7.5pt; color: #666;">
+                        {{ gesamtAbrHausgeld ? gesamtAbrHausgeld.anzahl_ausgaben : 0 }} Buchungen
+                    </td>
+                    <td class="amount" style="font-weight: 600;">{{ gesamtAbrHausgeld ? (gesamtAbrHausgeld.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600;">{{ gesamtAbrRuecklage ? (gesamtAbrRuecklage.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                </tr>
+                <tr style="background-color: #e8e8e8;">
+                    <td style="font-weight: 600; padding-top: 5px;">Saldo Abrechnungsperiode</td>
+                    <td class="center" style="font-size: 7.5pt; color: #666; padding-top: 5px;">
+                        {{ gesamtAbrHausgeld ? gesamtAbrHausgeld.anzahl_gesamt : 0 }} Buchungen
+                    </td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbrHausgeld ? (gesamtAbrHausgeld.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbrRuecklage ? (gesamtAbrRuecklage.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                 </tr>
 
                 {# ========== ABGRENZUNG: Zahlungen nach Periodenende ========== #}
                 {% set hasAbgrenzungHausgeld = hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung is defined and data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.gesamt.anzahl_gesamt > 0 %}
                 {% set hasAbgrenzungRuecklage = hasRuecklage and data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung is defined and data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung.gesamt.anzahl_gesamt > 0 %}
                 {% if hasAbgrenzungHausgeld or hasAbgrenzungRuecklage %}
-                <tr class="subtotal" style="border-top: 2px solid #ff9800; background-color: #fff8e1;">
+                <tr class="subtotal" style="border-top: 2px solid #999; background-color: #f5f5f5;">
                     <td colspan="4" style="font-size: 9pt;">
                         <strong>Abgrenzung: Zahlungen nach Periodenende
                         {% if hasAbgrenzungHausgeld %}({{ data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.start_formatted }} - {{ data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.end_formatted }}){% endif %}
                         </strong>
-                    </td>
-                </tr>
-                <tr style="background-color: #fff8e1;">
-                    <td colspan="4" style="font-size: 7.5pt; color: #666; padding: 4px 5px 8px 10px;">
-                        <em>Diese Zahlungen erscheinen in: <strong>Eigentümer-Abrechnung {{ data.year + 1 }}</strong> (Zufluss-/Abfluss) · ggf. <strong>Mieter-Abrechnung {{ data.year }}</strong> (periodengerecht, wenn umlagefähig)</em>
                     </td>
                 </tr>
 
@@ -989,76 +1028,85 @@
                 {% endif %}
                 {% set abgrenzungYears = abgrenzungYears|sort %}
 
+                {% if abgrenzungYears|length > 1 %}
                 {% for jahr in abgrenzungYears %}
                     {% set hausgeldAbgrenzung = hasAbgrenzungHausgeld ? data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.nach_abrechnungsjahr[jahr]|default(null) : null %}
                     {% set ruecklageAbgrenzung = hasAbgrenzungRuecklage ? data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung.nach_abrechnungsjahr[jahr]|default(null) : null %}
-                    {% set totalAbgrenzungZahlungen = (hausgeldAbgrenzung ? hausgeldAbgrenzung.anzahl_gesamt : 0) + (ruecklageAbgrenzung ? ruecklageAbgrenzung.anzahl_gesamt : 0) %}
-                    <tr style="background-color: #fff3e0;">
-                        <td colspan="4" style="font-weight: 600; font-size: 8.5pt; padding: 4px 5px 4px 10px; border-top: 1px solid #ffcc80;">
+                    {% set totalAbgrenzungZahlungen = hausgeldAbgrenzung ? hausgeldAbgrenzung.anzahl_gesamt : (ruecklageAbgrenzung ? ruecklageAbgrenzung.anzahl_gesamt : 0) %}
+                    <tr style="background-color: #f5f5f5;">
+                        <td colspan="4" style="font-weight: 600; font-size: 8.5pt; padding: 4px 5px 4px 10px; border-top: 1px solid #ccc;">
                             Zugeordnet {{ jahr }} ({{ totalAbgrenzungZahlungen }} Zahlungen)
                         </td>
                     </tr>
-                    <tr style="background-color: #fff8e1;">
+                    <tr>
                         <td style="padding-left: 20px;">Einnahmen</td>
                         <td class="center" style="font-size: 7.5pt; color: #888;">{{ (hausgeldAbgrenzung ? hausgeldAbgrenzung.anzahl_einnahmen : 0) + (ruecklageAbgrenzung ? ruecklageAbgrenzung.anzahl_einnahmen : 0) }} Buchungen</td>
-                        <td class="amount" style="color: #006600;">{{ hausgeldAbgrenzung ? (hausgeldAbgrenzung.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                        <td class="amount" style="color: #006600;">{{ ruecklageAbgrenzung ? (ruecklageAbgrenzung.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                        <td class="amount">{{ hausgeldAbgrenzung ? (hausgeldAbgrenzung.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                        <td class="amount">{{ ruecklageAbgrenzung ? (ruecklageAbgrenzung.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     </tr>
-                    <tr style="background-color: #fff8e1;">
+                    <tr>
                         <td style="padding-left: 20px;">Ausgaben</td>
                         <td class="center" style="font-size: 7.5pt; color: #888;">{{ (hausgeldAbgrenzung ? hausgeldAbgrenzung.anzahl_ausgaben : 0) + (ruecklageAbgrenzung ? ruecklageAbgrenzung.anzahl_ausgaben : 0) }} Buchungen</td>
-                        <td class="amount" style="color: #cc0000;">{{ hausgeldAbgrenzung ? (hausgeldAbgrenzung.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                        <td class="amount" style="color: #cc0000;">{{ ruecklageAbgrenzung ? (ruecklageAbgrenzung.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                    </tr>
-                    <tr style="background-color: #fff8e1; border-top: 1px solid #ffcc80;">
-                        <td style="padding-left: 20px; font-weight: 600;">Saldo Abgrenzung {{ jahr }}</td>
-                        <td class="center"></td>
-                        <td class="amount" style="font-weight: 600;">{{ hausgeldAbgrenzung ? (hausgeldAbgrenzung.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                        <td class="amount" style="font-weight: 600;">{{ ruecklageAbgrenzung ? (ruecklageAbgrenzung.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                        <td class="amount">{{ hausgeldAbgrenzung ? (hausgeldAbgrenzung.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                        <td class="amount">{{ ruecklageAbgrenzung ? (ruecklageAbgrenzung.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     </tr>
                 {% endfor %}
+                {% endif %}
 
-                <tr style="background-color: #ffe0b2; border-top: 2px solid #ff9800;">
-                    <td style="font-weight: 600; padding-top: 5px;">Gesamt Abgrenzung</td>
+                {% set gesamtAbgHausgeld = hasAbgrenzungHausgeld ? data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.gesamt : null %}
+                {% set gesamtAbgRuecklage = hasAbgrenzungRuecklage ? data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung.gesamt : null %}
+                <tr style="background-color: #f0f0f0; border-top: 2px solid #666;">
+                    <td style="font-weight: 600; padding-top: 5px;">Gesamt Einnahmen <sup>[E2]</sup></td>
                     <td class="center" style="font-size: 7.5pt; color: #666; padding-top: 5px;">
-                        {% set totalAbgrenzungBuchungen = (hasAbgrenzungHausgeld ? data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.gesamt.anzahl_gesamt : 0) + (hasAbgrenzungRuecklage ? data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung.gesamt.anzahl_gesamt : 0) %}
-                        {{ totalAbgrenzungBuchungen }} Buchungen
+                        {{ gesamtAbgHausgeld ? gesamtAbgHausgeld.anzahl_einnahmen : 0 }} Buchungen
                     </td>
-                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ hasAbgrenzungHausgeld ? (data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ hasAbgrenzungRuecklage ? (data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbgHausgeld ? (gesamtAbgHausgeld.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbgRuecklage ? (gesamtAbgRuecklage.einnahmen|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                </tr>
+                <tr style="background-color: #f0f0f0;">
+                    <td style="font-weight: 600;">Gesamt Ausgaben <sup>[A2]</sup></td>
+                    <td class="center" style="font-size: 7.5pt; color: #666;">
+                        {{ gesamtAbgHausgeld ? gesamtAbgHausgeld.anzahl_ausgaben : 0 }} Buchungen
+                    </td>
+                    <td class="amount" style="font-weight: 600;">{{ gesamtAbgHausgeld ? (gesamtAbgHausgeld.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600;">{{ gesamtAbgRuecklage ? (gesamtAbgRuecklage.ausgaben|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                </tr>
+                <tr style="background-color: #e8e8e8;">
+                    <td style="font-weight: 600; padding-top: 5px;">Saldo Abgrenzungszeitraum</td>
+                    <td class="center" style="font-size: 7.5pt; color: #666; padding-top: 5px;">
+                        {{ gesamtAbgHausgeld ? gesamtAbgHausgeld.anzahl_gesamt : 0 }} Buchungen
+                    </td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbgHausgeld ? (gesamtAbgHausgeld.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px;">{{ gesamtAbgRuecklage ? (gesamtAbgRuecklage.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                 </tr>
                 {% endif %}
 
-                {# ========== ABSTIMMUNG (Bank reconciliation with FULL period) ========== #}
+                {# ========== ABSTIMMUNG (Gesamtzeitraum: Beginn - Stichtag) ========== #}
                 <tr class="subtotal" style="border-top: 2px solid #999;">
-                    <td colspan="4" style="font-size: 9pt; padding-top: 8px;"><strong>Abstimmung ({{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_start.datum }} - {{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_end.datum }})</strong></td>
+                    <td colspan="4" style="font-size: 9pt; padding-top: 8px;"><strong>Abstimmung
+                        ({% if hasHausgeld %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_start.datum }}{% endif %} - {% if hasHausgeld %}{{ data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_end.datum }}{% endif %})
+                    </strong></td>
                 </tr>
                 <tr>
-                    <td style="padding-left: 15px;">Kontostand Beginn</td>
+                    <td style="padding-left: 15px;">Kontostand {{ hasHausgeld ? data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_start.datum : '' }}</td>
                     <td class="center"></td>
                     <td class="amount">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_start.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     <td class="amount">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_start.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                 </tr>
                 <tr>
-                    <td style="padding-left: 15px; font-size: 8pt; color: #666;">+ Abrechnungsperiode</td>
-                    <td class="center" style="font-size: 7pt; color: #888;">bis 30.12</td>
+                    <td style="padding-left: 15px; font-size: 8pt; color: #666;">+ Saldo Abrechnungsperiode</td>
+                    <td class="center"></td>
                     <td class="amount" style="font-size: 8pt; color: #666;">{{ hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined ? (data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     <td class="amount" style="font-size: 8pt; color: #666;">{{ hasRuecklage and data.vermoegen_abgrenzung.ruecklage.periode_abrechnung is defined ? (data.vermoegen_abgrenzung.ruecklage.periode_abrechnung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                 </tr>
                 {% if hasAbgrenzungHausgeld or hasAbgrenzungRuecklage %}
                 <tr>
-                    <td style="padding-left: 15px; font-size: 8pt; color: #666;">+ Abgrenzung</td>
-                    <td class="center" style="font-size: 7pt; color: #888;">bis Stichtag</td>
-                    <td class="amount" style="font-size: 8pt; color: #666;">{{ hasAbgrenzungHausgeld ? (data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                    <td class="amount" style="font-size: 8pt; color: #666;">{{ hasAbgrenzungRuecklage ? (data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td style="padding-left: 15px; font-size: 8pt; color: #666;">+ Saldo Abgrenzung</td>
+                    <td class="center"></td>
+                    <td class="amount" style="font-size: 8pt; color: #666;">{{ hasAbgrenzungHausgeld ? (data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '0,00 €' }}</td>
+                    <td class="amount" style="font-size: 8pt; color: #666;">{{ hasAbgrenzungRuecklage ? (data.vermoegen_abgrenzung.ruecklage.periode_abgrenzung.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '0,00 €' }}</td>
                 </tr>
                 {% endif %}
-                <tr style="border-top: 1px solid #ddd;">
-                    <td style="padding-left: 15px;">= Summe Zahlungen</td>
-                    <td class="center"></td>
-                    <td class="amount">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.periode.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                    <td class="amount">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.periode.gesamt.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                </tr>
                 <tr style="background-color: #f0f0f0; border-top: 1px solid #999;">
                     <td style="padding-left: 15px; font-weight: 600;">= Rechnerischer Endbestand</td>
                     <td class="center"></td>
@@ -1066,56 +1114,64 @@
                     <td class="amount" style="font-weight: 600;">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.abweichung.rechnerisch|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                 </tr>
                 <tr>
-                    <td style="padding-left: 15px;">Tatsächlicher Kontostand (Bank)</td>
+                    <td style="padding-left: 15px;">Kontostand {{ hasHausgeld ? data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_end.datum : '' }} (Bank)</td>
                     <td class="center"></td>
                     <td class="amount">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.kontostand.stichtag_end.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                     <td class="amount">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.kontostand.stichtag_end.saldo|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                 </tr>
-                <tr style="background-color: #fff8e1; border-top: 2px solid #ffc107;">
+                <tr style="background-color: #f5f5f5; border-top: 1px solid #999;">
                     <td style="font-weight: 600; padding-top: 5px; padding-left: 15px;">Abweichung</td>
                     <td class="center" style="font-size: 8pt; padding-top: 5px;">
                         {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.abweichung.status == 'ok' %}
                             <span style="color: #006600; font-weight: 600;">✓ HG</span>
                         {% elseif hasHausgeld %}
-                            <span style="color: #ff6600; font-weight: 600;">⚠ HG</span>
+                            <span style="color: #cc0000; font-weight: 600;">⚠ HG</span>
                         {% endif %}
                         {% if hasRuecklage and data.vermoegen_abgrenzung.ruecklage.abweichung.status == 'ok' %}
                             <span style="color: #006600; font-weight: 600;">✓ RL</span>
                         {% elseif hasRuecklage %}
-                            <span style="color: #ff6600; font-weight: 600;">⚠ RL</span>
+                            <span style="color: #cc0000; font-weight: 600;">⚠ RL</span>
                         {% endif %}
                     </td>
-                    <td class="amount" style="font-weight: 600; padding-top: 5px; {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.abweichung.status != 'ok' %}color: #ff6600;{% endif %}">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.abweichung.differenz|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
-                    <td class="amount" style="font-weight: 600; padding-top: 5px; {% if hasRuecklage and data.vermoegen_abgrenzung.ruecklage.abweichung.status != 'ok' %}color: #ff6600;{% endif %}">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.abweichung.differenz|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px; {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.abweichung.status != 'ok' %}color: #cc0000;{% endif %}">{{ hasHausgeld ? (data.vermoegen_abgrenzung.hausgeld.abweichung.differenz|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
+                    <td class="amount" style="font-weight: 600; padding-top: 5px; {% if hasRuecklage and data.vermoegen_abgrenzung.ruecklage.abweichung.status != 'ok' %}color: #cc0000;{% endif %}">{{ hasRuecklage ? (data.vermoegen_abgrenzung.ruecklage.abweichung.differenz|number_format(2, ',', '.') ~ ' €') : '-' }}</td>
                 </tr>
             </tbody>
         </table>
 
         {% if (hasHausgeld and data.vermoegen_abgrenzung.hausgeld.bemerkung) or (hasRuecklage and data.vermoegen_abgrenzung.ruecklage.bemerkung) %}
-        <div style="margin-top: 12px; padding: 8px 12px; background-color: #f8f9fa; border-left: 3px solid #0066cc; font-size: 8pt;">
+        <div style="margin-top: 12px; padding: 8px 12px; background-color: #f8f9fa; border-left: 3px solid #999; font-size: 8pt;">
             <strong style="font-size: 8.5pt;">Bemerkungen:</strong><br>
             {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.bemerkung %}
-                <strong style="color: #0066cc;">Hausgeld:</strong> {{ data.vermoegen_abgrenzung.hausgeld.bemerkung|nl2br }}<br>
+                <strong>Hausgeld:</strong> {{ data.vermoegen_abgrenzung.hausgeld.bemerkung|nl2br }}<br>
             {% endif %}
             {% if hasRuecklage and data.vermoegen_abgrenzung.ruecklage.bemerkung %}
-                <strong style="color: #0066cc;">Rücklage:</strong> {{ data.vermoegen_abgrenzung.ruecklage.bemerkung|nl2br }}
+                <strong>Rücklage:</strong> {{ data.vermoegen_abgrenzung.ruecklage.bemerkung|nl2br }}
             {% endif %}
         </div>
         {% endif %}
 
         <div style="font-size: 8pt; color: #666; margin-top: 15px; padding: 8px 0; border-top: 1px solid #ddd;">
             <strong style="font-size: 8.5pt; color: #333;">Erläuterungen:</strong><br>
-            <span style="color: #0066cc;">[1]</span> Details siehe "ZAHLUNGSÜBERSICHT {{ data.year }}"<br>
-            <span style="color: #0066cc;">[2]</span> Details siehe "ZAHLUNGEN NACH KOSTENKONTO (Umgelegte Konten {{ data.year }})"
+            [E1] Details siehe "EINNAHMEN - Abrechnungsperiode"<br>
+            [A1] Details siehe "AUSGABEN NACH KOSTENKONTO - Abrechnungsperiode"<br>
+            [E2] Details siehe "EINNAHMEN - Abgrenzungszeitraum"<br>
+            [A2] Details siehe "AUSGABEN NACH KOSTENKONTO - Abgrenzungszeitraum"
         </div>
     </div>
     {% endif %}
 
-
-
-    {% if data.payments.monthly_unit_payments|default([]) %}
-    <div class="section allow-break">
-        <div class="section-title">ZAHLUNGSÜBERSICHT {{ data.year }}</div>
+    {# EINNAHMEN Detail-Abschnitte: E1 (Abrechnungsperiode), E2 (Abgrenzungszeitraum) #}
+    {% set incomeSections = [
+        { key: 'income_abrechnung', ref: 'E1', title: 'EINNAHMEN - Abrechnungsperiode' },
+        { key: 'income_abgrenzung', ref: 'E2', title: 'EINNAHMEN - Abgrenzungszeitraum' }
+    ] %}
+    {% for incomeSection in incomeSections %}
+    {% set incomeDetails = attribute(data.payments, incomeSection.key)|default({}) %}
+    {% if incomeDetails.start_date is defined and incomeDetails.start_date and incomeDetails.end_date is defined and incomeDetails.end_date %}
+    {% set wegCategoryTotals = incomeDetails.weg_category_totals|default({}) %}
+    <div class="section allow-break{% if incomeSection.ref == 'E1' %} page-break{% endif %}">
+        <div class="section-title">{{ incomeSection.title }} ({{ incomeDetails.start_date|date('d.m.Y') }} - {{ incomeDetails.end_date|date('d.m.Y') }}) <span style="color: #0066cc;">[{{ incomeSection.ref }}]</span></div>
         <div class="info-grid">
             <div class="info-row">
                 <div class="info-label">Debitor:</div>
@@ -1123,7 +1179,7 @@
             </div>
             <div class="info-row">
                 <div class="info-label">Zeitraum:</div>
-                <div class="info-value">01.01.{{ data.year }} - 31.12.{{ data.year }}</div>
+                <div class="info-value">{{ incomeDetails.start_date|date('d.m.Y') }} - {{ incomeDetails.end_date|date('d.m.Y') }}</div>
             </div>
         </div>
 
@@ -1131,80 +1187,128 @@
             <thead>
                 <tr>
                     <th class="date" style="text-align: left;">Datum</th>
+                    <th style="text-align: left; width: 8mm;">Jahr</th>
                     <th style="text-align: left;">Beschreibung</th>
                     <th style="text-align: right;">WEG Gesamt</th>
                     <th style="text-align: right;">Ihre Zahlung</th>
                 </tr>
             </thead>
             <tbody>
-                {# Show monthly wohngeld payments #}
-                {% set monthlyUnitPayments = data.payments.monthly_unit_payments %}
-                {% set monthlyWegIst = data.payments.weg_totals.monthly_weg_ist|default([]) %}
-                {% set totalWohngeldUnit = 0 %}
-                {% set totalWohngeldWeg = 0 %}
-                {% for month in 1..12 %}
-                    {% if monthlyUnitPayments[month] is defined and monthlyUnitPayments[month].wohngeld > 0 %}
-                        {% set wegTotal = monthlyWegIst[month]|default(0) %}
-                        <tr>
-                            <td class="date">{{ '%02d'|format(month) }}.{{ data.year }}</td>
-                            <td>Wohngeld</td>
-                            <td class="amount">{{ wegTotal|number_format(2, ',', '.') }} €</td>
-                            <td class="amount">{{ monthlyUnitPayments[month].wohngeld|number_format(2, ',', '.') }} €</td>
-                        </tr>
-                        {% set totalWohngeldUnit = totalWohngeldUnit + monthlyUnitPayments[month].wohngeld %}
-                        {% set totalWohngeldWeg = totalWohngeldWeg + wegTotal %}
+                {# Group payments by category #}
+                {% set paymentsByCategory = {} %}
+                {% for payment in incomeDetails.unit_payments|default([]) %}
+                    {% set kategorie = payment.kategorie|default('Sonstige') %}
+                    {% if paymentsByCategory[kategorie] is not defined %}
+                        {% set paymentsByCategory = paymentsByCategory|merge({(kategorie): []}) %}
                     {% endif %}
-                {% endfor %}
-                <tr style="border-top: 1px solid #999;">
-                    <td colspan="2"><strong>Summe Wohngeld</strong></td>
-                    <td class="amount"><strong>{{ totalWohngeldWeg|number_format(2, ',', '.') }} €</strong></td>
-                    <td class="amount"><strong>{{ totalWohngeldUnit|number_format(2, ',', '.') }} €</strong></td>
-                </tr>
-
-                {# Show other payments (Nachzahlungen, Sonderumlagen) #}
-                {% set otherPayments = [] %}
-                {% for monthData in monthlyUnitPayments %}
-                    {% if monthData.other is defined %}
-                        {% set otherPayments = otherPayments|merge(monthData.other) %}
-                    {% endif %}
+                    {% set paymentsByCategory = paymentsByCategory|merge({(kategorie): paymentsByCategory[kategorie]|merge([payment])}) %}
                 {% endfor %}
 
-                {% set totalOtherUnit = 0 %}
-                {% set totalOtherWeg = 0 %}
-                {% if otherPayments|length > 0 %}
-                <tr><td colspan="4" style="height: 8px;"></td></tr>
-                {% set seenCategories = [] %}
-                {% set wegCategoryTotals = data.payments.weg_category_totals|default([]) %}
-                {% set unitCategoryTotals = {} %}
+                {% set totalUnit = 0 %}
+                {% set totalWeg = 0 %}
+                {# Referenz = Gesamt der Periode (alle Zuordnungsjahre), passend zu Vermögensabgrenzung #}
+                {% set refPeriodKey = incomeSection.ref == 'E2' ? 'periode_abgrenzung' : 'periode_abrechnung' %}
+                {% set refHausgeldGesamt = hasHausgeld and attribute(data.vermoegen_abgrenzung.hausgeld, refPeriodKey) is defined ? attribute(data.vermoegen_abgrenzung.hausgeld, refPeriodKey).gesamt|default(null) : null %}
+                {% set refWegAmount = refHausgeldGesamt ? refHausgeldGesamt.einnahmen : 0 %}
+                {% set refWegCount = refHausgeldGesamt ? refHausgeldGesamt.anzahl_einnahmen : 0 %}
 
-                {% for payment in otherPayments %}
-                    {% set kategorie = payment.kategorie|default('Unbekannt') %}
-                    {% set currentUnitTotal = unitCategoryTotals[kategorie]|default(0) %}
-                    {% set unitCategoryTotals = unitCategoryTotals|merge({ (kategorie): (currentUnitTotal + payment.betrag) }) %}
-                {% endfor %}
-
-                {% for kategorie, unitTotal in unitCategoryTotals %}
-                    {% set wegTotal = wegCategoryTotals[kategorie]|default(0) %}
+                {# Show known income categories in defined order, then remaining #}
+                {% set incomeCategories = data.income_categories|default([]) %}
+                {% for incomeCat in incomeCategories %}
+                {% if paymentsByCategory[incomeCat] is defined %}
+                {% if not loop.first %}<tr><td colspan="5" style="height: 4px;"></td></tr>{% endif %}
+                {% set categoryTotal = 0 %}
+                {% set displayName = incomeCat == incomeCategories[0] ? 'Wohngeld' : incomeCat %}
+                {% for payment in paymentsByCategory[incomeCat] %}
+                    {% set abrJahr = payment.abrechnungsjahr_zuordnung|default(payment.datum|date('Y')) %}
                     <tr>
-                        <td class="date">{{ data.year }}</td>
-                        <td>{{ kategorie }}</td>
-                        <td class="amount">{{ wegTotal|number_format(2, ',', '.') }} €</td>
-                        <td class="amount">{{ unitTotal|number_format(2, ',', '.') }} €</td>
+                        <td class="date">{{ payment.datum|date('d.m.y') }}</td>
+                        <td>'{{ abrJahr|slice(-2) }}</td>
+                        <td>{{ displayName }}</td>
+                        <td class="amount"></td>
+                        <td class="amount">{{ payment.betrag|number_format(2, ',', '.') }} €</td>
                     </tr>
-                    {% set totalOtherUnit = totalOtherUnit + unitTotal %}
-                    {% set totalOtherWeg = totalOtherWeg + wegTotal %}
+                    {% set categoryTotal = categoryTotal + payment.betrag %}
                 {% endfor %}
+                {% set wegCatTotal = wegCategoryTotals[incomeCat]|default(0) %}
                 <tr style="border-top: 1px solid #999;">
-                    <td colspan="2"><strong>Summe sonstige Zahlungen</strong></td>
-                    <td class="amount"><strong>{{ totalOtherWeg|number_format(2, ',', '.') }} €</strong></td>
-                    <td class="amount"><strong>{{ totalOtherUnit|number_format(2, ',', '.') }} €</strong></td>
+                    <td colspan="3"><strong>Summe {{ displayName }}</strong></td>
+                    <td class="amount"><strong>{{ wegCatTotal|number_format(2, ',', '.') }} €</strong></td>
+                    <td class="amount"><strong>{{ categoryTotal|number_format(2, ',', '.') }} €</strong></td>
                 </tr>
+                {% set totalUnit = totalUnit + categoryTotal %}
+                {% set totalWeg = totalWeg + wegCatTotal %}
                 {% endif %}
+                {% endfor %}
 
-                <tr class="total">
-                    <td colspan="2"><strong>Gesamtsumme Zahlungen</strong></td>
-                    <td class="amount"><strong>{{ (totalWohngeldWeg + totalOtherWeg)|number_format(2, ',', '.') }} €</strong></td>
-                    <td class="amount"><strong>{{ (totalWohngeldUnit + totalOtherUnit)|number_format(2, ',', '.') }} €</strong></td>
+                {# Show other categories from owner's payments #}
+                {% for kategorie, payments in paymentsByCategory %}
+                    {% if kategorie not in incomeCategories %}
+                    <tr><td colspan="5" style="height: 4px;"></td></tr>
+                    {% set categoryTotal = 0 %}
+                    {% for payment in payments %}
+                        {% set abrJahr = payment.abrechnungsjahr_zuordnung|default(payment.datum|date('Y')) %}
+                        <tr>
+                            <td class="date">{{ payment.datum|date('d.m.y') }}</td>
+                            <td>'{{ abrJahr|slice(-2) }}</td>
+                            <td>{{ kategorie }}</td>
+                            <td class="amount"></td>
+                            <td class="amount">{{ payment.betrag|number_format(2, ',', '.') }} €</td>
+                        </tr>
+                        {% set categoryTotal = categoryTotal + payment.betrag %}
+                    {% endfor %}
+                    {% set wegKategorie = wegCategoryTotals[kategorie]|default(0) %}
+                    <tr style="border-top: 1px solid #999;">
+                        <td colspan="3"><strong>Summe {{ kategorie }}</strong></td>
+                        <td class="amount"><strong>{{ wegKategorie|number_format(2, ',', '.') }} €</strong></td>
+                        <td class="amount"><strong>{{ categoryTotal|number_format(2, ',', '.') }} €</strong></td>
+                    </tr>
+                    {% set totalUnit = totalUnit + categoryTotal %}
+                    {% set totalWeg = totalWeg + wegKategorie %}
+                    {% endif %}
+                {% endfor %}
+
+                {# Show WEG-level payments (not linked to any owner) with individual dates #}
+                {% set wegLevelPayments = incomeDetails.weg_level_income_details|default([]) %}
+                {% set wegLevelByCategory = {} %}
+                {% for payment in wegLevelPayments %}
+                    {% set kat = payment.kategorie|default('Sonstige') %}
+                    {% if kat not in incomeCategories and paymentsByCategory[kat] is not defined %}
+                        {% if wegLevelByCategory[kat] is not defined %}
+                            {% set wegLevelByCategory = wegLevelByCategory|merge({(kat): []}) %}
+                        {% endif %}
+                        {% set wegLevelByCategory = wegLevelByCategory|merge({(kat): wegLevelByCategory[kat]|merge([payment])}) %}
+                    {% endif %}
+                {% endfor %}
+
+                {% for kategorie, payments in wegLevelByCategory %}
+                    <tr><td colspan="5" style="height: 4px;"></td></tr>
+                    {% set categoryTotal = 0 %}
+                    {% for payment in payments %}
+                        {% set abrJahr = payment.abrechnungsjahr_zuordnung|default(payment.datum|date('Y')) %}
+                        <tr>
+                            <td class="date">{{ payment.datum|date('d.m.y') }}</td>
+                            <td>'{{ abrJahr|slice(-2) }}</td>
+                            <td>{{ kategorie }}</td>
+                            <td class="amount">{{ payment.betrag|number_format(2, ',', '.') }} €</td>
+                            <td class="amount">-</td>
+                        </tr>
+                        {% set categoryTotal = categoryTotal + payment.betrag %}
+                    {% endfor %}
+                    <tr style="border-top: 1px solid #999;">
+                        <td colspan="3"><strong>Summe {{ kategorie }}</strong></td>
+                        <td class="amount"><strong>{{ categoryTotal|number_format(2, ',', '.') }} €</strong></td>
+                        <td class="amount"><strong>0,00 €</strong></td>
+                    </tr>
+                    {% set totalWeg = totalWeg + categoryTotal %}
+                {% endfor %}
+
+                <tr class="payments-group-total" style="background-color: #e8f4ff;">
+                    <td class="date">&nbsp;</td>
+                    <td class="year">&nbsp;</td>
+                    <td><strong>Gesamt Einnahmen [{{ incomeSection.ref }}] = Vermögensabgrenzung</strong></td>
+                    <td class="amount"><strong>{{ refWegAmount|number_format(2, ',', '.') }} €</strong></td>
+                    <td class="amount"><strong>{{ refWegCount }} Buchungen</strong></td>
                 </tr>
 
             </tbody>
@@ -1212,93 +1316,31 @@
 
     </div>
     {% endif %}
+    {% endfor %}
 
-    {% if data.payments.all_payment_details|default([]) %}
+    {# AUSGABEN NACH KOSTENKONTO - Abrechnungsperiode [A1] #}
+    {% if data.payments.expenses_abrechnung.start_date is defined and data.payments.expenses_abrechnung.start_date and data.payments.expenses_abrechnung.end_date is defined and data.payments.expenses_abrechnung.end_date %}
+    {% set expAbr = data.payments.expenses_abrechnung %}
+    {% set expAbrSaldoRef = hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abrechnung is defined ? data.vermoegen_abgrenzung.hausgeld.periode_abrechnung.gesamt : null %}
     <div class="section allow-break page-break">
         <div class="page-header">
             Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
         </div>
-        <div class="section-title">ZAHLUNGEN NACH KOSTENKONTO (Umgelegte Konten {{ data.year }})</div>
-        <table class="payments-table payments-detail" style="line-height: 1.1; table-layout: fixed; width: 100%;">
-            <colgroup>
-                <col style="width: 12mm;">
-                <col style="width: 70mm;">
-                <col style="width: 48mm;">
-                <col style="width: 32mm;">
-                <col style="width: 20mm;">
-            </colgroup>
-            <thead>
-                <tr>
-                    <th class="date" style="text-align: left;">Datum</th>
-                    <th class="desc" style="text-align: left;">Bezeichnung</th>
-                    <th class="partner" style="text-align: left;">Zahler/Empfänger</th>
-                    <th class="konto" style="text-align: left;">Kostenkonto</th>
-                    <th class="amount" style="text-align: right;">Betrag</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% set currentKostenkonto = '' %}
-                {% set groupTotal = 0 %}
-                {% set overallTotal = 0 %}
-                {% for payment in data.payments.all_payment_details %}
-                    {% set kostenkonto = '' %}
-                    {% if payment.kostenkonto_nummer is not empty %}
-                        {% set kostenkonto = payment.kostenkonto_nummer ~ ' ' ~ (payment.kostenkonto_bezeichnung|default('')) %}
-                    {% else %}
-                        {% set kostenkonto = payment.kostenkonto_bezeichnung|default('') %}
-                    {% endif %}
-                    {% set kostenkontoLabel = kostenkonto|trim is not empty ? kostenkonto : 'Ohne Kostenkonto' %}
-                    {% if currentKostenkonto != '' and currentKostenkonto != kostenkontoLabel %}
-                        <tr class="payments-group-total">
-                            <td class="date">&nbsp;</td>
-                            <td class="desc"><strong>Summe</strong></td>
-                            <td class="partner">&nbsp;</td>
-                            <td class="konto">&nbsp;</td>
-                            <td class="amount"><strong>{{ groupTotal|number_format(2, ',', '.') }} €</strong></td>
-                        </tr>
-                        <tr class="payments-group-spacer">
-                            <td colspan="5">&nbsp;</td>
-                        </tr>
-                        {% set groupTotal = 0 %}
-                    {% endif %}
-                    {% set currentKostenkonto = kostenkontoLabel %}
-                    {% set descText = payment.beschreibung|default('')|replace({'\n': ' ', '\r': '', '\t': ' '})|trim %}
-                    {% set descText = descText|replace({'  ': ' '})|replace({'  ': ' '})|replace({'  ': ' '})|replace({'  ': ' '}) %}
-                    {% set descShort = descText|length > 60 ? descText|slice(0, 60) ~ '...' : descText %}
-                    <tr>
-                        <td class="date">{{ payment.datum|date('d.m.Y') }}</td>
-                        <td class="desc">{{ descShort }}</td>
-                        {% set partnerText = payment.partner|default('')|replace({'\n': ' ', '\r': '', '\t': ' '})|trim %}
-                        {% set partnerText = partnerText|replace({'  ': ' '})|replace({'  ': ' '}) %}
-                        {% set partnerShort = partnerText|length > 30 ? partnerText|slice(0, 30) ~ '...' : partnerText %}
-                        <td class="nowrap partner">{{ partnerShort }}</td>
-                        <td class="nowrap konto">{{ kostenkonto }}</td>
-                        <td class="amount">{{ payment.betrag|number_format(2, ',', '.') }}&nbsp;€</td>
-                    </tr>
-                    {% set groupTotal = groupTotal + payment.betrag %}
-                    {% set overallTotal = overallTotal + payment.betrag %}
-                {% endfor %}
-                {% if currentKostenkonto != '' %}
-                    <tr class="payments-group-total">
-                        <td class="date">&nbsp;</td>
-                        <td class="desc"><strong>Summe</strong></td>
-                        <td class="partner">&nbsp;</td>
-                        <td class="konto">&nbsp;</td>
-                        <td class="amount"><strong>{{ groupTotal|number_format(2, ',', '.') }} €</strong></td>
-                    </tr>
-                    <tr class="payments-group-spacer">
-                        <td colspan="5">&nbsp;</td>
-                    </tr>
-                    <tr class="payments-group-total">
-                        <td class="date">&nbsp;</td>
-                        <td class="desc"><strong>Saldo</strong></td>
-                        <td class="partner">&nbsp;</td>
-                        <td class="konto" style="font-size: 8pt; color: #666;">{{ data.payments.all_payment_details|length }} Buchungen</td>
-                        <td class="amount"><strong>{{ overallTotal|number_format(2, ',', '.') }} €</strong></td>
-                    </tr>
-                {% endif %}
-            </tbody>
-        </table>
+        <div class="section-title">AUSGABEN NACH KOSTENKONTO - Abrechnungsperiode ({{ expAbr.start_date|date('d.m.Y') }} - {{ expAbr.end_date|date('d.m.Y') }}) <span style="color: #0066cc;">[A1]</span></div>
+        {% include 'hga/_expense_table.html.twig' with { expenseData: expAbr, refData: expAbrSaldoRef, refLabel: 'A1' } only %}
+    </div>
+    {% endif %}
+
+    {# AUSGABEN NACH KOSTENKONTO - Abgrenzung [A2] (nur wenn Buchungen vorhanden) #}
+    {% if data.payments.expenses_abgrenzung.start_date is defined and data.payments.expenses_abgrenzung.start_date and data.payments.expenses_abgrenzung.end_date is defined and data.payments.expenses_abgrenzung.end_date %}
+    {% set expAbg = data.payments.expenses_abgrenzung %}
+    {% set expAbgRef = hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung is defined ? data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.gesamt : null %}
+    <div class="section allow-break">
+        <div class="section-title">AUSGABEN NACH KOSTENKONTO - Abgrenzungszeitraum ({{ expAbg.start_date|date('d.m.Y') }} - {{ expAbg.end_date|date('d.m.Y') }}) <span style="color: #0066cc;">[A2]</span></div>
+        {% include 'hga/_expense_table.html.twig' with { expenseData: expAbg, refData: expAbgRef, refLabel: 'A2' } only %}
+        <div class="info-box warning" style="margin-top: 8px; padding: 6px 10px; background-color: #fff3cd; border-left: 3px solid #ffc107; font-size: 8pt;">
+            Diese Zahlungen erscheinen in: Eigentümer-Abrechnung {{ data.year + 1 }} + ggf. Mieter-Abrechnung {{ data.year }} (wenn umlagefähig)
+        </div>
     </div>
     {% endif %}
 
