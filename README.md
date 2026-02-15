@@ -81,9 +81,8 @@ docker compose exec web php bin/console cache:clear
 ## 📚 Dokumentation
 
 ### Getting Started
-- **[Lokales Setup](docs/setup_local.md)** - Docker-Entwicklungsumgebung, Troubleshooting
+- **[Lokales Setup & Development](docs/setup_local.md)** - Docker-Entwicklungsumgebung, Development Workflows, Troubleshooting
 - **[Production Deployment](docs/setup_production.md)** - App Platform, Droplets, Multi-Droplet
-- **[Developer Guide](docs/setup_development.md)** - Dokumentationsindex, Development Workflows
 
 ### Detailed Documentation
 - **[Core System](docs/core_system.md)** - CSV-Import, Zahlungskategorien, Auth-System, Fixtures, Rücklagenzuführung
@@ -115,7 +114,7 @@ Alle Passwörter: `demo123`
 Contributions welcome! Dieses Projekt ist Open Source unter AGPL v3.0.
 
 - **Issues**: [GitHub Issues](https://github.com/homeadmin24/homeadmin24/issues)
-- **Developer Guide**: [docs/setup_development.md](docs/setup_development.md)
+- **Developer Guide**: [docs/setup_local.md](docs/setup_local.md)
 - **License**: [GNU AGPL v3](LICENSE)
 
 ---

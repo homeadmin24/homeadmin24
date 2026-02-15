@@ -59,7 +59,7 @@ class DocIntelProvider implements DocIntelInterface
         ];
 
         try {
-            $response = $this->httpClient->request('POST', rtrim($this->baseUrl, '/') . '/api/invoice-extract', [
+            $response = $this->httpClient->request('POST', mb_rtrim($this->baseUrl, '/') . '/api/invoice-extract', [
                 'json' => $payload,
                 'timeout' => 600,
             ]);

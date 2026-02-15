@@ -377,8 +377,7 @@ ROLE_SUPER_ADMIN
 ## Documentation
 
 Comprehensive documentation in `docs/`:
-- **setup_local.md** - Local development setup, troubleshooting
-- **setup_development.md** - Development workflows, documentation index
+- **setup_local.md** - Local development setup, development workflows, troubleshooting
 - **setup_production.md** - Deployment guides (DigitalOcean)
 - **core_system.md** - CSV import, payment categorization, fixtures, Rücklagenzuführung
 - **technical.md** - Parser architecture, HGA migration, calculation improvements

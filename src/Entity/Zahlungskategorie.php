@@ -8,6 +8,18 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: ZahlungskategorieRepository::class)]
 class Zahlungskategorie
 {
+    public const NAME_HAUSGELD_ZAHLUNG = 'Hausgeld-Zahlung';
+    public const NAME_NACHZAHLUNG = 'Nachzahlung';
+    public const NAME_SONDERUMLAGE = 'Sonderumlage';
+    public const NAME_UMBUCHUNG = 'Umbuchung';
+
+    /** Category names that represent owner income (ordered for display). */
+    public const INCOME_CATEGORIES = [
+        self::NAME_HAUSGELD_ZAHLUNG,
+        self::NAME_NACHZAHLUNG,
+        self::NAME_SONDERUMLAGE,
+    ];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]

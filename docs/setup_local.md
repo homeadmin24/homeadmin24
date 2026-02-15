@@ -7,6 +7,14 @@
 - Node.js 20.x installiert (für Frontend-Entwicklung)
 - Chrome/Chromium + Puppeteer (für PDF-Renderer)
 
+## Dokumentation
+
+- **[Core System](core_system.md)** - CSV import, payment categorization, zahlungskategorie, auth, fixtures, Rücklagenzuführung
+- **[AI Integration](ai_integration.md)** - AI-powered payment categorization and natural language queries
+- **[AI Invoice Extraction](ai_doc_extraction.md)** - Invoice parsing architecture + OCR/LLM roadmap
+- **[Fixture Strategy](fixture_strategy.md)** - Complete database seeding strategy for development and production
+- **[Production Deployment](setup_production.md)** - DigitalOcean App Platform, Droplet deployment
+
 ## Schnellstart
 
 ```bash
@@ -179,6 +187,24 @@ Nach Code-Änderungen:
 docker compose exec web php bin/console cache:clear
 ```
 
+### Development Workflow
+
+```bash
+# Vor Änderungen: Datenbank sichern
+./bin/backup_db.sh "before_feature_x"
+
+# Änderungen durchführen...
+
+# Code Quality Checks
+docker compose exec web composer cs-fix      # Code-Style fixen (PHP-CS-Fixer)
+docker compose exec web composer phpstan     # Statische Analyse
+docker compose exec web composer test        # Tests ausführen
+docker compose exec web composer quality     # Alle Checks auf einmal
+
+# Bestimmte Features testen
+docker compose exec web php bin/console app:hga-generate 3 2024
+```
+
 ### Frontend Development (JavaScript/CSS)
 
 **WICHTIG:** Frontend-Assets (JavaScript, CSS) müssen **außerhalb des Containers** gebaut werden!
@@ -318,6 +344,14 @@ docker compose exec web php bin/console doctrine:schema:update --force
 # MySQL kaputt? → docker compose down -v && docker compose up -d
 ```
 
+**"Container name already in use" beim `docker compose up`**
+```bash
+# Verwaister Container blockiert den Start:
+#   Error: The container name "/homeadmin24-web-1" is already in use
+docker rm -f homeadmin24-web-1
+docker compose up -d web
+```
+
 **Permission Denied**
 ```bash
 docker compose exec web chown -R www-data:www-data /var/www/html/var
@@ -342,6 +376,5 @@ npm install && npm run dev
 
 - [Core System Documentation](core_system.md) - CSV import, payment categorization, auth
 - [AI Integration](ai_integration.md) - AI-powered features
-- [Production Deployment](setup_setup_production.md) - Deployment guides
-- [Development Guide](setup_setup_development.md) - Developer workflows
+- [Production Deployment](setup_production.md) - Deployment guides
 - [Fixture Strategy](fixture_strategy.md) - Database setup reference

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Zahlung;
+use App\Entity\Zahlungskategorie;
 use App\Repository\KategorisierungCorrectionRepository;
 use App\Repository\KostenkontoRepository;
 use App\Repository\ZahlungRepository;
@@ -103,7 +104,7 @@ class ZahlungKategorisierungService
         $this->maybeAssignAbrechnungsjahr($zahlung);
 
         // Auto-assign eigentuemer for Hausgeld payments
-        if ($kategorie && 'Hausgeld-Zahlung' === $kategorie->getName() && $dienstleister && !$zahlung->getEigentuemer()) {
+        if ($kategorie && Zahlungskategorie::NAME_HAUSGELD_ZAHLUNG === $kategorie->getName() && $dienstleister && !$zahlung->getEigentuemer()) {
             $eigentuemer = $this->findEigentuemer($dienstleister->getBezeichnung());
             if ($eigentuemer) {
                 $zahlung->setEigentuemer($eigentuemer);
@@ -123,7 +124,7 @@ class ZahlungKategorisierungService
 
         // Income patterns - Hausgeld/Wohngeld (from keywords OR from property owners)
         if ($this->isHausgeldIncome($bezeichnung) || str_contains($dienstleisterArt, 'eigentümer')) {
-            return $this->zahlungskategorieRepository->findOneBy(['name' => 'Hausgeld-Zahlung']);
+            return $this->zahlungskategorieRepository->findOneBy(['name' => Zahlungskategorie::NAME_HAUSGELD_ZAHLUNG]);
         }
 
         // Income patterns - Interest

@@ -103,7 +103,7 @@ class ZahlungskategorieFixtures extends Fixture implements FixtureGroupInterface
                 'allows_zero_amount' => false,
             ],
             [
-                'name' => 'Hausgeld-Zahlung',
+                'name' => Zahlungskategorie::NAME_HAUSGELD_ZAHLUNG,
                 'beschreibung' => 'Reguläre monatliche Zahlungen der Eigentümer',
                 'ist_positiver_betrag' => true,
                 'field_config' => [
@@ -121,7 +121,7 @@ class ZahlungskategorieFixtures extends Fixture implements FixtureGroupInterface
                 'allows_zero_amount' => false,
             ],
             [
-                'name' => 'Sonderumlage',
+                'name' => Zahlungskategorie::NAME_SONDERUMLAGE,
                 'beschreibung' => 'Sonderumlagen für außergewöhnliche Reparaturen und Investitionen',
                 'ist_positiver_betrag' => true,
                 'field_config' => [
@@ -192,7 +192,7 @@ class ZahlungskategorieFixtures extends Fixture implements FixtureGroupInterface
                 'allows_zero_amount' => false,
             ],
             [
-                'name' => 'Umbuchung',
+                'name' => Zahlungskategorie::NAME_UMBUCHUNG,
                 'beschreibung' => 'Umbuchungen zwischen Kostenkonten',
                 'ist_positiver_betrag' => false,
                 'field_config' => [

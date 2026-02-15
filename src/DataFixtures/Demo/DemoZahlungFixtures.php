@@ -30,7 +30,7 @@ class DemoZahlungFixtures extends Fixture implements FixtureGroupInterface, Depe
     {
         // Get Zahlungskategorien
         $kategorieRepo = $manager->getRepository(Zahlungskategorie::class);
-        $hausgeldzahlung = $kategorieRepo->findOneBy(['name' => 'Hausgeld-Zahlung']);
+        $hausgeldzahlung = $kategorieRepo->findOneBy(['name' => Zahlungskategorie::NAME_HAUSGELD_ZAHLUNG]);
         $rechnungDienstleister = $kategorieRepo->findOneBy(['name' => 'Rechnung von Dienstleister']);
         $direktbuchung = $kategorieRepo->findOneBy(['name' => 'Direktbuchung Kostenkonto']);
 

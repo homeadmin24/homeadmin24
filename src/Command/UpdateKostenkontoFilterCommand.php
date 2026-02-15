@@ -2,6 +2,7 @@
 
 namespace App\Command;
 
+use App\Entity\Zahlungskategorie;
 use App\Repository\ZahlungskategorieRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -38,11 +39,11 @@ class UpdateKostenkontoFilterCommand extends Command
 
         // Define the filters to apply
         $filterMappings = [
-            'Hausgeld-Zahlung' => ['099900'], // Only Wohngeld account
-            'Nachzahlung' => ['099900'], // Only Wohngeld account
+            Zahlungskategorie::NAME_HAUSGELD_ZAHLUNG => ['099900'], // Only Wohngeld account
+            Zahlungskategorie::NAME_NACHZAHLUNG => ['099900'], // Only Wohngeld account
             'Rückerstattung (Hausgeld)' => ['099900'], // Only Wohngeld account
-            'Umbuchung' => ['049000'], // Only Nebenkosten Geldverkehr
-            'Sonderumlage' => ['049000'], // Only Nebenkosten Geldverkehr
+            Zahlungskategorie::NAME_UMBUCHUNG => ['049000'], // Only Nebenkosten Geldverkehr
+            Zahlungskategorie::NAME_SONDERUMLAGE => ['049000'], // Only Nebenkosten Geldverkehr
         ];
 
         $updated = 0;

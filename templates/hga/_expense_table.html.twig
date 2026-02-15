@@ -1,0 +1,105 @@
+{#
+    Expense detail table partial — used by both Abrechnungsperiode [A1] and Abgrenzungszeitraum [A2].
+
+    Required variables:
+      - expenseData:  expense payload (payments, by_abrechnungsjahr, …)
+      - refData:      reference totals from Vermögensabgrenzung (gesamt block, or null)
+      - refLabel:     reference label, e.g. 'A1' or 'A2'
+#}
+<table class="payments-table payments-detail" style="line-height: 1.1; table-layout: fixed; width: 100%;">
+    <colgroup>
+        <col style="width: 14mm;">
+        <col style="width: 8mm;">
+        <col style="width: 62mm;">
+        <col style="width: 40mm;">
+        <col style="width: 38mm;">
+        <col style="width: 20mm;">
+    </colgroup>
+    <thead>
+        <tr>
+            <th class="date" style="text-align: left;">Datum</th>
+            <th class="year" style="text-align: left;">Jahr</th>
+            <th class="desc" style="text-align: left;">Bezeichnung</th>
+            <th class="partner" style="text-align: left;">Partner</th>
+            <th class="konto" style="text-align: left;">Konto</th>
+            <th class="amount" style="text-align: right;">Betrag</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% set currentKostenkonto = '' %}
+        {% set groupTotal = 0 %}
+        {% set overallTotal = 0 %}
+        {% for payment in expenseData.payments %}
+            {% set kostenkonto = '' %}
+            {% if payment.kostenkonto_nummer is not empty %}
+                {% set kostenkonto = payment.kostenkonto_nummer ~ ' ' ~ (payment.kostenkonto_bezeichnung|default('')) %}
+            {% else %}
+                {% set kostenkonto = payment.kostenkonto_bezeichnung|default('') %}
+            {% endif %}
+            {% set kostenkontoLabel = kostenkonto|trim is not empty ? kostenkonto : 'Ohne Kostenkonto' %}
+            {% if currentKostenkonto != '' and currentKostenkonto != kostenkontoLabel %}
+                <tr class="payments-group-total">
+                    <td class="date">&nbsp;</td>
+                    <td class="year">&nbsp;</td>
+                    <td class="desc"><strong>Summe</strong></td>
+                    <td class="partner">&nbsp;</td>
+                    <td class="konto">&nbsp;</td>
+                    <td class="amount"><strong>{{ groupTotal|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+                <tr class="payments-group-spacer">
+                    <td colspan="6">&nbsp;</td>
+                </tr>
+                {% set groupTotal = 0 %}
+            {% endif %}
+            {% set currentKostenkonto = kostenkontoLabel %}
+            {% set descText = payment.beschreibung|default('')|replace({'\n': ' ', '\r': '', '\t': ' '})|trim %}
+            {% set descText = descText|replace({'  ': ' '})|replace({'  ': ' '})|replace({'  ': ' '})|replace({'  ': ' '}) %}
+            {% set descShort = descText|length > 55 ? descText|slice(0, 55) ~ '...' : descText %}
+            <tr>
+                <td class="date">{{ payment.datum|date('d.m.y') }}</td>
+                <td class="year">'{{ payment.abrechnungsjahr|slice(-2) }}</td>
+                <td class="desc">{{ descShort }}</td>
+                {% set partnerText = payment.partner|default('')|replace({'\n': ' ', '\r': '', '\t': ' '})|trim %}
+                {% set partnerText = partnerText|replace({'  ': ' '})|replace({'  ': ' '}) %}
+                {% set partnerShort = partnerText|length > 25 ? partnerText|slice(0, 25) ~ '...' : partnerText %}
+                <td class="nowrap partner">{{ partnerShort }}</td>
+                {% set kontoShort = kostenkonto|length > 25 ? kostenkonto|slice(0, 25) ~ '...' : kostenkonto %}
+                <td class="nowrap konto">{{ kontoShort }}</td>
+                <td class="amount">{{ payment.betrag|number_format(2, ',', '.') }}&nbsp;€</td>
+            </tr>
+            {% set groupTotal = groupTotal + payment.betrag %}
+            {% set overallTotal = overallTotal + payment.betrag %}
+        {% endfor %}
+        {% if currentKostenkonto != '' %}
+            <tr class="payments-group-total">
+                <td class="date">&nbsp;</td>
+                <td class="year">&nbsp;</td>
+                <td class="desc"><strong>Summe</strong></td>
+                <td class="partner">&nbsp;</td>
+                <td class="konto">&nbsp;</td>
+                <td class="amount"><strong>{{ groupTotal|number_format(2, ',', '.') }} €</strong></td>
+            </tr>
+            <tr class="payments-group-spacer">
+                <td colspan="6">&nbsp;</td>
+            </tr>
+        {% endif %}
+        {# Summary by Abrechnungsjahr #}
+        {% for abrJahr, abrData in expenseData.by_abrechnungsjahr %}
+        <tr class="payments-summary-row" style="background-color: #f8f9fa;">
+            <td class="date">&nbsp;</td>
+            <td class="year">&nbsp;</td>
+            <td class="desc" colspan="2">Abrechnungsjahr {{ abrJahr }}: {{ abrData.count }} Buchung{{ abrData.count != 1 ? 'en' : '' }}</td>
+            <td class="konto">&nbsp;</td>
+            <td class="amount">{{ abrData.total|number_format(2, ',', '.') }}&nbsp;€</td>
+        </tr>
+        {% endfor %}
+        <tr class="payments-group-total" style="background-color: #e8f4ff;">
+            <td class="date">&nbsp;</td>
+            <td class="year">&nbsp;</td>
+            <td class="desc"><strong>Referenz [{{ refLabel }}] = Vermögensabgrenzung: Gesamt Ausgaben</strong></td>
+            <td class="partner">&nbsp;</td>
+            <td class="konto">{{ refData ? refData.anzahl_ausgaben : 0 }} Buchungen</td>
+            <td class="amount"><strong>{{ (refData ? refData.ausgaben : 0)|number_format(2, ',', '.') }} €</strong></td>
+        </tr>
+    </tbody>
+</table>
