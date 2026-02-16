@@ -3,8 +3,6 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
@@ -16,6 +14,12 @@ use Symfony\Component\Security\Core\User\UserInterface;
 #[UniqueEntity(fields: ['email'], message: 'Es gibt bereits einen Account mit dieser E-Mail-Adresse')]
 class User implements \Stringable, UserInterface, PasswordAuthenticatedUserInterface
 {
+    public const ROLE_VIEWER = 'ROLE_VIEWER';
+    public const ROLE_ACCOUNTANT = 'ROLE_ACCOUNTANT';
+    public const ROLE_PROPERTY_MANAGER = 'ROLE_PROPERTY_MANAGER';
+    public const ROLE_WEG_ADMIN = 'ROLE_WEG_ADMIN';
+    public const ROLE_SUPER_ADMIN = 'ROLE_SUPER_ADMIN';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -48,19 +52,8 @@ class User implements \Stringable, UserInterface, PasswordAuthenticatedUserInter
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $updatedAt = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    private ?\DateTimeInterface $lastLogin = null;
-
-    /**
-     * @var Collection<int, Role>
-     */
-    #[ORM\ManyToMany(targetEntity: Role::class)]
-    #[ORM\JoinTable(name: 'user_role')]
-    private Collection $userRoles;
-
     public function __construct()
     {
-        $this->userRoles = new ArrayCollection();
         $this->createdAt = new \DateTime();
         $this->updatedAt = new \DateTime();
     }
@@ -68,6 +61,20 @@ class User implements \Stringable, UserInterface, PasswordAuthenticatedUserInter
     public function __toString(): string
     {
         return $this->getFullName() ?: $this->getEmail();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function getAvailableRoles(): array
+    {
+        return [
+            self::ROLE_VIEWER => 'Betrachter',
+            self::ROLE_ACCOUNTANT => 'Buchhalter',
+            self::ROLE_PROPERTY_MANAGER => 'Hausverwaltung',
+            self::ROLE_WEG_ADMIN => 'WEG Administrator',
+            self::ROLE_SUPER_ADMIN => 'Super Administrator',
+        ];
     }
 
     public function getId(): ?int
@@ -103,10 +110,6 @@ class User implements \Stringable, UserInterface, PasswordAuthenticatedUserInter
     public function getRoles(): array
     {
         $roles = $this->roles;
-        // Add roles from userRoles relationship
-        foreach ($this->userRoles as $userRole) {
-            $roles[] = $userRole->getName();
-        }
         // guarantee every user at least has ROLE_USER
         $roles[] = 'ROLE_USER';
 
@@ -208,42 +211,6 @@ class User implements \Stringable, UserInterface, PasswordAuthenticatedUserInter
     public function setUpdatedAt(\DateTimeInterface $updatedAt): static
     {
         $this->updatedAt = $updatedAt;
-
-        return $this;
-    }
-
-    public function getLastLogin(): ?\DateTimeInterface
-    {
-        return $this->lastLogin;
-    }
-
-    public function setLastLogin(?\DateTimeInterface $lastLogin): static
-    {
-        $this->lastLogin = $lastLogin;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Role>
-     */
-    public function getUserRoles(): Collection
-    {
-        return $this->userRoles;
-    }
-
-    public function addUserRole(Role $userRole): static
-    {
-        if (!$this->userRoles->contains($userRole)) {
-            $this->userRoles->add($userRole);
-        }
-
-        return $this;
-    }
-
-    public function removeUserRole(Role $userRole): static
-    {
-        $this->userRoles->removeElement($userRole);
 
         return $this;
     }

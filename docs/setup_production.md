@@ -4,6 +4,19 @@ Complete guide for deploying homeadmin24 to production. For local development se
 
 **Note:** AI services (Ollama, DocIntel) are currently **local-only**. Production/Demo deployments should disable AI features.
 
+
+## Feature Behavior
+- Scope: Definiert produktionsfaehige Deployment-Varianten (App Platform, Droplet, Multi-Droplet) fuer homeadmin24.
+- Inputs/Outputs: Input sind Infrastruktur- und Secret-Parameter; Output ist ein stabil laufendes, abgesichertes Produktivsystem.
+- Invarianten: Keine Demo-Fixtures in Production; AI lokal-only Annahme beachten; Backups/Migrationspfad bleibt verpflichtend.
+- Akzeptanz: Deployment ist erreichbar, Daten konsistent, Monitoring/Logs nutzbar und Rollback-Pfad vorhanden.
+
+## Operational Runbook
+- Trigger: Bei Erstdeployment, Infrastrukturwechsel, Incidents oder Version-Upgrades.
+- Schritte: Zieloption waehlen, Umgebungsvariablen setzen, Migration/Restore ausfuehren, danach Smoke-Checks fahren.
+- Verifikation: App/DB online, Auth funktioniert, Kernfunktionen und Dokument-Workflows laufen fehlerfrei.
+- Recovery/Rollback: Letztes stabiles Release + DB-Backup wiederherstellen und Traffic kontrolliert zurueckschalten.
+
 ## Table of Contents
 
 - [Deployment Options Overview](#deployment-options-overview)

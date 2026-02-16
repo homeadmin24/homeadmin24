@@ -1,5 +1,18 @@
 # Fixture Strategy: Development, Demo, and Production Deployments
 
+
+## Feature Behavior
+- Scope: Definiert datenquellen- und umgebungsabhaengige Seed-Strategien fuer Dev, Demo und Production.
+- Inputs/Outputs: Input ist Zielumgebung + gewünschter Datenzustand; Output ist eine konsistente DB mit passendem Realismusgrad.
+- Invarianten: Demo-Fixtures niemals in Production; Production basiert auf echten Backups plus Migrationen.
+- Akzeptanz: Jede Umgebung startet mit erwarteter Datenbasis und reproduzierbarem Setup ohne Mischzustaende.
+
+## Operational Runbook
+- Trigger: Bei Neuaufbau einer Umgebung, Demo-Reset, oder Production-Restore.
+- Schritte: Passende Option (A/B/C/D) waehlen, Kommandos exakt in Reihenfolge ausfuehren, danach Login-/Datensatzcheck machen.
+- Verifikation: Rollen, WEG-Daten und erwartete Demo-/Produktionsobjekte sind korrekt vorhanden.
+- Recovery/Rollback: Bei Fehlseed DB leeren/wiederherstellen und mit korrekter Option erneut initialisieren.
+
 ## 🌍 **Environment Overview**
 
 | Environment | Purpose | Data Source | Fixtures? |

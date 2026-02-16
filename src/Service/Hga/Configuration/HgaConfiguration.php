@@ -82,25 +82,28 @@ class HgaConfiguration implements ConfigurationInterface
      */
     public function getWirtschaftsplanData(int $year = 2025): array
     {
+        // Prefer dedicated wirtschaftsplan_config table (new approach)
+        $config = $this->wirtschaftsplanConfigRepository->findOneBy(['year' => $year]);
+
+        if ($config) {
+            $data = $config->getData() ?? [];
+
+            return [
+                'bank_balances' => $data['bank_balances'] ?? [],
+                'planned_expenses' => [
+                    'umlagefaehig' => $data['planned_expenses']['umlagefaehig'] ?? [],
+                    'nicht_umlagefaehig' => $data['planned_expenses']['nicht_umlagefaehig'] ?? [],
+                ],
+                'planned_income' => $data['planned_income'] ?? [],
+                'balance_overrides' => $data['balance_overrides'] ?? [],
+            ];
+        }
+
+        // Fallback to legacy system_config keys
         $prefix = "wirtschaftsplan.{$year}";
         $systemConfigData = $this->systemConfigService->getWirtschaftsplanData($year);
         $systemConfigData['balance_overrides'] = $this->systemConfigService->getArray("{$prefix}.balance_overrides", []);
-        $config = $this->wirtschaftsplanConfigRepository->findOneBy(['year' => $year]);
 
-        if (!$config) {
-            return $systemConfigData;
-        }
-
-        $data = $config->getData() ?? [];
-
-        return [
-            'bank_balances' => $data['bank_balances'] ?? $systemConfigData['bank_balances'],
-            'planned_expenses' => [
-                'umlagefaehig' => $data['planned_expenses']['umlagefaehig'] ?? $systemConfigData['planned_expenses']['umlagefaehig'] ?? [],
-                'nicht_umlagefaehig' => $data['planned_expenses']['nicht_umlagefaehig'] ?? $systemConfigData['planned_expenses']['nicht_umlagefaehig'] ?? [],
-            ],
-            'planned_income' => $data['planned_income'] ?? $systemConfigData['planned_income'],
-            'balance_overrides' => $data['balance_overrides'] ?? $systemConfigData['balance_overrides'],
-        ];
+        return $systemConfigData;
     }
 }

@@ -5,11 +5,10 @@ namespace App\DataFixtures\SystemConfig;
 use App\Entity\User;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
-use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-class AdminUserFixtures extends Fixture implements FixtureGroupInterface, DependentFixtureInterface
+class AdminUserFixtures extends Fixture implements FixtureGroupInterface
 {
     public function __construct(
         private UserPasswordHasherInterface $passwordHasher,
@@ -24,24 +23,14 @@ class AdminUserFixtures extends Fixture implements FixtureGroupInterface, Depend
         $admin->setFirstName('System');
         $admin->setLastName('Administrator');
         $admin->setIsActive(true);
+        $admin->setRoles([User::ROLE_SUPER_ADMIN]);
 
         // Hash password: admin123
         $hashedPassword = $this->passwordHasher->hashPassword($admin, 'admin123');
         $admin->setPassword($hashedPassword);
 
-        // Add SUPER_ADMIN role
-        $superAdminRole = $this->getReference('role-ROLE_SUPER_ADMIN', \App\Entity\Role::class);
-        $admin->addUserRole($superAdminRole);
-
         $manager->persist($admin);
         $manager->flush();
-    }
-
-    public function getDependencies(): array
-    {
-        return [
-            RoleFixtures::class,
-        ];
     }
 
     public static function getGroups(): array

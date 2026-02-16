@@ -6,6 +6,19 @@
 
 ---
 
+
+## Feature Behavior
+- Scope: Beschreibt die zentralen Domaenenprozesse (Import, Kategorisierung, Auth, Dokumente, HGA-nahe Kernlogik).
+- Inputs/Outputs: Input sind Stamm- und Bewegungsdaten; Output sind valide Buchungen, Abrechnungsgrundlagen und auditierbare Artefakte.
+- Invarianten: Finanzfluss- und Zuordnungsregeln muessen systemweit konsistent bleiben; Sicherheitsrollen duerfen nicht umgangen werden.
+- Akzeptanz: End-to-end Kernprozesse funktionieren reproduzierbar von Dateneingang bis Auswertung/Report.
+
+## Operational Runbook
+- Trigger: Bei Architektur-Changes, Regressionen in Kernprozessen oder Security/Role-Problemen.
+- Schritte: Betroffenen Teilprozess lokalisieren, Datenfluss und Servicegrenzen pruefen, abhängige Module gegenchecken.
+- Verifikation: Regressionstests und manuelle Kernszenarien (Import, Kategorisierung, HGA-Basis) sind grün.
+- Recovery/Rollback: Aenderung isolieren, auf stabilen Commit zurueck, Datenkonsistenz vor erneutem Rollout validieren.
+
 ## Table of Contents
 
 1. [CSV Import System](#csv-import-system)
@@ -643,7 +656,7 @@ class Dokument
 
 ## Related Documentation
 
-- [AI Integration](ai_integration.md) - AI-powered payment categorization
+- [AI Integration](ai_01_integration.md) - AI overview, configuration, privacy
 - [Local Setup](setup_local.md) - Docker development environment
 - [Production Deployment](setup_production.md) - Deployment options
 

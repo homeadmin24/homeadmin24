@@ -40,7 +40,7 @@ class SystemConfigService
         $value = $this->configRepository->getConfigValue($key);
 
         if (null === $value) {
-            $this->logger->warning('System config not found', ['key' => $key]);
+            $this->logger->debug('System config not found, using default', ['key' => $key]);
 
             return $default;
         }

@@ -5,17 +5,21 @@ namespace App\Controller;
 use App\Entity\KategorisierungsTyp;
 use App\Entity\Kostenkonto;
 use App\Entity\Umlageschluessel;
+use App\Entity\User;
 use App\Entity\Weg;
 use App\Entity\WegEinheit;
 use App\Repository\KostenkontoRepository;
 use App\Repository\UmlageschluesselRepository;
+use App\Repository\UserRepository;
 use App\Repository\WegEinheitRepository;
 use App\Repository\WegRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class WegController extends AbstractController
 {
@@ -26,6 +30,7 @@ class WegController extends AbstractController
         UmlageschluesselRepository $umlageschluesselRepository,
         KostenkontoRepository $kostenkontoRepository,
         \App\Repository\ZahlungskategorieRepository $zahlungskategorieRepository,
+        UserRepository $userRepository,
     ): Response {
         // Get Umlageschlüssel and sort in HGA display order (same as HgaService)
         $umlageschluessel = $umlageschluesselRepository->findAll();
@@ -45,14 +50,22 @@ class WegController extends AbstractController
             return $posA <=> $posB;
         });
 
-        return $this->render('weg/index.html.twig', [
+        $templateData = [
             'wegs' => $wegRepository->findAll(),
             'wegEinheiten' => $wegEinheitRepository->findAll(),
             'umlageschluessel' => $umlageschluessel,
             'kostenkontos' => $kostenkontoRepository->findBy([], ['nummer' => 'ASC']),
             'kategorisierungsTypen' => KategorisierungsTyp::cases(),
             'zahlungskategorien' => $zahlungskategorieRepository->findBy([], ['name' => 'ASC']),
-        ]);
+        ];
+
+        // Only load user data for SUPER_ADMIN
+        if ($this->isGranted(User::ROLE_SUPER_ADMIN)) {
+            $templateData['users'] = $userRepository->findBy([], ['firstName' => 'ASC', 'lastName' => 'ASC']);
+            $templateData['availableRoles'] = User::getAvailableRoles();
+        }
+
+        return $this->render('weg/index.html.twig', $templateData);
     }
 
     #[Route('/weg/umlageschluessel/{id}/edit', name: 'app_weg_umlageschluessel_edit', methods: ['POST'])]
@@ -181,5 +194,95 @@ class WegController extends AbstractController
         $entityManager->flush();
 
         return $this->redirectToRoute('app_weg_index', ['tab' => 'kostenkonto']);
+    }
+
+    #[Route('/weg/user/new', name: 'app_weg_user_new', methods: ['POST'])]
+    #[IsGranted(User::ROLE_SUPER_ADMIN)]
+    public function newUser(
+        Request $request,
+        EntityManagerInterface $entityManager,
+        UserPasswordHasherInterface $passwordHasher,
+    ): Response {
+        $email = trim($request->request->get('email', ''));
+        $firstName = trim($request->request->get('firstName', ''));
+        $lastName = trim($request->request->get('lastName', ''));
+        $password = $request->request->get('password', '');
+        $roles = $request->request->all('roles');
+
+        if (!$email || !$firstName || !$lastName || !$password) {
+            $this->addFlash('error', 'Alle Pflichtfelder müssen ausgefüllt sein.');
+
+            return $this->redirectToRoute('app_weg_index', ['tab' => 'benutzer']);
+        }
+
+        $user = new User();
+        $user->setEmail($email);
+        $user->setFirstName($firstName);
+        $user->setLastName($lastName);
+        $user->setIsActive(true);
+        $user->setRoles($roles);
+
+        $hashedPassword = $passwordHasher->hashPassword($user, $password);
+        $user->setPassword($hashedPassword);
+
+        $entityManager->persist($user);
+        $entityManager->flush();
+
+        $this->addFlash('success', sprintf('Benutzer "%s" wurde erstellt.', $user->getFullName()));
+
+        return $this->redirectToRoute('app_weg_index', ['tab' => 'benutzer']);
+    }
+
+    #[Route('/weg/user/{id}/edit', name: 'app_weg_user_edit', methods: ['POST'])]
+    #[IsGranted(User::ROLE_SUPER_ADMIN)]
+    public function editUser(
+        User $user,
+        Request $request,
+        EntityManagerInterface $entityManager,
+        UserPasswordHasherInterface $passwordHasher,
+    ): Response {
+        $email = trim($request->request->get('email', ''));
+        $firstName = trim($request->request->get('firstName', ''));
+        $lastName = trim($request->request->get('lastName', ''));
+        $password = $request->request->get('password', '');
+        $roles = $request->request->all('roles');
+
+        if ($email) {
+            $user->setEmail($email);
+        }
+        if ($firstName) {
+            $user->setFirstName($firstName);
+        }
+        if ($lastName) {
+            $user->setLastName($lastName);
+        }
+        if ($password) {
+            $hashedPassword = $passwordHasher->hashPassword($user, $password);
+            $user->setPassword($hashedPassword);
+        }
+        $user->setRoles($roles);
+        $user->setUpdatedAt(new \DateTime());
+
+        $entityManager->flush();
+
+        $this->addFlash('success', sprintf('Benutzer "%s" wurde aktualisiert.', $user->getFullName()));
+
+        return $this->redirectToRoute('app_weg_index', ['tab' => 'benutzer']);
+    }
+
+    #[Route('/weg/user/{id}/toggle', name: 'app_weg_user_toggle', methods: ['POST'])]
+    #[IsGranted(User::ROLE_SUPER_ADMIN)]
+    public function toggleUserActive(
+        User $user,
+        EntityManagerInterface $entityManager,
+    ): Response {
+        $user->setIsActive(!$user->isActive());
+        $user->setUpdatedAt(new \DateTime());
+        $entityManager->flush();
+
+        $status = $user->isActive() ? 'aktiviert' : 'deaktiviert';
+        $this->addFlash('success', sprintf('Benutzer "%s" wurde %s.', $user->getFullName(), $status));
+
+        return $this->redirectToRoute('app_weg_index', ['tab' => 'benutzer']);
     }
 }

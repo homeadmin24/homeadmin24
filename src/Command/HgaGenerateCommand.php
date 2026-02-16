@@ -3,7 +3,6 @@
 namespace App\Command;
 
 use App\Entity\Dokument;
-use App\Entity\Hausgeldabrechnung;
 use App\Entity\Weg;
 use App\Repository\WegEinheitRepository;
 use App\Repository\WegRepository;
@@ -113,9 +112,6 @@ class HgaGenerateCommand extends Command
 
         // Generate reports
         $successCount = $this->generateReports($io, $wegEinheiten, $year, $outputDirectory, $verboseErrors);
-
-        // Save metadata
-        $this->saveGenerationMetadata($weg, $year, $successCount, \count($wegEinheiten));
 
         if ($successCount > 0) {
             $io->success(\sprintf('Successfully generated %d/%d reports', $successCount, \count($wegEinheiten)));
@@ -300,23 +296,5 @@ class HgaGenerateCommand extends Command
         }
 
         $this->entityManager->flush();
-    }
-
-    private function saveGenerationMetadata(Weg $weg, int $year, int $successCount, int $totalCount): void
-    {
-        try {
-            $abrechnung = new Hausgeldabrechnung();
-            $abrechnung->setWeg($weg);
-            $abrechnung->setJahr($year);
-            $abrechnung->setErstellungsdatum(new \DateTime());
-            $abrechnung->setGesamtkosten((string) $successCount);
-            $abrechnung->setPdfPfad('Generated via HGA command');
-
-            $this->entityManager->persist($abrechnung);
-            $this->entityManager->flush();
-        } catch (\Exception $e) {
-            // Don't fail the command if metadata save fails
-            error_log('Failed to save generation metadata: ' . $e->getMessage());
-        }
     }
 }

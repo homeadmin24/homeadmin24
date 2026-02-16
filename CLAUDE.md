@@ -381,8 +381,11 @@ Comprehensive documentation in `docs/`:
 - **setup_production.md** - Deployment guides (DigitalOcean)
 - **core_system.md** - CSV import, payment categorization, fixtures, Rücklagenzuführung
 - **technical.md** - Parser architecture, HGA migration, calculation improvements
-- **hga-quality-checks.md** - AI quality check system
-- **ai_integration.md** - AI payment categorization
+- **ai_01_integration.md** - AI overview, configuration, privacy
+- **ai_02_payment-auto-categorize.md** - AI payment categorization
+- **ai_03_financial-queries.md** - Natural language financial queries
+- **ai_04_invoice-data-xtraction.md** - Invoice PDF data extraction
+- **ai_05_hga_quality-checks.md** - HGA quality check system
 
 ## Common Pitfalls
 

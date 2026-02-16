@@ -2,9 +2,7 @@
 
 namespace App\Command;
 
-use App\Entity\Role;
 use App\Entity\User;
-use App\Repository\RoleRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -22,7 +20,6 @@ class CreateAdminCommand extends Command
     public function __construct(
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
-        private RoleRepository $roleRepository,
     ) {
         parent::__construct();
     }
@@ -31,27 +28,17 @@ class CreateAdminCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        // Find Super Admin role
-        $superAdminRole = $this->roleRepository->findByName('ROLE_SUPER_ADMIN');
-        if (!$superAdminRole) {
-            $io->error('ROLE_SUPER_ADMIN not found. Please run fixtures first.');
-
-            return Command::FAILURE;
-        }
-
         // Create admin user
         $admin = new User();
         $admin->setEmail('admin@hausman.local');
         $admin->setFirstName('System');
         $admin->setLastName('Administrator');
         $admin->setIsActive(true);
+        $admin->setRoles([User::ROLE_SUPER_ADMIN]);
 
         // Hash password: admin123
         $hashedPassword = $this->passwordHasher->hashPassword($admin, 'admin123');
         $admin->setPassword($hashedPassword);
-
-        // Add role
-        $admin->addUserRole($superAdminRole);
 
         $this->entityManager->persist($admin);
         $this->entityManager->flush();

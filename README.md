@@ -86,7 +86,7 @@ docker compose exec web php bin/console cache:clear
 
 ### Detailed Documentation
 - **[Core System](docs/core_system.md)** - CSV-Import, Zahlungskategorien, Auth-System, Fixtures, Rücklagenzuführung
-- **[AI Integration](docs/ai_integration.md)** - AI-powered payment categorization and natural language queries
+- **[AI Integration](docs/ai_01_integration.md)** - AI overview, configuration, privacy, learning
 - **[Technical Documentation](docs/technical.md)** - Parser Architecture, HGA Migration, Calculation Improvements
 
 ---

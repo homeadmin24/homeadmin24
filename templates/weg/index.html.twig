@@ -71,6 +71,16 @@
                     AI-Anfragen
                 </button>
             </li>
+            {% if is_granted('ROLE_SUPER_ADMIN') %}
+            <li class="me-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="benutzer-styled-tab" data-tabs-target="#styled-benutzer" type="button" role="tab" aria-controls="benutzer" aria-selected="{{ app.request.query.get('tab') == 'benutzer' ? 'true' : 'false' }}">
+                    <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+                    </svg>
+                    Benutzer
+                </button>
+            </li>
+            {% endif %}
         </ul>
     </div>
 
@@ -549,6 +559,143 @@
             </div>
         </div>
 
+        {% if is_granted('ROLE_SUPER_ADMIN') %}
+        <!-- Benutzer Tab -->
+        <div class="{{ app.request.query.get('tab') == 'benutzer' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-benutzer" role="tabpanel" aria-labelledby="benutzer-tab">
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Benutzerverwaltung</h3>
+            </div>
+
+            {% for message in app.flashes('success') %}
+                <div class="p-4 mb-4 text-sm text-green-800 rounded-lg bg-green-50" role="alert">{{ message }}</div>
+            {% endfor %}
+            {% for message in app.flashes('error') %}
+                <div class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50" role="alert">{{ message }}</div>
+            {% endfor %}
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">Vorname</th>
+                            <th scope="col" class="px-4 py-3">Nachname</th>
+                            <th scope="col" class="px-4 py-3">E-Mail</th>
+                            <th scope="col" class="px-4 py-3">Passwort</th>
+                            <th scope="col" class="px-4 py-3">Rollen</th>
+                            <th scope="col" class="px-4 py-3">Aktiv</th>
+                            <th scope="col" class="px-4 py-3">Erstellt</th>
+                            <th scope="col" class="px-4 py-3">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- New user row -->
+                        <tr class="bg-green-50 border-b" id="new-user-row">
+                            <td class="px-4 py-4" colspan="8">
+                                <button type="button" onclick="showNewUserForm()" id="new-user-btn" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5">
+                                    + Neuer Benutzer
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="bg-green-50 border-b hidden" id="new-user-form-row">
+                            <td class="px-4 py-4">
+                                <input type="text" id="new-user-firstName" placeholder="Vorname" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2" required>
+                            </td>
+                            <td class="px-4 py-4">
+                                <input type="text" id="new-user-lastName" placeholder="Nachname" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2" required>
+                            </td>
+                            <td class="px-4 py-4">
+                                <input type="email" id="new-user-email" placeholder="E-Mail" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2" required>
+                            </td>
+                            <td class="px-4 py-4">
+                                <input type="password" id="new-user-password" placeholder="Passwort" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2" required>
+                            </td>
+                            <td class="px-4 py-4">
+                                <div class="space-y-1">
+                                    {% for roleKey, roleLabel in availableRoles %}
+                                        <label class="flex items-center text-xs">
+                                            <input type="checkbox" id="new-user-role-{{ roleKey }}" value="{{ roleKey }}" class="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mr-1">
+                                            {{ roleLabel }}
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="px-4 py-4">-</td>
+                            <td class="px-4 py-4">-</td>
+                            <td class="px-4 py-4">
+                                <button type="button" onclick="addNewUser()" class="text-green-600 hover:underline mr-2">Hinzufügen</button>
+                                <button type="button" onclick="cancelNewUser()" class="text-gray-600 hover:underline">Abbrechen</button>
+                            </td>
+                        </tr>
+
+                        {% for user in users %}
+                        <tr class="bg-white border-b hover:bg-gray-50 {{ not user.active ? 'opacity-60' : '' }}" id="user-row-{{ user.id }}">
+                            <td class="px-4 py-4">
+                                <span id="user-firstName-{{ user.id }}">{{ user.firstName }}</span>
+                                <input type="text" id="user-firstName-input-{{ user.id }}" value="{{ user.firstName }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="user-lastName-{{ user.id }}">{{ user.lastName }}</span>
+                                <input type="text" id="user-lastName-input-{{ user.id }}" value="{{ user.lastName }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="user-email-{{ user.id }}">{{ user.email }}</span>
+                                <input type="email" id="user-email-input-{{ user.id }}" value="{{ user.email }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="user-password-{{ user.id }}">********</span>
+                                <input type="password" id="user-password-input-{{ user.id }}" placeholder="Leer = nicht ändern" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="user-roles-{{ user.id }}">
+                                    {% for role in user.roles %}
+                                        {% if role != 'ROLE_USER' %}
+                                            {% if role == 'ROLE_SUPER_ADMIN' %}
+                                                <span class="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded mb-1 inline-block">Super Admin</span>
+                                            {% elseif role == 'ROLE_WEG_ADMIN' %}
+                                                <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-0.5 rounded mb-1 inline-block">WEG Admin</span>
+                                            {% elseif role == 'ROLE_ACCOUNTANT' %}
+                                                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded mb-1 inline-block">Buchhalter</span>
+                                            {% elseif role == 'ROLE_PROPERTY_MANAGER' %}
+                                                <span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded mb-1 inline-block">Hausverwaltung</span>
+                                            {% elseif role == 'ROLE_VIEWER' %}
+                                                <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2 py-0.5 rounded mb-1 inline-block">Betrachter</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </span>
+                                <div id="user-roles-input-{{ user.id }}" class="hidden space-y-1">
+                                    {% for roleKey, roleLabel in availableRoles %}
+                                        <label class="flex items-center text-xs">
+                                            <input type="checkbox" data-role="{{ roleKey }}" {{ roleKey in user.roles ? 'checked' : '' }} class="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mr-1">
+                                            {{ roleLabel }}
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="px-4 py-4">
+                                {% if user.active %}
+                                    <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Aktiv</span>
+                                {% else %}
+                                    <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">Inaktiv</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-4 text-xs text-gray-400">{{ user.createdAt|date('d.m.Y') }}</td>
+                            <td class="px-4 py-4">
+                                <button type="button" onclick="editUser({{ user.id }})" id="user-edit-btn-{{ user.id }}" class="text-blue-600 hover:underline mr-2">Bearbeiten</button>
+                                <button type="button" onclick="saveUser({{ user.id }})" id="user-save-btn-{{ user.id }}" class="hidden text-green-600 hover:underline mr-2">Speichern</button>
+                                <button type="button" onclick="cancelUser({{ user.id }})" id="user-cancel-btn-{{ user.id }}" class="hidden text-gray-600 hover:underline mr-2">Abbrechen</button>
+                                <form method="POST" action="{{ path('app_weg_user_toggle', {id: user.id}) }}" class="inline">
+                                    <button type="submit" class="text-{{ user.active ? 'red' : 'green' }}-600 hover:underline text-xs">{{ user.active ? 'Deaktivieren' : 'Aktivieren' }}</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
         </div>
     </main>
 </div>
@@ -731,6 +878,84 @@ function cancelKonto(id) {
     document.getElementById('konto-edit-btn-' + id).classList.remove('hidden');
     document.getElementById('konto-save-btn-' + id).classList.add('hidden');
     document.getElementById('konto-cancel-btn-' + id).classList.add('hidden');
+}
+
+// User editing functions
+function showNewUserForm() {
+    document.getElementById('new-user-row').classList.add('hidden');
+    document.getElementById('new-user-form-row').classList.remove('hidden');
+}
+
+function cancelNewUser() {
+    document.getElementById('new-user-row').classList.remove('hidden');
+    document.getElementById('new-user-form-row').classList.add('hidden');
+    // Clear inputs
+    ['firstName', 'lastName', 'email', 'password'].forEach(field => {
+        document.getElementById('new-user-' + field).value = '';
+    });
+    document.querySelectorAll('#new-user-form-row input[type="checkbox"]').forEach(cb => cb.checked = false);
+}
+
+function addNewUser() {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/weg/user/new';
+
+    ['firstName', 'lastName', 'email', 'password'].forEach(field => {
+        const value = document.getElementById('new-user-' + field).value;
+        form.innerHTML += '<input type="hidden" name="' + field + '" value="' + escapeHtml(value) + '">';
+    });
+
+    document.querySelectorAll('#new-user-form-row input[type="checkbox"]:checked').forEach(cb => {
+        form.innerHTML += '<input type="hidden" name="roles[]" value="' + cb.value + '">';
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function editUser(id) {
+    const fields = ['firstName', 'lastName', 'email', 'password'];
+    fields.forEach(field => {
+        document.getElementById('user-' + field + '-' + id).classList.add('hidden');
+        document.getElementById('user-' + field + '-input-' + id).classList.remove('hidden');
+    });
+    document.getElementById('user-roles-' + id).classList.add('hidden');
+    document.getElementById('user-roles-input-' + id).classList.remove('hidden');
+    document.getElementById('user-edit-btn-' + id).classList.add('hidden');
+    document.getElementById('user-save-btn-' + id).classList.remove('hidden');
+    document.getElementById('user-cancel-btn-' + id).classList.remove('hidden');
+}
+
+function saveUser(id) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/weg/user/' + id + '/edit';
+
+    ['firstName', 'lastName', 'email', 'password'].forEach(field => {
+        const value = document.getElementById('user-' + field + '-input-' + id).value;
+        form.innerHTML += '<input type="hidden" name="' + field + '" value="' + escapeHtml(value) + '">';
+    });
+
+    document.querySelectorAll('#user-roles-input-' + id + ' input[type="checkbox"]:checked').forEach(cb => {
+        form.innerHTML += '<input type="hidden" name="roles[]" value="' + cb.dataset.role + '">';
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function cancelUser(id) {
+    const fields = ['firstName', 'lastName', 'email', 'password'];
+    fields.forEach(field => {
+        document.getElementById('user-' + field + '-' + id).classList.remove('hidden');
+        document.getElementById('user-' + field + '-input-' + id).classList.add('hidden');
+    });
+    document.getElementById('user-roles-' + id).classList.remove('hidden');
+    document.getElementById('user-roles-input-' + id).classList.add('hidden');
+    document.getElementById('user-edit-btn-' + id).classList.remove('hidden');
+    document.getElementById('user-save-btn-' + id).classList.add('hidden');
+    document.getElementById('user-cancel-btn-' + id).classList.add('hidden');
 }
 
 // AI Query Functions

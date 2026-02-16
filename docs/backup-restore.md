@@ -2,6 +2,19 @@
 
 Simple backup and restore for homeadmin24 database using Docker.
 
+
+## Feature Behavior
+- Scope: Regelt konsistente Datenbank-Backups und Wiederherstellung fuer lokale und produktive Umgebungen.
+- Inputs/Outputs: Input sind DB-Inhalte und Backup-Datei; Output ist ein wiederhergestellter, lauffaehiger Applikationszustand.
+- Invarianten: `doctrine_migration_versions` bleibt beim Backup ausgeschlossen, Restore wird immer mit Schema-/Cache-Check abgeschlossen.
+- Akzeptanz: Nach Restore sind App-Login, Kernseiten und kritische Finanzdaten ohne Inkonsistenz verfuegbar.
+
+## Operational Runbook
+- Trigger: Vor riskanten Migrationen, vor Deployments und bei Datenverlust/Fehlzustand.
+- Schritte: Backup erzeugen, Restore einspielen, `doctrine:schema:update --force` und `cache:clear` ausfuehren.
+- Verifikation: Tabellenstand, Beispielabfragen und Kern-Workflows (Import/HGA/Dokumente) pruefen.
+- Recovery/Rollback: Vorheriges Backup einspielen und Applikation auf letzten stabilen Stand zuruecksetzen.
+
 ## Quick Reference
 
 ```bash

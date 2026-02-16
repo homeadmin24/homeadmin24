@@ -1,5 +1,18 @@
 # Lokale Entwicklungsumgebung Setup
 
+
+## Feature Behavior
+- Scope: Beschreibt das lokale Entwicklungssetup inkl. App, DB, Frontend-Assets und optionaler AI-Services.
+- Inputs/Outputs: Input sind lokale Tools/Configs; Output ist eine reproduzierbare, lauffaehige Dev-Umgebung mit Demo-Daten.
+- Invarianten: Frontend-Build lokal ausfuehren; AI-Dienste lokal halten; Basis-Container muessen in definierter Reihenfolge starten.
+- Akzeptanz: Login funktioniert, Kernseiten laden, und dev-spezifische Workflows (Import/HGA/PDF) sind lokal testbar.
+
+## Operational Runbook
+- Trigger: Bei Neuinstallation, defekter lokaler Umgebung oder nach groesseren Dependency-Upgrades.
+- Schritte: Docker + Composer + Schema + Fixtures + Frontend-Build ausfuehren, danach AI/PDF optional aktivieren.
+- Verifikation: Health-Checks, Demo-Login und Preview/PDF-Endpunkte liefern erwartete Ergebnisse.
+- Recovery/Rollback: Container/Volumes gezielt neu aufsetzen und mit dokumentiertem Schnellstart sauber reinitialisieren.
+
 ## Voraussetzungen
 
 - Docker Desktop oder Orbstack installiert und gestartet
@@ -10,8 +23,8 @@
 ## Dokumentation
 
 - **[Core System](core_system.md)** - CSV import, payment categorization, zahlungskategorie, auth, fixtures, Rücklagenzuführung
-- **[AI Integration](ai_integration.md)** - AI-powered payment categorization and natural language queries
-- **[AI Invoice Extraction](ai_doc_extraction.md)** - Invoice parsing architecture + OCR/LLM roadmap
+- **[AI Integration](ai_01_integration.md)** - AI overview, configuration, privacy, learning
+- **[AI Invoice Extraction](ai_04_invoice-data-xtraction.md)** - Invoice parsing architecture + OCR/LLM
 - **[Fixture Strategy](fixture_strategy.md)** - Complete database seeding strategy for development and production
 - **[Production Deployment](setup_production.md)** - DigitalOcean App Platform, Droplet deployment
 
@@ -375,6 +388,6 @@ npm install && npm run dev
 ## Weiterführende Dokumentation
 
 - [Core System Documentation](core_system.md) - CSV import, payment categorization, auth
-- [AI Integration](ai_integration.md) - AI-powered features
+- [AI Integration](ai_01_integration.md) - AI-powered features
 - [Production Deployment](setup_production.md) - Deployment guides
 - [Fixture Strategy](fixture_strategy.md) - Database setup reference
