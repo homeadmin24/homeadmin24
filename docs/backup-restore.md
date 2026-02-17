@@ -290,6 +290,6 @@ mysqldump -h127.0.0.1 -uroot --routines --triggers --single-transaction homeadmi
 
 ## See Also
 
-- [Local Setup Guide](local-setup.md) - Setting up development environment
-- [Production Deployment](production.md) - Production server management
-- [Development Guide](development.md) - General development workflow
+- [Local Setup Guide](setup-local.md) - Setting up development environment
+- [Production Deployment](setup-production.md) - Production server management
+- [Documentation Index](al-overview.md) - Full documentation navigation

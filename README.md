@@ -28,13 +28,13 @@ docker compose exec web php bin/console cache:clear
 **Access:** http://127.0.0.1:8000
 **Login:** `wegadmin@demo.local` / `demo123`
 
-📖 **Ausführliche Anleitung:** [docs/setup_local.md](docs/setup_local.md)
+📖 **Ausführliche Anleitung:** [docs/setup-local.md](docs/setup-local.md)
 
 ### Production Deployment
 
 [![Deploy to DigitalOcean](https://img.shields.io/badge/Deploy%20to-DigitalOcean-0080FF?logo=digitalocean&logoColor=white)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/homeadmin24/homeadmin24/tree/main)
 
-📖 **Deployment-Optionen:** [docs/setup_production.md](docs/setup_production.md)
+📖 **Deployment-Optionen:** [docs/setup-production.md](docs/setup-production.md)
 - **App Platform** (Managed, $12/mo)
 - **Droplet** (VPS Self-Hosted, $6/mo)
 - **Multi-Droplet** (Production + Auto-Reset Demo)
@@ -80,13 +80,14 @@ docker compose exec web php bin/console cache:clear
 
 ## 📚 Dokumentation
 
+- **[Documentation Index](docs/al-overview.md)** - Strukturierter Einstieg in alle Doku-Bereiche
 ### Getting Started
-- **[Lokales Setup & Development](docs/setup_local.md)** - Docker-Entwicklungsumgebung, Development Workflows, Troubleshooting
-- **[Production Deployment](docs/setup_production.md)** - App Platform, Droplets, Multi-Droplet
+- **[Lokales Setup & Development](docs/setup-local.md)** - Docker-Entwicklungsumgebung, Development Workflows, Troubleshooting
+- **[Production Deployment](docs/setup-production.md)** - App Platform, Droplets, Multi-Droplet
 
 ### Detailed Documentation
-- **[Core System](docs/core_system.md)** - CSV-Import, Zahlungskategorien, Auth-System, Fixtures, Rücklagenzuführung
-- **[AI Integration](docs/ai_01_integration.md)** - AI overview, configuration, privacy, learning
+- **[Core System](docs/core-system.md)** - CSV-Import, Zahlungskategorien, Auth-System, Fixtures, Rücklagenzuführung
+- **[AI Integration](docs/al-overview.md)** - AI overview, configuration, privacy, learning
 - **[Technical Documentation](docs/technical.md)** - Parser Architecture, HGA Migration, Calculation Improvements
 
 ---
@@ -114,7 +115,7 @@ Alle Passwörter: `demo123`
 Contributions welcome! Dieses Projekt ist Open Source unter AGPL v3.0.
 
 - **Issues**: [GitHub Issues](https://github.com/homeadmin24/homeadmin24/issues)
-- **Developer Guide**: [docs/setup_local.md](docs/setup_local.md)
+- **Developer Guide**: [docs/setup-local.md](docs/setup-local.md)
 - **License**: [GNU AGPL v3](LICENSE)
 
 ---

@@ -256,5 +256,5 @@ docker compose logs web | grep LlmParser
 
 ## Related Documentation
 
-- [AI Integration Overview](ai_01_integration.md) - Configuration, privacy
-- [HGA Quality Checks](ai_05_hga_quality-checks.md) - Same Ollama/Claude pattern
+- [AI Integration Overview](al-overview.md) - Configuration, privacy
+- [HGA Quality Checks](hga-quality-checks.md) - Same Ollama/Claude pattern

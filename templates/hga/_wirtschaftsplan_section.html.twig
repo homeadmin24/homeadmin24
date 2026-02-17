@@ -136,10 +136,24 @@
                     <td>Hausgeld-Vorschüsse (12 × {{ monthlyTotal|number_format(2, ',', '.') }} €)</td>
                     <td class="amount">{{ yearlyVorschuesse|number_format(2, ',', '.') }} €</td>
                 </tr>
+                {% set nachzahlungenDetails = data.wirtschaftsplan.planned_income.nachzahlungen_details|default([]) %}
                 <tr>
-                    <td>Nachzahlungen aus HGA {{ previousYear }}</td>
+                    <td>Nachzahlungen/Guthaben aus HGA {{ previousYear }}</td>
                     <td class="amount">{{ nachzahlungen|number_format(2, ',', '.') }} €</td>
                 </tr>
+                {% if nachzahlungenDetails|length > 0 %}
+                {% for detail in nachzahlungenDetails %}
+                <tr>
+                    <td style="padding-left: 20px; font-size: 8pt; color: #666;">
+                        {{ detail.nummer }} {{ detail.eigentuemer }}:
+                        {% if detail.is_guthaben %}Guthaben{% else %}Nachzahlung{% endif %}
+                    </td>
+                    <td class="amount" style="font-size: 8pt; color: {% if detail.is_guthaben %}#006600{% else %}#cc0000{% endif %};">
+                        {{ detail.saldo|number_format(2, ',', '.') }} €
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endif %}
                 <tr class="subtotal">
                     <td><strong>GESAMTEINNAHMEN {{ planYear }}:</strong></td>
                     <td class="amount"><strong>{{ (yearlyVorschuesse + nachzahlungen)|number_format(2, ',', '.') }} €</strong></td>

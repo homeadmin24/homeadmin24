@@ -78,7 +78,7 @@ docker compose exec web php bin/console app:create-admin
 ### **Option D: Production Droplet Deployment** ⭐
 ```bash
 # For production deployment on DigitalOcean droplets, see:
-# docs/setup_production.md - Complete deployment guide
+# docs/setup-production.md - Complete deployment guide
 
 # Quick summary:
 # 1. Run migrations (creates tables)
@@ -115,7 +115,7 @@ docker compose exec web php bin/console doctrine:schema:update --force
 
 #### **Restore Backup (Production Droplet)**
 ```bash
-# See docs/setup_production.md for complete deployment guide
+# See docs/setup-production.md for complete deployment guide
 ```
 
 ---
@@ -124,13 +124,13 @@ docker compose exec web php bin/console doctrine:schema:update --force
 
 ### **Production Deployments**
 - ✅ **DO**: Use real database backups from `backup/` directory
-- ✅ **DO**: Follow `docs/setup_production.md` for complete deployment guide
+- ✅ **DO**: Follow `docs/setup-production.md` for complete deployment guide
 - ✅ **DO**: Restore via Docker container commands on droplet
 - ❌ **DON'T**: Use fixtures on production droplets
 - ❌ **DON'T**: Load demo-data on production
 - ❌ **DON'T**: Manually enter WEG data (always restore from backup)
 
-**Full deployment guide:** See `docs/setup_production.md`
+**Full deployment guide:** See `docs/setup-production.md`
 
 ### **Demo Deployments**
 - ✅ **DO**: Use fixtures (demo-data group)

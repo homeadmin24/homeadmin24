@@ -248,17 +248,29 @@
             </tbody>
         </table>
 
-        {% if (hasHausgeld and data.vermoegen_abgrenzung.hausgeld.bemerkung) or (hasRuecklage and data.vermoegen_abgrenzung.ruecklage.bemerkung) %}
-        <div style="margin-top: 12px; padding: 8px 12px; background-color: #f8f9fa; border-left: 3px solid #999; font-size: 8pt;">
+        {% set hausgeldOk = hasHausgeld and data.vermoegen_abgrenzung.hausgeld.abweichung.status == 'ok' %}
+        {% set ruecklageOk = hasRuecklage and data.vermoegen_abgrenzung.ruecklage.abweichung.status == 'ok' %}
+        {% set alleOk = (not hasHausgeld or hausgeldOk) and (not hasRuecklage or ruecklageOk) %}
+
+        <div style="margin-top: 12px; padding: 8px 12px; background-color: #f8f9fa; border-left: 3px solid {% if alleOk %}#006600{% else %}#999{% endif %}; font-size: 8pt;">
             <strong style="font-size: 8.5pt;">Bemerkungen:</strong><br>
+            {% if alleOk %}
+                Alle im Abrechnungszeitraum angefallenen Kosten wurden im selben Zeitraum beglichen.
+                Es bestehen keine offenen Posten.<br>
+                <div style="margin-top: 6px; margin-left: 8px;">
+                    • Abgerechnet, nicht bezahlt = 0,00 €<br>
+                    • Bezahlt, nicht abgerechnet = 0,00 €<br>
+                    • Fortschreibung Geldvermögen = identisch mit Kontostand-Abstimmung
+                </div>
+            {% endif %}
             {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.bemerkung %}
+                {% if alleOk %}<br>{% endif %}
                 <strong>Hausgeld:</strong> {{ data.vermoegen_abgrenzung.hausgeld.bemerkung|nl2br }}<br>
             {% endif %}
             {% if hasRuecklage and data.vermoegen_abgrenzung.ruecklage.bemerkung %}
                 <strong>Rücklage:</strong> {{ data.vermoegen_abgrenzung.ruecklage.bemerkung|nl2br }}
             {% endif %}
         </div>
-        {% endif %}
 
         <div style="font-size: 8pt; color: #666; margin-top: 15px; padding: 8px 0; border-top: 1px solid #ddd;">
             <strong style="font-size: 8.5pt; color: #333;">Erläuterungen:</strong><br>

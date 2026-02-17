@@ -106,6 +106,12 @@ class HgaService implements HgaServiceInterface
 
             $wirtschaftsplanPlanData = $this->applyPlannedIncomeDefaults($wirtschaftsplanPlanData);
 
+            // Calculate Nachzahlungen/Guthaben from actual HGA results for all units
+            $nachzahlungenDetails = $this->calculateWegNachzahlungen($einheit->getWeg(), $year, $usePaymentDate);
+            $wirtschaftsplanPlanData['planned_income']['nachzahlungen_' . $year] = $nachzahlungenDetails['total'];
+            $wirtschaftsplanPlanData['planned_income']['nachzahlungen_details'] = $nachzahlungenDetails['details'];
+            $wirtschaftsplanPlanData['planned_income']['nachzahlungen_source'] = 'calculated';
+
             // Get WEG totals - use payment date filtering for Eigentümer
             $wegCostTotals = $this->costCalculationService->calculateTotalCostsForWeg($einheit->getWeg(), $year, $usePaymentDate);
 
@@ -371,6 +377,42 @@ class HgaService implements HgaServiceInterface
         $wirtschaftsplanData['planned_income'] = $plannedIncome;
 
         return $wirtschaftsplanData;
+    }
+
+    /**
+     * Calculate Nachzahlungen/Guthaben for all units in a WEG.
+     *
+     * Computes the Saldo (Gesamtkosten - Ist) for each unit and returns
+     * per-unit details plus the WEG total. Positive = Nachzahlung, Negative = Guthaben.
+     *
+     * @return array{total: float, details: array<int, array{nummer: string, eigentuemer: string, saldo: float, is_guthaben: bool}>}
+     */
+    private function calculateWegNachzahlungen(Weg $weg, int $year, bool $usePaymentDate = true): array
+    {
+        $details = [];
+        $total = 0.0;
+
+        foreach ($weg->getEinheiten() as $unit) {
+            $costs = $this->costCalculationService->calculateTotalCosts($unit, $year, $usePaymentDate);
+            $externalCosts = $this->externalCostService->getAllExternalCosts($unit, $year);
+            $payments = $this->calculatePaymentBalance($unit, $year, $usePaymentDate);
+            $totals = $this->calculateFinalTotals($costs, $externalCosts, $payments);
+
+            $saldo = $totals['balance']['saldo'];
+            $total += $saldo;
+
+            $details[] = [
+                'nummer' => $unit->getNummer(),
+                'eigentuemer' => $unit->getMiteigentuemer(),
+                'saldo' => $saldo,
+                'is_guthaben' => $saldo < 0,
+            ];
+        }
+
+        return [
+            'total' => $total,
+            'details' => $details,
+        ];
     }
 
     /**

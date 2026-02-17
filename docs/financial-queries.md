@@ -144,11 +144,11 @@ The query interface is in the "AI-Anfragen" tab under `/weg`:
 3. Top-rated examples are injected into Ollama prompts (few-shot learning)
 4. Over time, Ollama quality approaches Claude quality
 
-See [AI Integration - Learning](ai_01_integration.md#ollama-learning--fine-tuning) for details on the training pipeline.
+See [AI Integration - Learning](overview.md#ollama-learning--fine-tuning) for details on the training pipeline.
 
 ---
 
 ## Related Documentation
 
-- [AI Integration Overview](ai_01_integration.md) - Configuration, learning, privacy
-- [Payment Auto-Categorization](ai_02_payment-auto-categorize.md)
+- [AI Integration Overview](al-overview.md) - Configuration, learning, privacy
+- [Payment Auto-Categorization](payment-categorization.md)

@@ -22,11 +22,11 @@
 
 ## Dokumentation
 
-- **[Core System](core_system.md)** - CSV import, payment categorization, zahlungskategorie, auth, fixtures, Rücklagenzuführung
-- **[AI Integration](ai_01_integration.md)** - AI overview, configuration, privacy, learning
-- **[AI Invoice Extraction](ai_04_invoice-data-xtraction.md)** - Invoice parsing architecture + OCR/LLM
-- **[Fixture Strategy](fixture_strategy.md)** - Complete database seeding strategy for development and production
-- **[Production Deployment](setup_production.md)** - DigitalOcean App Platform, Droplet deployment
+- **[Core System](core-system.md)** - CSV import, payment categorization, zahlungskategorie, auth, fixtures, Rücklagenzuführung
+- **[AI Integration](al-overview.md)** - AI overview, configuration, privacy, learning
+- **[AI Invoice Extraction](invoice-extraction.md)** - Invoice parsing architecture + OCR/LLM
+- **[Fixture Strategy](fixture-strategy.md)** - Complete database seeding strategy for development and production
+- **[Production Deployment](setup-production.md)** - DigitalOcean App Platform, Droplet deployment
 
 ## Schnellstart
 
@@ -387,7 +387,7 @@ npm install && npm run dev
 
 ## Weiterführende Dokumentation
 
-- [Core System Documentation](core_system.md) - CSV import, payment categorization, auth
-- [AI Integration](ai_01_integration.md) - AI-powered features
-- [Production Deployment](setup_production.md) - Deployment guides
-- [Fixture Strategy](fixture_strategy.md) - Database setup reference
+- [Core System Documentation](core-system.md) - CSV import, payment categorization, auth
+- [AI Integration](al-overview.md) - AI-powered features
+- [Production Deployment](setup-production.md) - Deployment guides
+- [Fixture Strategy](fixture-strategy.md) - Database setup reference

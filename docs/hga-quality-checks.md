@@ -429,5 +429,5 @@ Not yet implemented. Recommended test cases:
 
 ## Related Documentation
 
-- [AI Integration Overview](ai_01_integration.md) - Configuration, learning, privacy
-- [Invoice Data Extraction](ai_04_invoice-data-xtraction.md) - Same Ollama/Claude pattern
+- [AI Integration Overview](al-overview.md) - Configuration, learning, privacy
+- [Invoice Data Extraction](invoice-extraction.md) - Same Ollama/Claude pattern

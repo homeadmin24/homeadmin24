@@ -152,5 +152,5 @@ Antworte NUR mit gueltigem JSON:
 
 ## Related Documentation
 
-- [AI Integration Overview](ai_01_integration.md) - Configuration, privacy, learning
-- [Core System](core_system.md) - CSV import, payment workflow
+- [AI Integration Overview](al-overview.md) - Configuration, privacy, learning
+- [Core System](core-system.md) - CSV import, payment workflow

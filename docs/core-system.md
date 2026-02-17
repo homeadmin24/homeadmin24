@@ -656,9 +656,9 @@ class Dokument
 
 ## Related Documentation
 
-- [AI Integration](ai_01_integration.md) - AI overview, configuration, privacy
-- [Local Setup](setup_local.md) - Docker development environment
-- [Production Deployment](setup_production.md) - Deployment options
+- [AI Integration](al-overview.md) - AI overview, configuration, privacy
+- [Local Setup](setup-local.md) - Docker development environment
+- [Production Deployment](setup-production.md) - Deployment options
 
 ---
 

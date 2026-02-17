@@ -1,6 +1,6 @@
 # Production Deployment Guide
 
-Complete guide for deploying homeadmin24 to production. For local development setup, see [setup_local.md](setup_local.md).
+Complete guide for deploying homeadmin24 to production. For local development setup, see [setup-local.md](setup-local.md).
 
 **Note:** AI services (Ollama, DocIntel) are currently **local-only**. Production/Demo deployments should disable AI features.
 
@@ -425,6 +425,6 @@ See `.droplet/` directory for detailed script documentation.
 
 ## Support & Further Documentation
 
-- **Local Development:** [setup_local.md](setup_local.md)
+- **Local Development:** [setup-local.md](setup-local.md)
 - **GitHub Issues:** [homeadmin24/issues](https://github.com/homeadmin24/homeadmin24/issues)
 - **License:** [GNU AGPL v3](../LICENSE)
