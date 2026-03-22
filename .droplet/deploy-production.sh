@@ -127,6 +127,7 @@ services:
       - AI_ENABLED=false
       - AI_CLAUDE_ENABLED=false
       - DOCINTEL_ENABLED=false
+      - TRUSTED_PROXIES=127.0.0.1
     restart: unless-stopped
     # Mount code from host so quick deployments pick up new code without rebuild
     # public/ is NOT mounted - built assets stay baked in the image
@@ -287,7 +288,7 @@ server {
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Proto https;
 
         # WebSocket support (for Turbo/Mercure if used)
         proxy_http_version 1.1;

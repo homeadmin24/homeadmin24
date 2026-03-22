@@ -175,8 +175,10 @@ services:
       - TRUSTED_HOSTS=^demo\.homeadmin24\.de$
       - MESSENGER_TRANSPORT_DSN=doctrine://default?auto_setup=0
     restart: unless-stopped
-    # Don't inherit volume mounts from base - use built files from Docker image
-    volumes: !reset []
+    # Reset base dev mounts (vendor, src, etc.) — use baked image files
+    # Only mount config so security.yaml changes apply without full rebuild
+    volumes: !reset
+      - ./config:/var/www/html/config
 
   mysql:
     container_name: homeadmin24-demo-mysql
@@ -200,12 +202,12 @@ if [ "$QUICK_MODE" = true ]; then
     echo "[4/8] ⚡ Skipping Docker rebuild (quick mode)..."
     echo "       Containers will continue running with new code"
 
-    echo "[5/9] Clearing Symfony cache..."
-    docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web php bin/console cache:clear
-
-    echo "[5.5/9] Restarting web container to clear PHP OPcache..."
-    docker compose -f docker-compose.yaml -f docker-compose.demo.yml restart web
+    echo "[5/9] Recreating web container to apply volume mounts and OPcache reset..."
+    docker compose -f docker-compose.yaml -f docker-compose.demo.yml up -d --no-deps web
     sleep 3  # Wait for container to be ready
+
+    echo "[5b/9] Clearing Symfony cache..."
+    docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web php bin/console cache:clear
 
     echo "[6/9] Installing npm dependencies..."
     docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web npm install
@@ -326,7 +328,7 @@ server {
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Proto https;
 
         # WebSocket support
         proxy_http_version 1.1;
