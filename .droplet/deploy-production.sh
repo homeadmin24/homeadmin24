@@ -100,11 +100,14 @@ else
     echo "[2/12] .env already exists"
 fi
 
-# Create empty .env.local if it doesn't exist (required by docker-compose.yaml)
+# Create empty .env.local if it doesn't exist (required by docker-compose before any exec)
+# Must happen before any docker compose command, not just before cache:clear
 if [ ! -f .env.local ]; then
     echo "Creating empty .env.local..."
     touch .env.local
 fi
+# Ensure it's always present (safety net)
+touch .env.local
 
 # Ensure Chrome renderer is enabled for PDF generation
 if ! grep -q "^HGA_PDF_RENDERER=" .env; then
@@ -125,8 +128,15 @@ services:
       - AI_CLAUDE_ENABLED=false
       - DOCINTEL_ENABLED=false
     restart: unless-stopped
-    # Don't inherit volume mounts from base - use built files from Docker image
-    volumes: !reset []
+    # Mount code from host so quick deployments pick up new code without rebuild
+    # public/ is NOT mounted - built assets stay baked in the image
+    # node_modules is a named volume so npm install persists across container restarts
+    volumes:
+      - ./src:/var/www/html/src
+      - ./config:/var/www/html/config
+      - ./templates:/var/www/html/templates
+      - ./data:/var/www/html/data
+      - node_modules:/var/www/html/node_modules
 
   mysql:
     restart: unless-stopped
@@ -134,8 +144,17 @@ services:
       - mysql_data:/var/lib/mysql
       - ./backups:/backups
 
+  doc-intel:
+    build: !reset null
+    image: alpine:latest
+    command: ["echo", "doc-intel disabled in production"]
+    profiles:
+      - donotstart
+
 volumes:
   mysql_data:
+    driver: local
+  node_modules:
     driver: local
 DOCKER_COMPOSE
 
@@ -143,16 +162,16 @@ if [ "$QUICK_MODE" = true ]; then
     echo "[4/8] ⚡ Skipping Docker rebuild (quick mode)..."
     echo "       Containers will continue running with new code"
 
-    echo "[5/9] Clearing Symfony cache..."
+    echo "[5/9] Restarting web container to apply new volume mounts..."
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml up -d --no-deps web
+
+    echo "[5b/9] Installing/updating composer dependencies..."
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web composer install --optimize-autoloader --no-scripts --no-interaction
+
+    echo "[5c/9] Clearing Symfony cache..."
     docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web php bin/console cache:clear
 
-    echo "[6/9] Ensuring Puppeteer is installed..."
-    if ! docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web node -e "require('puppeteer')" >/dev/null 2>&1; then
-        docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web npm install --omit=dev
-    fi
-
-    echo "[7/9] Rebuilding frontend assets..."
-    docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web npm run build
+    echo "[6/9] Skipping frontend rebuild in quick mode (assets baked in image)..."
 
     echo "[8/9] Updating database schema..."
     docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web php bin/console doctrine:schema:update --force
@@ -201,7 +220,7 @@ else
     docker compose -f docker-compose.yaml -f docker-compose.prod.yml build --no-cache
 
     echo "[7/12] Starting Docker containers..."
-    docker compose -f docker-compose.yaml -f docker-compose.prod.yml down -v
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml down
     docker compose -f docker-compose.yaml -f docker-compose.prod.yml up -d
 
     # Wait for database to be ready

@@ -214,7 +214,7 @@ if [ "$QUICK_MODE" = true ]; then
     docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web npm run build
 
     echo "[8/9] Running database migrations..."
-    docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+    docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web php bin/console doctrine:schema:update --force
 
     echo "[9/9] Reloading demo data..."
     docker compose -f docker-compose.yaml -f docker-compose.demo.yml exec -T web php bin/console doctrine:fixtures:load --group=demo-data --no-interaction
@@ -284,7 +284,7 @@ else
 
     # Run database migrations
     echo "[9/13] Running database migrations..."
-    docker compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction
+    docker compose exec -T web php bin/console doctrine:schema:update --force
 
     # Load demo data
     echo "[10/13] Loading demo data..."
@@ -436,7 +436,7 @@ echo "✅ Database is ready!" >> $LOG_FILE
 
 # Run migrations
 echo "Running migrations..." >> $LOG_FILE
-docker compose exec -T web php bin/console doctrine:migrations:migrate --no-interaction >> $LOG_FILE 2>&1
+docker compose exec -T web php bin/console doctrine:schema:update --force >> $LOG_FILE 2>&1
 
 # Load demo fixtures
 echo "Loading demo data..." >> $LOG_FILE
