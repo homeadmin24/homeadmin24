@@ -9,6 +9,7 @@ use App\Entity\Zahlung;
 use App\Repository\ZahlungRepository;
 use App\Service\Hga\CalculationInterface;
 use App\Service\Hga\ConfigurationInterface;
+use App\Service\Hga\Calculation\ExternalCostService;
 
 /**
  * Tax calculation service for §35a EStG deductions.
@@ -22,6 +23,7 @@ class TaxCalculationService
         private ZahlungRepository $zahlungRepository,
         private ConfigurationInterface $configurationService,
         private CalculationInterface $distributionService,
+        private ExternalCostService $externalCostService,
     ) {
     }
 
@@ -40,7 +42,7 @@ class TaxCalculationService
      *   total_anrechenbar: float
      * }
      */
-    public function calculateTaxDeductible(WegEinheit $einheit, int $year): array
+    public function calculateTaxDeductible(WegEinheit $einheit, int $year, bool $onlyUmlagefaehig = false): array
     {
         $weg = $einheit->getWeg();
         $mea = $this->extractMEAAsDecimal($einheit);
@@ -55,27 +57,42 @@ class TaxCalculationService
         $totalAnrechenbar = 0.0;
 
         // Group by kostenkonto and calculate
-        $grouped = $this->groupTaxDeductiblePayments($zahlungen, $taxDeductibleAccounts);
+        $grouped = $this->groupTaxDeductiblePayments($zahlungen, $taxDeductibleAccounts, $onlyUmlagefaehig);
+
+        // Pre-calculate heating ratio for 01* items (heating consumption share)
+        $heatingRatio = null;
 
         foreach ($grouped as $group) {
             $laborCostPercentage = $this->calculateLaborCostPercentage($group['zahlungen']);
             $anrechenbar = $group['total'] * $laborCostPercentage;
 
-            $anteil = $this->distributionService->calculateOwnerShare(
-                $group['total'],
-                $group['verteilungsschluessel'],
-                $mea,
-                $einheit,
-                $weg
-            );
+            if ('01*' === $group['verteilungsschluessel']) {
+                // 01* costs are distributed by heating consumption ratio, not MEA
+                if (null === $heatingRatio) {
+                    $externalCosts = $this->externalCostService->getAllExternalCosts($einheit, $year);
+                    $heatingTotal = $externalCosts['heating']['total'] + $externalCosts['water']['total'];
+                    $heatingUnitShare = $externalCosts['heating']['unit_share'] + $externalCosts['water']['unit_share'];
+                    $heatingRatio = $heatingTotal > 0.0 ? $heatingUnitShare / $heatingTotal : 0.0;
+                }
+                $anteil = $group['total'] * $heatingRatio;
+                $anteilAnrechenbar = $anrechenbar * $heatingRatio;
+            } else {
+                $anteil = $this->distributionService->calculateOwnerShare(
+                    $group['total'],
+                    $group['verteilungsschluessel'],
+                    $mea,
+                    $einheit,
+                    $weg
+                );
 
-            $anteilAnrechenbar = $this->distributionService->calculateOwnerShare(
-                $anrechenbar,
-                $group['verteilungsschluessel'],
-                $mea,
-                $einheit,
-                $weg
-            );
+                $anteilAnrechenbar = $this->distributionService->calculateOwnerShare(
+                    $anrechenbar,
+                    $group['verteilungsschluessel'],
+                    $mea,
+                    $einheit,
+                    $weg
+                );
+            }
 
             $items[] = [
                 'kostenkonto' => $group['kostenkonto'],
@@ -104,7 +121,7 @@ class TaxCalculationService
      *
      * @return array<int, array<string, mixed>>
      */
-    private function groupTaxDeductiblePayments(array $zahlungen, array $taxDeductibleAccounts): array
+    private function groupTaxDeductiblePayments(array $zahlungen, array $taxDeductibleAccounts, bool $onlyUmlagefaehig = false): array
     {
         $grouped = [];
 
@@ -112,6 +129,10 @@ class TaxCalculationService
             $kostenkonto = $zahlung->getKostenkonto();
 
             if (!$kostenkonto || !\in_array($kostenkonto->getNummer(), $taxDeductibleAccounts, true)) {
+                continue;
+            }
+
+            if ($onlyUmlagefaehig && !$kostenkonto->isIstUmlagefaehig()) {
                 continue;
             }
 

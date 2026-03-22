@@ -64,6 +64,7 @@ class HgaService implements HgaServiceInterface
             $costsEigentuemer = $this->costCalculationService->calculateTotalCosts($einheit, $year, true);
             $payments = $this->calculatePaymentBalance($einheit, $year, $usePaymentDate);
             $taxDeductible = $this->calculateTaxDeductible($einheit, $year);
+            $taxDeductibleMieter = $this->calculateTaxDeductible($einheit, $year, true);
             $externalCosts = $this->externalCostService->getAllExternalCosts($einheit, $year);
             $balanceData = $this->balanceCalculationService->getBalanceData($einheit->getWeg(), $year);
             $previousBalanceData = $this->balanceCalculationService->getBalanceData($einheit->getWeg(), $year - 1);
@@ -129,6 +130,7 @@ class HgaService implements HgaServiceInterface
                     'nummer' => $einheit->getNummer(),
                     'beschreibung' => $einheit->getBezeichnung(),
                     'eigentuemer' => $einheit->getMiteigentuemer(),
+                    'mieter' => $einheit->getMieter(),
                     'mea' => $einheit->getMiteigentumsanteile(),
                     'hebeanlage' => $einheit->getHebeanlage(),
                     'custom_distribution_02' => $this->distributionService->getDistributionShare($einheit, '02*'),
@@ -144,6 +146,7 @@ class HgaService implements HgaServiceInterface
                 'costs_eigentuemer' => $costsEigentuemer,
                 'payments' => $payments,
                 'tax_deductible' => $taxDeductible,
+                'tax_deductible_mieter' => $taxDeductibleMieter,
                 'external_costs' => $externalCosts,
                 'balance' => $balanceData,
                 'balance_previous' => $previousBalanceData,
@@ -306,9 +309,9 @@ class HgaService implements HgaServiceInterface
     /**
      * {@inheritdoc}
      */
-    public function calculateTaxDeductible(WegEinheit $einheit, int $year): array
+    public function calculateTaxDeductible(WegEinheit $einheit, int $year, bool $onlyUmlagefaehig = false): array
     {
-        return $this->taxCalculationService->calculateTaxDeductible($einheit, $year);
+        return $this->taxCalculationService->calculateTaxDeductible($einheit, $year, $onlyUmlagefaehig);
     }
 
     /**
@@ -749,7 +752,7 @@ class HgaService implements HgaServiceInterface
             $umlagefaehigWegTotal += $item['total'];
         }
 
-        $nichtUmlagefaehigWegTotal = 0.0;
+        $nichtUmlagefaehigWegTotal = ($externalCosts['co2']['total'] ?? 0.0);
         foreach ($costs['nicht_umlagefaehig']['items'] ?? [] as $item) {
             $nichtUmlagefaehigWegTotal += $item['total'];
         }
@@ -766,7 +769,7 @@ class HgaService implements HgaServiceInterface
             $umlagefaehigUnitTotal += $item['anteil'];
         }
 
-        $nichtUmlagefaehigUnitTotal = 0.0;
+        $nichtUmlagefaehigUnitTotal = ($externalCosts['co2']['unit_share'] ?? 0.0);
         foreach ($costs['nicht_umlagefaehig']['items'] ?? [] as $item) {
             $nichtUmlagefaehigUnitTotal += $item['anteil'];
         }
@@ -828,7 +831,13 @@ class HgaService implements HgaServiceInterface
         // Unit specific values
         $weg = $einheit->getWeg();
         $unitCount = (float) \count($weg->getEinheiten());
-        $hebeanlageShare = $einheit->getHebeanlage() ? 1.0 : 0.0;
+
+        // Parse Hebeanlage fraction (e.g. "2/6" → numerator = 2)
+        $hebeanlageShare = 0.0;
+        $hebeanlageString = $einheit->getHebeanlage();
+        if ($hebeanlageString && preg_match('/^(\d+)\/(\d+)$/', $hebeanlageString, $hm)) {
+            $hebeanlageShare = (float) $hm[1];
+        }
 
         // Get 02* custom distribution share
         $customDistribution02 = $this->distributionService->getDistributionShare($einheit, '02*');

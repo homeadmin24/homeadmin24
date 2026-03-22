@@ -31,9 +31,10 @@ class PdfReportGenerator implements ReportGeneratorInterface
      */
     public function generateReport(WegEinheit $einheit, int $year, array $options = []): string
     {
-        $data = $this->hgaService->generateReportData($einheit, $year);
+        $reportType = $options['reportType'] ?? 'eigentuemer';
+        $data = $this->hgaService->generateReportData($einheit, $year, $reportType);
 
-        return $this->generatePdfContent($data);
+        return $this->generatePdfContent($data, $reportType);
     }
 
     /**
@@ -65,10 +66,11 @@ class PdfReportGenerator implements ReportGeneratorInterface
      *
      * @param array<string, mixed> $data
      */
-    private function generatePdfContent(array $data): string
+    private function generatePdfContent(array $data, string $reportType = 'eigentuemer'): string
     {
-        // Render HTML using Twig template
-        $html = $this->twig->render('hga/pdf_report.html.twig', [
+        $template = 'mieter' === $reportType ? 'hga/pdf_report_mieter.html.twig' : 'hga/pdf_report.html.twig';
+
+        $html = $this->twig->render($template, [
             'data' => $data,
             'generatedAt' => new \DateTime(),
             'renderer' => 'chrome',

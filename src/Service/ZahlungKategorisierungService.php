@@ -186,9 +186,14 @@ class ZahlungKategorisierungService
             return $this->kostenkontoRepository->findOneBy(['nummer' => '099900']);
         }
 
+        // Interest income
+        if ($this->isInterestIncome($bezeichnung)) {
+            return $this->kostenkontoRepository->findOneBy(['nummer' => '051000']); // Nebenkosten Geldverkehr
+        }
+
         // Bank fees
         if ($this->isBankFee($bezeichnung)) {
-            return $this->kostenkontoRepository->findOneBy(['nummer' => '049000']); // Nebenkosten Geldverkehr
+            return $this->kostenkontoRepository->findOneBy(['nummer' => '051000']); // Nebenkosten Geldverkehr
         }
 
         // Property management fees
@@ -372,17 +377,12 @@ class ZahlungKategorisierungService
             return;
         }
 
+        $buchungsjahr = (int) $zahlung->getDatum()->format('Y');
         $bezeichnung = mb_strtolower($zahlung->getBezeichnung() ?? '');
         $year = $this->extractServiceYear($bezeichnung);
 
-        if (null === $year) {
-            return;
-        }
-
-        $buchungsjahr = (int) $zahlung->getDatum()->format('Y');
-        if ($year !== $buchungsjahr) {
-            $zahlung->setAbrechnungsjahrZuordnung($year);
-        }
+        // Use extracted year if it differs from booking year, otherwise fall back to booking year
+        $zahlung->setAbrechnungsjahrZuordnung($year !== null && $year !== $buchungsjahr ? $year : $buchungsjahr);
     }
 
     private function extractServiceYear(string $bezeichnung): ?int

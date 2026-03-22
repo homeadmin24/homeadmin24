@@ -86,11 +86,43 @@ class ExternalCostService
     }
 
     /**
+     * Get CO2 landlord share (Vermieteranteil) for a unit and year.
+     *
+     * @return array{
+     *   total: float,
+     *   unit_share: float,
+     *   distribution_key: string
+     * }
+     */
+    public function getCo2Costs(WegEinheit $einheit, int $year): array
+    {
+        $cost = $this->heizWasserkostenRepository->findByEinheitAndYear($einheit, $year);
+
+        if (!$cost) {
+            return [
+                'total' => 0.0,
+                'unit_share' => 0.0,
+                'distribution_key' => '01*',
+            ];
+        }
+
+        $wegTotal = $this->heizWasserkostenRepository->findWegGesamtByYear($einheit->getWeg(), $year);
+        $totalCo2 = $wegTotal ? (float) ($wegTotal->getSonstigeKosten() ?? 0.0) : 0.0;
+
+        return [
+            'total' => $totalCo2,
+            'unit_share' => (float) ($cost->getSonstigeKosten() ?? 0.0),
+            'distribution_key' => '01*',
+        ];
+    }
+
+    /**
      * Get all external costs for a unit and year.
      *
      * @return array{
      *   heating: array{total: float, unit_share: float, distribution_key: string},
      *   water: array{total: float, unit_share: float, distribution_key: string},
+     *   co2: array{total: float, unit_share: float, distribution_key: string},
      *   total: float,
      *   unit_total: float
      * }
@@ -99,10 +131,12 @@ class ExternalCostService
     {
         $heating = $this->getHeatingCosts($einheit, $year);
         $water = $this->getWaterCosts($einheit, $year);
+        $co2 = $this->getCo2Costs($einheit, $year);
 
         return [
             'heating' => $heating,
             'water' => $water,
+            'co2' => $co2,
             'total' => $heating['total'] + $water['total'],
             'unit_total' => $heating['unit_share'] + $water['unit_share'],
         ];

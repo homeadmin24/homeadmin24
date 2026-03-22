@@ -37,8 +37,10 @@
         <strong>Ihr steuerlich absetzbarer Betrag (100% der Arbeits-/Fahrtkosten inkl. MwSt.): {{ tax_deductible.total_anrechenbar|number_format(2, ',', '.') }} EUR</strong>
     </div>
 
+    {% if show_hint|default(false) %}
     <div style="margin-top: 8px; font-size: 8pt; color: #333;">
         <strong>HINWEIS:</strong> Diese Beträge können Sie in Ihrer Steuererklärung als haushaltsnahe
         Dienstleistungen geltend machen (20% davon, max. 1.200 EUR Steuerermäßigung pro Jahr).
     </div>
+    {% endif %}
 </div>

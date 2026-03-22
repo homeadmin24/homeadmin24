@@ -200,6 +200,31 @@
             font-family: 'Courier New', monospace;
         }
 
+        .umlageschluessel-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7pt;
+            margin: 5px 0;
+        }
+
+        .umlageschluessel-table th {
+            background-color: #f8f8f8;
+            padding: 4px 5px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+        }
+
+        .umlageschluessel-table td {
+            padding: 3px 5px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+
+        .umlageschluessel-table td.label {
+            text-align: left;
+        }
+
         .page-break {
             page-break-before: always;
         }
@@ -298,28 +323,23 @@
                 <div class="info-label">Wohnung:</div>
                 <div class="info-value">{{ data.einheit.nummer }} {{ data.einheit.beschreibung }}</div>
             </div>
+            {% if data.einheit.mieter %}
             <div class="info-row">
-                <div class="info-label">Eigentümer:</div>
-                <div class="info-value">{{ data.einheit.eigentuemer }}</div>
-            </div>
-            {% if data.einheit.address %}
-            <div class="info-row">
-                <div class="info-label">Adresse:</div>
-                <div class="info-value">{{ data.einheit.address }}</div>
+                <div class="info-label">Mieter:</div>
+                <div class="info-value">{{ data.einheit.mieter }}</div>
             </div>
             {% endif %}
+            <div class="info-row">
+                <div class="info-label">Adresse:</div>
+                <div class="info-value">{{ data.weg.adresse }}</div>
+            </div>
         </div>
-    </div>
-
-    <div class="info-box">
-        <strong>Abrechnungsprinzip:</strong> {{ data.calculationMethod.name }}<br>
-        <small>Rechtsgrundlage: {{ data.calculationMethod.legalBasis }}</small>
     </div>
 
     {% include 'hga/_mieter_umlageergebnis.html.twig' with {
         section_class: 'section allow-break',
-        title: 'Umlageergebnis ' ~ data.calculationMethod.name,
-        subtitle: '',
+        title: 'Umlageergebnis Mieter-Abrechnung ' ~ data.calculationMethod.periodLabel,
+        subtitle: 'Periodengerecht · ' ~ data.calculationMethod.legalBasis,
         year: data.year,
         cost_items: data.costs.umlagefaehig.items|default([]),
         external_costs: data.external_costs,
@@ -327,8 +347,54 @@
         show_result: true
     } only %}
 
+    {# Umlageschlüssel table - only keys actually used in umlagefähig costs #}
+    {% if data.umlageschluessel|default([]) %}
+    {% set usedKeys = [] %}
+    {% if data.external_costs and ((data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0))) > 0 %}
+        {% set usedKeys = usedKeys|merge(['01*']) %}
+    {% endif %}
+    {% for item in data.costs.umlagefaehig.items|default([]) %}
+        {% if item.total|default(0) > 0 and item.verteilungsschluessel not in usedKeys %}
+            {% set usedKeys = usedKeys|merge([item.verteilungsschluessel]) %}
+        {% endif %}
+    {% endfor %}
+    {% if usedKeys|length > 0 %}
+    <div class="section allow-break">
+        <div class="section-title">Erläuterung Umlageschlüssel</div>
+        <table class="umlageschluessel-table">
+            <thead>
+                <tr>
+                    <th>Nr.</th>
+                    <th class="label">Umlageschlüssel</th>
+                    <th>Umlage</th>
+                    <th>Zeitraum</th>
+                    <th>Tage</th>
+                    <th>Gesamtumlage</th>
+                    <th>Ihr Anteil</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for schluessel in data.umlageschluessel %}
+                {% if schluessel.nummer in usedKeys %}
+                <tr>
+                    <td><strong>{{ schluessel.nummer }}</strong></td>
+                    <td class="label">{{ schluessel.bezeichnung }}</td>
+                    <td>{{ schluessel.umlage_typ }}</td>
+                    <td>{{ schluessel.zeitraum }}</td>
+                    <td>{{ schluessel.tage }}</td>
+                    <td>{{ schluessel.gesamtumlage }}</td>
+                    <td>{% if schluessel.anteil is null %}-{% elseif schluessel.nummer == '05*' %}{{ schluessel.anteil|number_format(4, ',', '.') }}{% else %}{{ schluessel.anteil|number_format(2, ',', '.') }}{% endif %}</td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    {% endif %}
+
     {# ==================== PAGE 2: §35a EStG ==================== #}
-    {% if data.tax_deductible.items|default([]) %}
+    {% if data.tax_deductible_mieter.items|default([]) %}
     <div class="section page-break">
         <div class="page-header">
             Betriebskostenabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
@@ -339,18 +405,18 @@
                 <div class="info-label">Wohnung:</div>
                 <div class="info-value">{{ data.einheit.nummer }} {{ data.einheit.beschreibung }}</div>
             </div>
+            {% if data.einheit.mieter %}
             <div class="info-row">
-                <div class="info-label">Eigentümer:</div>
-                <div class="info-value">{{ data.einheit.eigentuemer }}</div>
-            </div>
-            {% if data.einheit.address %}
-            <div class="info-row">
-                <div class="info-label">Adresse:</div>
-                <div class="info-value">{{ data.einheit.address }}</div>
+                <div class="info-label">Mieter:</div>
+                <div class="info-value">{{ data.einheit.mieter }}</div>
             </div>
             {% endif %}
+            <div class="info-row">
+                <div class="info-label">Adresse:</div>
+                <div class="info-value">{{ data.weg.adresse }}</div>
+            </div>
         </div>
-        {% include 'hga/_tax_35a_content.html.twig' with { tax_deductible: data.tax_deductible } only %}
+        {% include 'hga/_tax_35a_content.html.twig' with { tax_deductible: data.tax_deductible_mieter, show_hint: true } only %}
     </div>
     {% endif %}
 

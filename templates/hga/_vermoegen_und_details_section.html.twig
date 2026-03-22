@@ -254,21 +254,13 @@
 
         <div style="margin-top: 12px; padding: 8px 12px; background-color: #f8f9fa; border-left: 3px solid {% if alleOk %}#006600{% else %}#999{% endif %}; font-size: 8pt;">
             <strong style="font-size: 8.5pt;">Bemerkungen:</strong><br>
-            {% if alleOk %}
-                Alle im Abrechnungszeitraum angefallenen Kosten wurden im selben Zeitraum beglichen.
-                Es bestehen keine offenen Posten.<br>
-                <div style="margin-top: 6px; margin-left: 8px;">
-                    • Abgerechnet, nicht bezahlt = 0,00 €<br>
-                    • Bezahlt, nicht abgerechnet = 0,00 €<br>
-                    • Fortschreibung Geldvermögen = identisch mit Kontostand-Abstimmung
-                </div>
-            {% endif %}
+            {% if alleOk %}Alle Kosten wurden beglichen. Keine offenen Posten (abgerechnet/nicht bezahlt = 0,00 €; bezahlt/nicht abgerechnet = 0,00 €).{% endif %}
             {% if hasHausgeld and data.vermoegen_abgrenzung.hausgeld.bemerkung %}
                 {% if alleOk %}<br>{% endif %}
-                <strong>Hausgeld:</strong> {{ data.vermoegen_abgrenzung.hausgeld.bemerkung|nl2br }}<br>
+                {{ data.vermoegen_abgrenzung.hausgeld.bemerkung|nl2br }}<br>
             {% endif %}
             {% if hasRuecklage and data.vermoegen_abgrenzung.ruecklage.bemerkung %}
-                <strong>Rücklage:</strong> {{ data.vermoegen_abgrenzung.ruecklage.bemerkung|nl2br }}
+                {{ data.vermoegen_abgrenzung.ruecklage.bemerkung|nl2br }}
             {% endif %}
         </div>
 
@@ -456,7 +448,7 @@
     {% if data.payments.expenses_abgrenzung.start_date is defined and data.payments.expenses_abgrenzung.start_date and data.payments.expenses_abgrenzung.end_date is defined and data.payments.expenses_abgrenzung.end_date %}
     {% set expAbg = data.payments.expenses_abgrenzung %}
     {% set expAbgRef = hasHausgeld and data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung is defined ? data.vermoegen_abgrenzung.hausgeld.periode_abgrenzung.gesamt : null %}
-    <div class="section allow-break">
+    <div class="section page-break">
         <div class="section-title">AUSGABEN NACH KOSTENKONTO - Abgrenzungszeitraum ({{ expAbg.start_date|date('d.m.Y') }} - {{ expAbg.end_date|date('d.m.Y') }}) <span style="color: #0066cc;">[A2]</span></div>
         {% include 'hga/_expense_table.html.twig' with { expenseData: expAbg, refData: expAbgRef, refLabel: 'A2' } only %}
         <div class="info-box warning" style="margin-top: 8px; padding: 6px 10px; background-color: #fff3cd; border-left: 3px solid #ffc107; font-size: 8pt;">
@@ -486,4 +478,22 @@
         {% include 'hga/_tax_35a_content.html.twig' with { tax_deductible: data.tax_deductible } only %}
     </div>
     {% endif %}
+
+    {# Werbungskosten-Übersicht (§21 EStG) – für vermietende Eigentümer #}
+    <div class="section allow-break">
+        <div class="section-title">Werbungskosten-Übersicht {{ data.year }} (§ 21 EStG)</div>
+        {% set wkTotal = data.calculated_totals.unit.gesamtkosten|default(0) %}
+        <p style="font-size: 8.5pt; color: #333; margin: 6px 0 8px 0;">
+            Bei Vermietung sind die gesamten auf Ihre Einheit entfallenden Kosten als Werbungskosten
+            bei den Einkünften aus Vermietung und Verpachtung (Anlage V) abzugsfähig.
+            Die Kostenaufschlüsselung entnehmen Sie bitte Seite 2 „Umlageergebnis für Eigentümer".
+        </p>
+        <p style="font-size: 10pt; margin: 10px 0;">
+            <strong>Werbungskosten gesamt {{ data.year }}: {{ wkTotal|number_format(2, ',', '.') }} €</strong>
+        </p>
+        <p style="font-size: 8pt; color: #666; margin: 0;">
+            <strong>Hinweis:</strong> Werbungskosten und §35a EStG schließen sich gegenseitig aus — bei Vermietung entfällt der §35a-Abzug.
+            Diese Aufstellung dient als Nachweis gegenüber dem Finanzamt. Bitte mit Ihrem Steuerberater abstimmen.
+        </p>
+    </div>
 

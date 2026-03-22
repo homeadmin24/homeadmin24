@@ -43,6 +43,9 @@ class WegEinheit
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $telefon = null;
 
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $mieter = null;
+
     #[ORM\ManyToOne(targetEntity: Weg::class, inversedBy: 'einheiten')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Weg $weg = null;
@@ -156,6 +159,18 @@ class WegEinheit
     public function setHebeanlage(?string $hebeanlage): self
     {
         $this->hebeanlage = $hebeanlage;
+
+        return $this;
+    }
+
+    public function getMieter(): ?string
+    {
+        return $this->mieter;
+    }
+
+    public function setMieter(?string $mieter): self
+    {
+        $this->mieter = $mieter;
 
         return $this;
     }

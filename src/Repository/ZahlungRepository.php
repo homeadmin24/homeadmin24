@@ -929,7 +929,10 @@ class ZahlungRepository extends ServiceEntityRepository
     public function findUncategorized(): array
     {
         return $this->createQueryBuilder('z')
+            ->leftJoin('z.hauptkategorie', 'k')
             ->where('z.hauptkategorie IS NULL OR z.kostenkonto IS NULL')
+            ->andWhere('k.name IS NULL OR k.name != :umbuchung')
+            ->setParameter('umbuchung', 'Umbuchung')
             ->orderBy('z.datum', 'DESC')
             ->getQuery()
             ->getResult();

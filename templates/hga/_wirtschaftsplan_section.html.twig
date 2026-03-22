@@ -75,6 +75,7 @@
                 {% set nichtUmlagefaehigTotal = 0 %}
                 {% set currentNichtSection = '' %}
                 {% for expense in data.wirtschaftsplan.planned_expenses.nicht_umlagefaehig|default([]) %}
+                {% if expense.enabled is defined and expense.enabled == false %}{% else %}
                 {% set section = expense.section|default('Laufende Kosten') %}
                 {% if section != currentNichtSection %}
                 <tr class="subtotal">
@@ -90,6 +91,7 @@
                 {% set includeInTotal = expense.include_in_total is defined ? expense.include_in_total : true %}
                 {% if includeInTotal %}
                     {% set nichtUmlagefaehigTotal = nichtUmlagefaehigTotal + expense.amount|default(0) %}
+                {% endif %}
                 {% endif %}
                 {% endfor %}
                 <tr class="subtotal">
@@ -194,11 +196,36 @@
                     <td class="amount"></td>
                     <td class="amount"><strong>{{ monthlyOwnerShare|number_format(2, ',', '.') }} €</strong></td>
                 </tr>
+                {% set unitGesamtkosten = data.calculated_totals.unit.gesamtkosten|default(0) %}
+                {% set monthlyRuecklageWeg = data.wirtschaftsplan.planned_income.monthly_ruecklage|default(0) %}
+                {% set ruecklagePerUnit = data.wirtschaftsplan.planned_income.ruecklage_per_unit|default({}) %}
+                {% set monthlyRuecklageUnit = attribute(ruecklagePerUnit, data.einheit.nummer)|default(monthlyRuecklageWeg * mea) %}
+                {% if unitGesamtkosten > 0 %}
+                {% set verbrauchMonat = unitGesamtkosten * 1.05 / 12 %}
                 <tr>
-                    <td>Änderung pro Monat:</td>
+                    <td style="font-size: 8pt; color: #666;">
+                        Monatl. Vorschuss nach Verbrauch {{ data.year }}
+                        <span style="font-size: 7pt;">(Ist-Kosten {{ unitGesamtkosten|number_format(2, ',', '.') }} € + 5%)</span>
+                    </td>
                     <td class="amount"></td>
-                    <td class="amount">0,00 €</td>
+                    <td class="amount" style="font-size: 8pt; color: #666;">{{ verbrauchMonat|number_format(2, ',', '.') }} €</td>
                 </tr>
+                {% if monthlyRuecklageWeg > 0 %}
+                <tr>
+                    <td style="font-size: 8pt; color: #666;">
+                        + Rücklagenzuführung
+                        <span style="font-size: 7pt;">({{ monthlyRuecklageWeg|number_format(2, ',', '.') }} € × {{ meaPercent }}%)</span>
+                    </td>
+                    <td class="amount"></td>
+                    <td class="amount" style="font-size: 8pt; color: #666;">{{ monthlyRuecklageUnit|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr class="subtotal">
+                    <td style="font-size: 8pt;"><strong>= Empfohlener monatlicher Vorschuss:</strong></td>
+                    <td class="amount"></td>
+                    <td class="amount" style="font-size: 8pt;"><strong>{{ (verbrauchMonat + monthlyRuecklageUnit)|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+                {% endif %}
+                {% endif %}
             </tbody>
         </table>
         

@@ -119,6 +119,7 @@ class WegController extends AbstractController
         $nummer = $request->request->get('nummer');
         $bezeichnung = $request->request->get('bezeichnung');
         $miteigentuemer = $request->request->get('miteigentuemer');
+        $mieter = $request->request->get('mieter');
         $miteigentumsanteile = $request->request->get('miteigentumsanteile');
         $stimme = $request->request->get('stimme');
         $adresse = $request->request->get('adresse');
@@ -134,6 +135,8 @@ class WegController extends AbstractController
         if ($miteigentuemer) {
             $wegEinheit->setMiteigentuemer($miteigentuemer);
         }
+        // mieter can be set to empty string to clear it
+        $wegEinheit->setMieter($mieter ?: null);
         if ($miteigentumsanteile) {
             $wegEinheit->setMiteigentumsanteile($miteigentumsanteile);
         }

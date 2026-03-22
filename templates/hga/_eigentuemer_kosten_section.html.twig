@@ -95,6 +95,16 @@
             <tbody>
                 {% set nichtUmlagefaehigTotal = 0 %}
                 {% set nichtUmlagefaehigAnteil = 0 %}
+                {% if data.external_costs.co2.unit_share|default(0) > 0 %}
+                <tr>
+                    <td>CO2-Vermieteranteil (§ 5 CO2KostAufG)</td>
+                    <td style="text-align: center;">01*</td>
+                    <td class="amount">{{ data.external_costs.co2.total|default(0)|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ data.external_costs.co2.unit_share|default(0)|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set nichtUmlagefaehigTotal = nichtUmlagefaehigTotal + data.external_costs.co2.total|default(0) %}
+                {% set nichtUmlagefaehigAnteil = nichtUmlagefaehigAnteil + data.external_costs.co2.unit_share|default(0) %}
+                {% endif %}
                 {% for item in data.costs_eigentuemer.nicht_umlagefaehig.items|default([]) %}
                 <tr>
                     <td>{{ item.kostenkonto }} - {{ item.beschreibung }}</td>

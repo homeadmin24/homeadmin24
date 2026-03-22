@@ -594,21 +594,14 @@
                     <td class="amount">{{ (calc.weg.gesamtkosten - (data.weg_totals.soll|default(0)))|number_format(2, ',', '.') }} €</td>
                     <td class="amount">{{ unitAbrechnungsspitze|number_format(2, ',', '.') }} € ({{ unitAbrechnungsspitze > 0 ? 'Unterdeckung' : 'Überdeckung' }})</td>
                 </tr>
+                {# Zahlungsrückstand/-überschuss – nur anzeigen wenn Ist ≠ Soll #}
+                {% if unitZahlungsdiff != 0 %}
                 <tr>
-                    <td class="label">Hausgeld-Vorschuss Soll</td>
-                    <td class="amount">{{ (data.weg_totals.soll|default(0))|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ (data.payments.soll|default(0))|number_format(2, ',', '.') }} €</td>
+                    <td class="label">{{ unitZahlungsdiff < 0 ? '+ Zahlungsdifferenz (Soll − Ist)' : '− Zahlungsdifferenz (Ist − Soll)' }}</td>
+                    <td class="amount"></td>
+                    <td class="amount">{{ unitZahlungsdiff|abs|number_format(2, ',', '.') }} €</td>
                 </tr>
-                <tr>
-                    <td class="label">- Hausgeld-Vorschuss Ist</td>
-                    <td class="amount">{{ (data.weg_totals.ist|default(0))|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ unitIst|number_format(2, ',', '.') }} €</td>
-                </tr>
-                <tr class="subtotal">
-                    <td class="label">= Zahlungsdifferenz</td>
-                    <td class="amount">{{ ((data.weg_totals.ist|default(0)) - (data.weg_totals.soll|default(0)))|number_format(2, ',', '.') }} €</td>
-                    <td class="amount">{{ unitZahlungsdiff|number_format(2, ',', '.') }} € ({{ unitZahlungsdiff >= 0 ? 'Überdeckung' : 'Unterdeckung' }})</td>
-                </tr>
+                {% endif %}
                 <tr class="total">
                     <td class="label">= ABRECHNUNGS-SALDO</td>
                     <td class="amount"></td>
@@ -622,20 +615,6 @@
     {# Umlageschlüssel (compact, on page 1) #}
     {# Umlageschlüssel (compact, on page 1) #}
     {% include 'hga/_umlageschluessel_section.html.twig' %}
-
-    {# Umlageergebnis Mieter-Abrechnung (periodengerecht) - uses costs_mieter #}
-    {% if data.costs_mieter.umlagefaehig.items|default([]) or data.external_costs %}
-    {% include 'hga/_mieter_umlageergebnis.html.twig' with {
-        section_class: 'section allow-break',
-        title: 'Umlageergebnis Mieter-Abrechnung ' ~ data.year,
-        subtitle: 'periodengerecht · § 556 BGB, BetrKV',
-        year: data.year,
-        cost_items: data.costs_mieter.umlagefaehig.items|default([]),
-        external_costs: data.external_costs,
-        show_heading: false,
-        show_result: false
-    } only %}
-    {% endif %}
 
     <!-- PAGE 2: KOSTENÜBERSICHT -->
     {% include 'hga/_eigentuemer_kosten_section.html.twig' %}

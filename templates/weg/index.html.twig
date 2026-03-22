@@ -138,6 +138,7 @@
                             <th scope="col" class="px-4 py-3">Nummer</th>
                             <th scope="col" class="px-4 py-3">Bezeichnung</th>
                             <th scope="col" class="px-4 py-3">Miteigentümer</th>
+                            <th scope="col" class="px-4 py-3">Mieter</th>
                             <th scope="col" class="px-4 py-3">MEA</th>
                             <th scope="col" class="px-4 py-3">Stimme</th>
                             <th scope="col" class="px-4 py-3">Adresse</th>
@@ -160,6 +161,10 @@
                             <td class="px-4 py-4">
                                 <span id="einheit-miteigentuemer-{{ einheit.id }}">{{ einheit.miteigentuemer }}</span>
                                 <input type="text" id="einheit-miteigentuemer-input-{{ einheit.id }}" value="{{ einheit.miteigentuemer }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="einheit-mieter-{{ einheit.id }}">{{ einheit.mieter }}</span>
+                                <input type="text" id="einheit-mieter-input-{{ einheit.id }}" value="{{ einheit.mieter }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
                             </td>
                             <td class="px-4 py-4">
                                 <span id="einheit-miteigentumsanteile-{{ einheit.id }}">{{ einheit.miteigentumsanteile }}</span>
@@ -768,7 +773,7 @@ function cancelWeg(id) {
 
 // WEG-Einheit editing functions
 function editEinheit(id) {
-    const fields = ['nummer', 'bezeichnung', 'miteigentuemer', 'miteigentumsanteile', 'stimme', 'adresse', 'telefon', 'hauptwohneinheit'];
+    const fields = ['nummer', 'bezeichnung', 'miteigentuemer', 'mieter', 'miteigentumsanteile', 'stimme', 'adresse', 'telefon', 'hauptwohneinheit'];
     fields.forEach(field => {
         document.getElementById('einheit-' + field + '-' + id).classList.add('hidden');
         document.getElementById('einheit-' + field + '-input-' + id).classList.remove('hidden');
@@ -783,7 +788,7 @@ function saveEinheit(id) {
     form.method = 'POST';
     form.action = '/weg/einheit/' + id + '/edit';
     
-    const fields = ['nummer', 'bezeichnung', 'miteigentuemer', 'miteigentumsanteile', 'stimme', 'adresse', 'telefon', 'hauptwohneinheit'];
+    const fields = ['nummer', 'bezeichnung', 'miteigentuemer', 'mieter', 'miteigentumsanteile', 'stimme', 'adresse', 'telefon', 'hauptwohneinheit'];
     fields.forEach(field => {
         const value = document.getElementById('einheit-' + field + '-input-' + id).value;
         form.innerHTML += `<input type="hidden" name="${field}" value="${value}">`;
@@ -794,7 +799,7 @@ function saveEinheit(id) {
 }
 
 function cancelEinheit(id) {
-    const fields = ['nummer', 'bezeichnung', 'miteigentuemer', 'miteigentumsanteile', 'stimme', 'adresse', 'telefon', 'hauptwohneinheit'];
+    const fields = ['nummer', 'bezeichnung', 'miteigentuemer', 'mieter', 'miteigentumsanteile', 'stimme', 'adresse', 'telefon', 'hauptwohneinheit'];
     fields.forEach(field => {
         document.getElementById('einheit-' + field + '-' + id).classList.remove('hidden');
         document.getElementById('einheit-' + field + '-input-' + id).classList.add('hidden');

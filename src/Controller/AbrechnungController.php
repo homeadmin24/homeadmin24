@@ -732,48 +732,48 @@ class AbrechnungController extends AbstractController
     private function generateAbrechnungen(Weg $weg, int $jahr, string $format, array $einheiten): array
     {
         $generatedFiles = [];
-        $formats = ['pdf'];
+        $reportTypes = ['eigentuemer', 'mieter'];
 
         foreach ($einheiten as $einheit) {
-            foreach ($formats as $currentFormat) {
-                try {
-                    // Validate inputs first
-                    $errors = $this->hgaService->validateCalculationInputs($einheit, $jahr);
-                    if (!empty($errors)) {
-                        throw new \Exception('Validation failed: ' . implode(', ', $errors));
-                    }
+            // Validate once per unit
+            $errors = $this->hgaService->validateCalculationInputs($einheit, $jahr);
+            if (!empty($errors)) {
+                $this->addFlash('error', \sprintf(
+                    'Fehler bei der Validierung von Einheit %s: %s',
+                    $einheit->getNummer(),
+                    implode(', ', $errors)
+                ));
+                continue;
+            }
 
-                    // Generate report content using new HGA service
+            foreach ($reportTypes as $reportType) {
+                try {
                     $reportContent = $this->pdfReportGenerator->generateReport($einheit, $jahr, [
-                        'format' => $currentFormat,
+                        'reportType' => $reportType,
                     ]);
 
-                    // Calculate HGA data
-                    $hgaData = $this->hgaService->generateReportData($einheit, $jahr);
+                    $hgaData = $this->hgaService->generateReportData($einheit, $jahr, $reportType);
 
-                    // Create temporary file
                     $tempDir = sys_get_temp_dir();
-                    $fileName = \sprintf('hausgeldabrechnung_%d_%s_%s.%s',
+                    $suffix = 'mieter' === $reportType ? '_mieter' : '';
+                    $fileName = \sprintf('hausgeldabrechnung_%d_%s_%s%s.pdf',
                         $jahr,
                         $weg->getId(),
                         $einheit->getNummer(),
-                        $currentFormat
+                        $suffix
                     );
                     $filePath = $tempDir . '/' . $fileName;
                     file_put_contents($filePath, $reportContent);
 
-                    // Save to dokument system
-                    $dokument = $this->saveToDocumentSystem($filePath, $weg, $einheit, $jahr, $currentFormat, $hgaData);
+                    $dokument = $this->saveToDocumentSystem($filePath, $weg, $einheit, $jahr, $format, $hgaData, $reportType);
                     $generatedFiles[] = $dokument;
                 } catch (\Exception $e) {
-                    // Log error and continue with next file
-                    error_log(\sprintf('Error generating %s for unit %s: %s', $currentFormat, $einheit->getNummer(), $e->getMessage()));
+                    error_log(\sprintf('Error generating %s/%s for unit %s: %s', $format, $reportType, $einheit->getNummer(), $e->getMessage()));
 
-                    // Also add flash message for user feedback
                     $this->addFlash('error', \sprintf(
-                        'Fehler bei der Generierung von %s für Einheit %s: %s',
-                        mb_strtoupper($currentFormat),
+                        'Fehler bei der Generierung von PDF für Einheit %s (%s): %s',
                         $einheit->getNummer(),
+                        $reportType,
                         $e->getMessage()
                     ));
                 }
@@ -783,7 +783,7 @@ class AbrechnungController extends AbstractController
         return $generatedFiles;
     }
 
-    private function saveToDocumentSystem(string $filePath, Weg $weg, WegEinheit $einheit, int $jahr, string $format, array $hgaData): Dokument
+    private function saveToDocumentSystem(string $filePath, Weg $weg, WegEinheit $einheit, int $jahr, string $format, array $hgaData, string $reportType = 'eigentuemer'): Dokument
     {
         $fileName = basename($filePath);
         $relativePath = 'hausgeldabrechnung/' . $fileName;
@@ -818,11 +818,11 @@ class AbrechnungController extends AbstractController
                 ->setDategroesse(filesize($targetPath) ?: 0)
                 ->setKategorie('hausgeldabrechnung')
                 ->setBeschreibung(\sprintf(
-                    'Hausgeldabrechnung %d für %s %s (%s)',
+                    '%s %d für %s %s',
+                    'mieter' === $reportType ? 'Mieterabrechnung' : 'Hausgeldabrechnung',
                     $jahr,
                     $einheit->getNummer(),
-                    $einheit->getBezeichnung(),
-                    mb_strtoupper($format)
+                    $einheit->getBezeichnung()
                 ))
                 ->setWeg($weg)
                 ->setAbrechnungsJahr($jahr)

@@ -458,6 +458,8 @@ class BankStatementParsingService
         $aliases = [
             'BAY.VERSICHERUNGSVERBAND AG' => 'Versicherungskammer Bayern',
             'BAYERISCHER VERSICHERUNGSVERBAND' => 'Versicherungskammer Bayern',
+            'STADTENTWAeSSERUNG' => 'Abwasser MSE',
+            'STADTENTWÄSSERUNG' => 'Abwasser MSE',
         ];
 
         return $aliases[$partnerName] ?? $partnerName;
