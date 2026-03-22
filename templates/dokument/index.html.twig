@@ -24,11 +24,13 @@
                         </svg>
                         Dokumente
                     </h1>
-                    <button type="button" 
+                    {% if is_granted('ROLE_PROPERTY_MANAGER') %}
+                    <button type="button"
                             data-action="click->dokument#showCreateForm"
                             class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
                         <i class="fas fa-plus"></i> Neues Dokument
                     </button>
+                    {% endif %}
                 </div>
 
                 <!-- Filter section -->
@@ -145,6 +147,7 @@
                                            title="Download">
                                             <i class="fas fa-download"></i>
                                         </a>
+                                        {% if is_granted('ROLE_PROPERTY_MANAGER') %}
                                         <button type="button"
                                                 data-dokument-id="{{ dokument.id }}"
                                                 data-action="click->dokument#showEditForm"
@@ -159,6 +162,7 @@
                                                 title="Löschen">
                                             <i class="fas fa-trash"></i>
                                         </button>
+                                        {% endif %}
                                     </td>
                                 </tr>
                             {% else %}
