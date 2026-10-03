@@ -1,0 +1,35 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dokument Details{% endblock %}
+
+{% block body %}
+    <div class="antialiased bg-gray-50 dark:bg-gray-900" 
+         data-controller="payment-parser">
+
+        {% include 'components/sidebar.html.twig' %}
+
+        <main class="p-4 md:ml-64 h-auto pt-6">
+            <div class="container mx-auto">
+                <!-- Header with back button -->
+                <div class="flex items-center mb-6">
+                    <a href="{{ path('app_dokument_index') }}" 
+                       class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mr-4">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                        <i class="fas fa-file-alt mr-2"></i>
+                        Dokument Details
+                    </h1>
+                </div>
+
+                <!-- Document Details Card -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 max-w-4xl">
+                    {% include 'dokument/show.html.twig' %}
+                </div>
+            </div>
+        </main>
+
+        <!-- Include the CSV Preview Modal -->
+        {% include 'dokument/show.html.twig' with {'modal_only': true} %}
+    </div>
+{% endblock %}

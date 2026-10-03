@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }}</title>
+    <style>
+        @page {
+            margin: 80px 25px 40px 25px;
+        }
+
+        .page-header {
+            font-size: 8pt;
+            text-align: center;
+            border-bottom: 1px solid #333;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .footer {
+            position: fixed;
+            bottom: -30px;
+            left: 0px;
+            right: 0px;
+            height: 30px;
+            font-size: 7pt;
+            text-align: center;
+            border-top: 1px solid #333;
+            padding-top: 5px;
+        }
+        
+        .footer:before {
+            content: "Hausgeldabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }} - Seite " counter(page);
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9pt;
+            line-height: 1.3;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .page-content {
+            max-width: calc(100% - 50px); /* Subtract 25px from each side */
+            margin: 0 auto;
+            padding: 0 25px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        
+        .header h1 {
+            font-size: 16pt;
+            font-weight: bold;
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
+        }
+        
+        .meta-info {
+            font-size: 8pt;
+            color: #333;
+            margin-top: 8px;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+
+        .section.allow-break {
+            page-break-inside: auto;
+        }
+        
+        .section-title {
+            font-size: 10pt;
+            font-weight: bold;
+            background-color: #f8f8f8;
+            padding: 5px 8px;
+            border-bottom: 1px solid #333;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        
+        .info-grid {
+            display: table;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .info-row {
+            display: table-row;
+        }
+        
+        .info-label {
+            display: table-cell;
+            font-weight: bold;
+            width: 30%;
+            padding: 2px 10px 2px 0;
+        }
+        
+        .info-value {
+            display: table-cell;
+            padding: 2px 0;
+        }
+        
+        .result-box {
+            background-color: #f5f5f5;
+            border: 1px solid #333;
+            padding: 6px 8px;
+            text-align: center;
+            margin: 10px 0;
+            border-radius: 0;
+        }
+        
+        .result-box .result-text {
+            font-size: 9pt;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .calculation-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            font-size: 8pt;
+        }
+        
+        .calculation-table th {
+            background-color: #f8f8f8;
+            padding: 5px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+        }
+
+        .calculation-table th.amount {
+            text-align: right;
+            font-family: inherit;
+        }
+        
+        .calculation-table td {
+            padding: 3px 5px;
+            border-bottom: 1px solid #eee;
+            text-align: right;
+        }
+        
+        .calculation-table td.label {
+            text-align: left;
+            font-weight: normal;
+        }
+        
+        .cost-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            font-size: 8pt;
+        }
+        
+        .cost-table th {
+            background-color: #f8f8f8;
+            padding: 5px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+        }
+        
+        .cost-table td {
+            padding: 3px 5px;
+            border-bottom: 1px solid #eee;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .cost-table td.amount {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .cost-table .subtotal {
+            font-weight: bold;
+            background-color: #f5f5f5;
+            border-top: 1px solid #999;
+        }
+        
+        .cost-table .total {
+            font-weight: bold;
+            background-color: #e8e8e8;
+            border-top: 2px solid #333;
+            font-size: 9pt;
+        }
+        
+        .payments-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 7pt;
+        }
+        
+        .payments-table th {
+            background-color: #f8f8f8;
+            padding: 3px 5px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+        }
+        
+        .payments-table td {
+            padding: 2px 5px;
+            border-bottom: 1px solid #eee;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.1;
+        }
+
+        .payments-table tr.payments-total td,
+        .payments-table tr.payments-saldo td {
+            border-top: 0;
+            border-bottom: 0;
+        }
+
+        .payments-table tr.total td {
+            font-weight: bold;
+            background-color: #e8e8e8;
+            border-top: 2px solid #333;
+        }
+
+        .payments-table tr.payments-group-total td {
+            border-top: 1px solid #333;
+            font-weight: bold;
+            background-color: #f5f5f5;
+            padding: 2px 5px;
+            line-height: 1.1;
+        }
+
+        .payments-table tr.payments-group-spacer td {
+            border-bottom: 0;
+            padding: 0 0;
+        }
+
+        .payments-table.payments-detail {
+            margin: 10px 0;
+            font-size: 6pt;
+        }
+
+
+        .payments-table.payments-detail th,
+        .payments-table.payments-detail td {
+        }
+
+        .payments-table {
+            border-collapse: collapse;
+        }
+        
+        .payments-table td.date {
+            width: 8mm;
+            text-align: left;
+            padding-right: 2px;
+            white-space: nowrap;
+        }
+
+        .payments-table td.year,
+        .payments-table th.year {
+            width: 4mm;
+        }
+        
+        .payments-table th.amount,
+        .payments-table td.amount {
+            width: 9mm;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            padding-left: 0;
+            padding-right: 3px;
+            white-space: nowrap;
+        }
+
+        .payments-table td.amount.amount-total {
+            display: flex;
+            justify-content: space-between;
+            gap: 2px;
+        }
+
+        .payments-table td.amount.amount-total .amount-label {
+            font-family: inherit;
+        }
+
+        .payments-table td.amount.amount-total .amount-value {
+            margin-left: auto;
+        }
+
+        .payments-table td.desc,
+        .payments-table th.desc {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 0;
+            width: 54mm;
+        }
+
+        .payments-table td.partner,
+        .payments-table th.partner {
+            padding-right: 0;
+            padding-left: 4px;
+        }
+
+        .payments-table td.category,
+        .payments-table th.category {
+            padding-left: 0;
+        }
+
+        .payments-table td.nowrap {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .payments-table th.amount {
+            padding-right: 6px;
+        }
+
+        .payments-table.chrome td.desc,
+        .payments-table.chrome th.desc,
+        .payments-table.chrome td.amount,
+        .payments-table.chrome th.amount,
+        .payments-table.chrome td.partner,
+        .payments-table.chrome th.partner,
+        .payments-table.chrome td.category,
+        .payments-table.chrome th.category,
+        .payments-table.chrome td.konto,
+        .payments-table.chrome th.konto {
+            width: auto;
+        }
+
+        .payments-table td.partner,
+        .payments-table th.partner {
+            width: 28mm;
+        }
+
+        .payments-table td.category,
+        .payments-table th.category {
+            width: 14mm;
+        }
+
+        .payments-table td.konto,
+        .payments-table th.konto {
+            width: 18mm;
+        }
+
+        .payments-table.payments-detail td.date,
+        .payments-table.payments-detail th.date,
+        .payments-table.payments-detail td.desc,
+        .payments-table.payments-detail th.desc,
+        .payments-table.payments-detail td.amount,
+        .payments-table.payments-detail th.amount,
+        .payments-table.payments-detail td.partner,
+        .payments-table.payments-detail th.partner,
+        .payments-table.payments-detail td.konto,
+        .payments-table.payments-detail th.konto {
+            width: auto;
+        }
+
+        
+        .tax-section {
+            background-color: #f8f8f8;
+            border: 1px solid #333;
+            padding: 8px;
+            margin: 10px 0;
+        }
+        
+        .tax-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7pt;
+            margin: 5px 0;
+        }
+        
+        .tax-table th {
+            background-color: #f8f8f8;
+            padding: 5px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+        }
+        
+        .tax-table td {
+            padding: 3px 5px;
+            border-bottom: 1px solid #eee;
+            text-align: right;
+        }
+        
+        .tax-table td.label {
+            text-align: left;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+            font-size: 7pt;
+            color: #666;
+            text-align: center;
+        }
+        
+        .amount {
+            font-family: 'Courier New', monospace;
+        }
+        
+        .positive {
+            color: #333;
+        }
+        
+        .negative {
+            color: #333;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        .umlageschluessel-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            font-size: 8pt;
+        }
+        
+        .umlageschluessel-table th {
+            background-color: #f8f8f8;
+            padding: 5px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+        }
+        
+        .umlageschluessel-table td {
+            padding: 3px 5px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+        
+        .umlageschluessel-table td.label {
+            text-align: left;
+        }
+
+        .balance-table th,
+        .balance-table td {
+            font-size: 8pt;
+            white-space: nowrap;
+        }
+
+        h3, h4 {
+            margin-top: 5px;
+            margin-bottom: 8px;
+        }
+
+        .preview {
+            background: #f2f2f2;
+        }
+
+        .preview .page-content {
+            width: 210mm;
+            max-width: none;
+            margin: 20px auto;
+            padding: 0 20mm 40px;
+            background: #fff;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .preview .page-header {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: #fff;
+        }
+
+        .preview .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 24px;
+            margin: 0;
+            padding-top: 4px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+        }
+
+        .preview .section.page-break {
+            border-top: 2px dashed #c0c0c0;
+            margin-top: 60px;
+            padding-top: 20px;
+            position: relative;
+        }
+
+        .preview .section.page-break::after {
+            content: "Seitenumbruch";
+            position: absolute;
+            top: -12px;
+            right: 0;
+            background: #fff;
+            padding: 0 6px;
+            font-size: 7pt;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+    </style>
+</head>
+<body class="{{ previewMode|default(false) ? 'preview' : '' }}">
+    {% if previewMode|default(false) %}
+    <!-- Page Footer (preview only) -->
+    <div class="footer"></div>
+    {% endif %}
+
+    <div class="page-content">
+    <div class="header">
+        <h1>Hausgeldabrechnung {{ data.year }} - Einzelabrechnung</h1>
+        <div class="meta-info">
+            Erstellung: {{ generatedAt|date('d.m.Y') }}<br>
+            Objekt: {{ data.weg.name }}, {{ data.weg.adresse }}<br>
+            Abrechnungszeitraum: {% if data.calculationMethod is defined %}{{ data.calculationMethod.periodLabel }}{% else %}01.01.{{ data.year }} - 31.12.{{ data.year }}{% endif %}
+        </div>
+    </div>
+
+    <!-- PAGE 1: EIGENTÜMER INFORMATION, ABRECHNUNGSÜBERSICHT, UMLAGESCHLÜSSEL -->
+    <div class="section allow-break">
+        <div class="section-title">Eigentümer Information</div>
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-label">Eigentümer:</div>
+                <div class="info-value">{{ data.einheit.nummer }} {{ data.einheit.beschreibung }} {{ data.einheit.eigentuemer }}</div>
+            </div>
+            {% if data.einheit.address %}
+            <div class="info-row">
+                <div class="info-label">Empfänger-Adresse:</div>
+                <div class="info-value">{{ data.einheit.address }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if data.payments %}
+    <div class="section allow-break">
+        <div class="section-title">Abrechnungsübersicht</div>
+        
+        {# Use centralized calculated_totals from HgaService (BGH V ZR 44/09 compliant) #}
+        {% set calc = data.calculated_totals %}
+        {% set totalCosts = calc.unit.gesamtkosten %}
+        {% set unitSoll = data.payments.soll|default(0) %}
+        {% set unitIst = data.payments.ist|default(0) %}
+        {% set unitAbrechnungsspitze = totalCosts - unitSoll %}
+        {% set unitZahlungsdiff = unitIst - unitSoll %}
+        {% set unitSaldo = totalCosts - unitIst %}
+        
+        <div class="result-box">
+            <div class="result-text">
+                {% if unitSaldo > 0 %}
+                    Ergebnis: Nachzahlung in Höhe von {{ unitSaldo|number_format(2, ',', '.') }} €
+                {% else %}
+                    Ergebnis: Guthaben in Höhe von {{ (unitSaldo * -1)|number_format(2, ',', '.') }} €
+                {% endif %}
+            </div>
+        </div>
+
+        <table class="calculation-table">
+            <thead>
+                <tr>
+                    <th style="text-align: left;">Position</th>
+                    <th class="amount">Objekt gesamt</th>
+                    <th class="amount">Ihr Anteil</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="label">Gesamtkosten</td>
+                    {# Use centralized calculated_totals (BGH V ZR 44/09 compliant) #}
+                    <td class="amount">{{ calc.weg.gesamtkosten|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ calc.unit.gesamtkosten|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr>
+                    <td class="label">- Hausgeld-Vorschuss Soll</td>
+                    <td class="amount">{{ (data.weg_totals.soll|default(0))|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ (data.payments.soll|default(0))|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr class="subtotal">
+                    <td class="label">= Abrechnungsspitze</td>
+                    {# Use centralized calculated_totals (BGH V ZR 44/09 compliant) #}
+                    <td class="amount">{{ (calc.weg.gesamtkosten - (data.weg_totals.soll|default(0)))|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ unitAbrechnungsspitze|number_format(2, ',', '.') }} € ({{ unitAbrechnungsspitze > 0 ? 'Unterdeckung' : 'Überdeckung' }})</td>
+                </tr>
+                {# Jahresabgrenzung – nur anzeigen wenn Ist ≠ Soll #}
+                {% if unitZahlungsdiff != 0 %}
+                <tr>
+                    <td class="label">{{ unitZahlungsdiff < 0 ? '+ Jahresabgrenzung' : '− Jahresabgrenzung' }}</td>
+                    <td class="amount"></td>
+                    <td class="amount">{{ unitZahlungsdiff|abs|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% if unitZahlungsdiff < 0 %}
+                <tr>
+                    <td class="label" style="font-size: 0.75em; color: #666; padding-top: 0; padding-left: 1.5em;">
+                        Zuordnungsfehler in {{ data.year - 1 }} – Korrektur erfolgt im Folgejahr transparent
+                    </td>
+                    <td class="amount"></td>
+                    <td class="amount"></td>
+                </tr>
+                {% endif %}
+                {% endif %}
+                <tr class="total">
+                    <td class="label">= ABRECHNUNGS-SALDO</td>
+                    <td class="amount"></td>
+                    <td class="amount">{{ unitSaldo|abs|number_format(2, ',', '.') }} € ({{ unitSaldo > 0 ? 'Nachzahlung' : 'Guthaben' }})</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {# Umlageschlüssel (compact, on page 1) #}
+    {# Umlageschlüssel (compact, on page 1) #}
+    {% include 'hga/_umlageschluessel_section.html.twig' %}
+
+    <!-- PAGE 2: KOSTENÜBERSICHT -->
+    {% include 'hga/_eigentuemer_kosten_section.html.twig' %}
+
+
+    {# NEW: Vermögensabgrenzung Section #}
+    {% include 'hga/_vermoegen_und_details_section.html.twig' %}
+    {% include 'hga/_wirtschaftsplan_section.html.twig' %}
+
+    </div> <!-- Close page-content -->
+</body>
+</html>

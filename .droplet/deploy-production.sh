@@ -1,0 +1,485 @@
+#!/bin/bash
+
+###############################################################################
+# homeadmin24 Production Droplet Deployment Script
+#
+# This script deploys or updates the homeadmin24 WEG Management System on the
+# PRODUCTION DigitalOcean Droplet with Docker, Nginx reverse proxy, and SSL.
+#
+# Domain: prod.homeadmin24.de
+# Type: Production (persistent data, no auto-reset)
+#
+# Requirements:
+# - Setup script must have been run first (.droplet/setup-production.sh)
+# - Domain name pointed to droplet IP
+# - Git repository access
+#
+# Usage:
+#   cd /opt/homeadmin24-prod
+#   bash .droplet/deploy-production.sh ballauf35.homeadmin24.de info@homeadmin24.de [--quick]
+#
+# Options:
+#   --quick    Quick deployment (skip Docker rebuild, ~2-3 min instead of 30 min)
+#              Use for code-only changes. Omit for dependency/config updates.
+###############################################################################
+
+set -e  # Exit on error
+
+# Check if running as root
+if [ "$EUID" -ne 0 ]; then
+   echo "Please run as root (use sudo)"
+   exit 1
+fi
+
+# Parse arguments
+QUICK_MODE=false
+DOMAIN=""
+EMAIL=""
+
+for arg in "$@"; do
+    if [ "$arg" = "--quick" ]; then
+        QUICK_MODE=true
+    elif [ -z "$DOMAIN" ]; then
+        DOMAIN="$arg"
+    elif [ -z "$EMAIL" ]; then
+        EMAIL="$arg"
+    fi
+done
+
+if [ -z "$DOMAIN" ] || [ -z "$EMAIL" ]; then
+    echo "Usage: $0 <domain> <email> [--quick]"
+    echo "Example: $0 your-production-domain.com admin@example.com"
+    echo "Example: $0 your-production-domain.com admin@example.com --quick"
+    exit 1
+fi
+
+echo "=========================================="
+echo "homeadmin24 PRODUCTION Deployment"
+echo "=========================================="
+echo "Domain: $DOMAIN"
+echo "Email: $EMAIL"
+echo "Type: PRODUCTION (persistent data)"
+if [ "$QUICK_MODE" = true ]; then
+    echo "Mode: ⚡ QUICK (skip Docker rebuild, ~2-3 min)"
+else
+    echo "Mode: 🔨 FULL (Docker rebuild + swap setup, ~30 min)"
+fi
+echo ""
+
+# Get the script directory (should be /opt/homeadmin24-prod/.droplet)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Change to app directory
+cd "$APP_DIR"
+echo "App directory: $APP_DIR"
+echo ""
+
+# Pull latest changes
+echo "[1/12] Pulling latest code from GitHub..."
+git fetch origin main
+git reset --hard origin/main
+
+# Keep the host-side backup helper current. It contains no credentials; those
+# remain in .env.prod.local and are read only by the MySQL container at runtime.
+install -m 700 .droplet/backup-production.sh /usr/local/bin/homeadmin24-backup.sh
+
+# Check if .env exists
+if [ ! -f .env ]; then
+    echo "[2/12] Creating .env file..."
+    if [ -f .env.example ]; then
+        cp .env.example .env
+        echo "✅ Created .env from template"
+    else
+        echo "Error: .env.example not found"
+        exit 1
+    fi
+else
+    echo "[2/12] .env already exists"
+fi
+
+# Production credentials are deliberately kept outside the repository. On the
+# first deployment, generate them once on this server; never overwrite an
+# existing credentials file because its password may already protect MySQL data.
+#
+# Older installations may still keep these values in .env or .env.local. Migrate
+# them before creating the private file: changing MYSQL_ROOT_PASSWORD after a
+# MySQL volume has been initialized does not change the password inside MySQL.
+read_legacy_setting() {
+    local key="$1"
+    local file
+    local value
+
+    for file in .env.local .env; do
+        if [ -f "$file" ]; then
+            value="$(sed -n -E "s/^${key}=(.+)$/\\1/p" "$file" | tail -n 1)"
+            if [ -n "$value" ]; then
+                printf '%s' "$value"
+                return 0
+            fi
+        fi
+    done
+
+    return 1
+}
+
+read_running_container_setting() {
+    local service="$1"
+    local key="$2"
+    local container
+    local value
+
+    container="$(docker compose ps -q "$service" 2>/dev/null | head -n 1)"
+    if [ -z "$container" ]; then
+        return 1
+    fi
+
+    value="$(docker inspect "$container" --format '{{range .Config.Env}}{{println .}}{{end}}' \
+        | sed -n -E "s/^${key}=(.*)$/\\1/p" | tail -n 1)"
+    if [ -n "$value" ]; then
+        printf '%s' "$value"
+        return 0
+    fi
+
+    return 1
+}
+
+if [ ! -f .env.prod.local ]; then
+    if ! command -v openssl >/dev/null 2>&1; then
+        echo "Error: openssl is required to generate $APP_DIR/.env.prod.local."
+        exit 1
+    fi
+
+    # Prefer the environment of already-running production containers. This
+    # safely migrates pre-existing installations whose values were never stored
+    # in a local env file, without printing the secrets.
+    APP_SECRET_VALUE="$(read_running_container_setting web APP_SECRET || read_legacy_setting APP_SECRET || true)"
+    MYSQL_ROOT_PASSWORD_VALUE="$(read_running_container_setting mysql MYSQL_ROOT_PASSWORD || read_legacy_setting MYSQL_ROOT_PASSWORD || true)"
+    DATABASE_URL_VALUE="$(read_running_container_setting web DATABASE_URL || read_legacy_setting DATABASE_URL || true)"
+
+    if [ -z "$MYSQL_ROOT_PASSWORD_VALUE" ] && docker volume inspect homeadmin24_mysql_data >/dev/null 2>&1; then
+        echo "Error: existing MySQL data was found, but no legacy MYSQL_ROOT_PASSWORD is available."
+        echo "Create $APP_DIR/.env.prod.local with the current database credentials before deploying."
+        exit 1
+    fi
+
+    if [ -n "$MYSQL_ROOT_PASSWORD_VALUE" ]; then
+        echo "[2b/12] Migrating existing production credentials to .env.prod.local..."
+    else
+        echo "[2b/12] Generating one-time production credentials..."
+        MYSQL_ROOT_PASSWORD_VALUE="$(openssl rand -hex 32)"
+    fi
+
+    if [ -z "$APP_SECRET_VALUE" ]; then
+        APP_SECRET_VALUE="$(openssl rand -hex 32)"
+    fi
+
+    # Values in legacy .env files may be quoted. Strip only matching outer
+    # quotes before embedding the database password in DATABASE_URL.
+    DATABASE_PASSWORD_VALUE="${MYSQL_ROOT_PASSWORD_VALUE#\"}"
+    DATABASE_PASSWORD_VALUE="${DATABASE_PASSWORD_VALUE%\"}"
+    DATABASE_PASSWORD_VALUE="${DATABASE_PASSWORD_VALUE#\'}"
+    DATABASE_PASSWORD_VALUE="${DATABASE_PASSWORD_VALUE%\'}"
+    DATABASE_NAME_VALUE="homeadmin24"
+    if [ -n "$DATABASE_URL_VALUE" ]; then
+        DATABASE_NAME_VALUE="$(printf '%s' "$DATABASE_URL_VALUE" | sed -E 's#^[^/]+//[^/]+/([^?]+).*$#\1#')"
+        DATABASE_NAME_VALUE="${DATABASE_NAME_VALUE#\"}"
+        DATABASE_NAME_VALUE="${DATABASE_NAME_VALUE%\"}"
+        DATABASE_NAME_VALUE="${DATABASE_NAME_VALUE#\'}"
+        DATABASE_NAME_VALUE="${DATABASE_NAME_VALUE%\'}"
+        if ! [[ "$DATABASE_NAME_VALUE" =~ ^[A-Za-z0-9_]+$ ]]; then
+            echo "Error: could not safely determine the existing database name."
+            exit 1
+        fi
+    fi
+    CREDENTIALS_FILE="$(mktemp "$APP_DIR/.env.prod.local.XXXXXX")"
+
+    {
+        printf 'APP_SECRET=%s\n' "$APP_SECRET_VALUE"
+        printf 'MYSQL_ROOT_PASSWORD=%s\n' "$MYSQL_ROOT_PASSWORD_VALUE"
+        printf 'DATABASE_URL="mysql://root:%s@mysql:3306/%s?serverVersion=9.0&charset=utf8mb4&collation=utf8mb4_unicode_ci"\n' "$DATABASE_PASSWORD_VALUE" "$DATABASE_NAME_VALUE"
+        printf 'ANTHROPIC_API_KEY=\n'
+    } > "$CREDENTIALS_FILE"
+
+    chmod 600 "$CREDENTIALS_FILE"
+    mv "$CREDENTIALS_FILE" .env.prod.local
+    echo "✅ Created $APP_DIR/.env.prod.local (mode 0600)"
+fi
+if ! grep -q '^APP_SECRET=.' .env.prod.local || ! grep -q '^MYSQL_ROOT_PASSWORD=.' .env.prod.local || ! grep -q '^DATABASE_URL=.' .env.prod.local; then
+    echo "Error: .env.prod.local must define APP_SECRET, MYSQL_ROOT_PASSWORD and DATABASE_URL."
+    exit 1
+fi
+DATABASE_NAME="$(sed -n -E 's#^DATABASE_URL="?mysql://[^/]+/([A-Za-z0-9_]+)\?.*$#\1#p' .env.prod.local | tail -n 1)"
+if ! [[ "$DATABASE_NAME" =~ ^[A-Za-z0-9_]+$ ]]; then
+    echo "Error: could not determine a safe database name from .env.prod.local."
+    exit 1
+fi
+# The base Compose file also supports local development through .env.local.
+# Point that ignored file at the private production configuration on the server.
+ln -sfn .env.prod.local .env.local
+
+# Ensure Chrome renderer is enabled for PDF generation
+if ! grep -q "^HGA_PDF_RENDERER=" .env; then
+    echo "HGA_PDF_RENDERER=chrome" >> .env
+fi
+if ! grep -q "^PUPPETEER_EXECUTABLE_PATH=" .env; then
+    echo "PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium" >> .env
+fi
+
+# Create production docker-compose override
+echo "[3/12] Creating production docker-compose configuration..."
+cat > docker-compose.prod.yml <<'DOCKER_COMPOSE'
+services:
+  web:
+    env_file:
+      - .env
+      - .env.prod.local
+    environment:
+      - APP_ENV=prod
+      - AI_ENABLED=false
+      - AI_CLAUDE_ENABLED=false
+      - DOCINTEL_ENABLED=false
+      - TRUSTED_PROXIES=127.0.0.1
+    restart: unless-stopped
+    # Mount code from host so quick deployments pick up new code without rebuild
+    # public/ is NOT mounted - built assets stay baked in the image
+    # node_modules is a named volume so npm install persists across container restarts
+    volumes:
+      - ./src:/var/www/html/src
+      - ./config:/var/www/html/config
+      - ./templates:/var/www/html/templates
+      - ./data:/var/www/html/data
+      - node_modules:/var/www/html/node_modules
+
+  mysql:
+    # Docker Compose v2.24+ supports !reset. Keep MySQL Docker-network-only
+    # even if a base Compose file later adds a development port mapping.
+    ports: !reset []
+    env_file:
+      - .env
+      - .env.prod.local
+    restart: unless-stopped
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backups:/backups
+
+  doc-intel:
+    build: !reset null
+    image: alpine:latest
+    command: ["echo", "doc-intel disabled in production"]
+    profiles:
+      - donotstart
+
+volumes:
+  mysql_data:
+    driver: local
+  node_modules:
+    driver: local
+DOCKER_COMPOSE
+
+# Ollama is no longer a production service. Remove a leftover container without
+# touching any named volumes (in particular mysql_data).
+echo "Removing legacy Ollama container, if present..."
+docker rm -f hausman-ollama 2>/dev/null || true
+
+if [ "$QUICK_MODE" = true ]; then
+    echo "[4/8] ⚡ Skipping Docker rebuild (quick mode)..."
+    echo "       Containers will continue running with new code"
+
+    echo "[5/9] Restarting web container to apply new volume mounts..."
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml up -d --no-deps web
+
+    echo "[5b/9] Installing/updating composer dependencies..."
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web composer install --optimize-autoloader --no-scripts --no-interaction
+
+    echo "[5c/9] Clearing Symfony cache..."
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web php bin/console cache:clear
+
+    echo "[6/9] Skipping frontend rebuild in quick mode (assets baked in image)..."
+
+    echo "[8/9] Updating database schema..."
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web php bin/console doctrine:schema:update --force
+
+    echo "[9/9] Deployment complete (skipping Nginx/SSL config in quick mode)"
+    echo ""
+    echo "=========================================="
+    echo "✅ Quick PRODUCTION Deployment complete!"
+    echo "=========================================="
+    echo ""
+    echo "🔒 Application running at: https://$DOMAIN"
+    echo "⚡ Deployment time: ~2-3 minutes"
+    echo ""
+    exit 0
+else
+    # Full deployment with Docker rebuild
+    echo "[4/12] Setting up swap space (if needed)..."
+    if ! swapon --show | grep -q '/swapfile'; then
+        echo "Creating 2GB swap file..."
+        fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048
+        chmod 600 /swapfile
+        mkswap /swapfile
+        swapon /swapfile
+
+        # Make swap permanent
+        if ! grep -q '/swapfile' /etc/fstab; then
+            echo '/swapfile none swap sw 0 0' >> /etc/fstab
+        fi
+
+        echo "✅ Swap enabled: $(free -h | grep Swap)"
+    else
+        echo "✅ Swap already configured: $(swapon --show | grep '/swapfile')"
+    fi
+
+    # Clean up Docker build cache and images
+    echo "[5/12] Cleaning up Docker build cache..."
+    echo "   Removing old build cache to free disk space..."
+    docker builder prune -af --filter "until=24h" || true
+    echo "   Removing unused images..."
+    docker image prune -af --filter "until=24h" || true
+    DISK_AFTER=$(df -h / | awk 'NR==2 {print $5}')
+    echo "✅ Cleanup complete. Disk usage: $DISK_AFTER"
+
+    # Build and start Docker containers
+    echo "[6/12] Building Docker containers..."
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml build --no-cache
+
+    echo "[7/12] Starting Docker containers..."
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml down
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yml up -d
+
+    # Wait for database to be ready
+    echo "[8/12] Waiting for database to be ready..."
+    MAX_TRIES=30
+    COUNTER=0
+    until docker compose exec -T mysql mysqladmin ping -h localhost --silent; do
+        COUNTER=$((COUNTER+1))
+        if [ $COUNTER -eq $MAX_TRIES ]; then
+            echo "❌ Database failed to become ready after ${MAX_TRIES} attempts"
+            exit 1
+        fi
+        echo "   Waiting for MySQL... (attempt $COUNTER/$MAX_TRIES)"
+        sleep 2
+    done
+    echo "mysqld is alive"
+
+    # Additional wait: Verify MySQL is accepting TCP connections from web container
+    echo "Verifying MySQL connection from web container..."
+    COUNTER=0
+    until docker compose exec -T web php -r "new PDO(getenv('DATABASE_URL'));" 2>/dev/null; do
+        COUNTER=$((COUNTER+1))
+        if [ $COUNTER -eq $MAX_TRIES ]; then
+            echo "❌ MySQL not accepting connections from web container after ${MAX_TRIES} attempts"
+            exit 1
+        fi
+        echo "   Waiting for MySQL TCP connection... (attempt $COUNTER/$MAX_TRIES)"
+        sleep 2
+    done
+    echo "✅ Database is ready!"
+
+    # Update database schema
+    echo "[9/12] Updating database schema..."
+    docker compose exec -T web php bin/console doctrine:schema:update --force
+fi
+
+# Load system configuration (only if empty database)
+echo "[10/12] Checking database status..."
+TABLE_COUNT=$(docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T mysql \
+    sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$1" -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()"' \
+    sh "$DATABASE_NAME")
+
+if [ "$TABLE_COUNT" -lt 5 ]; then
+    echo "Loading system configuration..."
+    docker compose exec -T web php bin/console doctrine:fixtures:load --group=system-config --no-interaction
+else
+    echo "Database already populated, skipping fixtures"
+fi
+
+# Configure Nginx reverse proxy
+echo "[11/12] Configuring Nginx..."
+cat > /etc/nginx/sites-available/homeadmin24-production <<EOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Proxy to Docker container
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+
+        # WebSocket support (for Turbo/Mercure if used)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # Max upload size (for PDF/CSV imports)
+    client_max_body_size 20M;
+}
+EOF
+
+# Enable site
+if [ ! -L /etc/nginx/sites-enabled/homeadmin24-production ]; then
+    ln -s /etc/nginx/sites-available/homeadmin24-production /etc/nginx/sites-enabled/
+fi
+
+# Remove default site if it exists
+if [ -L /etc/nginx/sites-enabled/default ]; then
+    rm /etc/nginx/sites-enabled/default
+fi
+
+# Test Nginx configuration
+nginx -t
+
+# Reload Nginx
+systemctl reload nginx
+
+# Setup SSL with Certbot
+echo "[12/12] Setting up SSL certificate..."
+# Check if HTTPS is configured in Nginx (not just if certificate exists)
+if ! grep -q "listen 443 ssl" /etc/nginx/sites-available/homeadmin24-production 2>/dev/null; then
+    echo "Configuring HTTPS with certbot..."
+    certbot --nginx -d $DOMAIN --email $EMAIL --agree-tos --non-interactive --redirect
+else
+    echo "SSL certificate already configured in Nginx"
+    if [ -d /etc/letsencrypt/live/$DOMAIN ]; then
+        certbot renew --dry-run
+    fi
+fi
+
+echo "Deployment summary..."
+echo ""
+echo "=========================================="
+echo "✅ PRODUCTION Deployment complete!"
+echo "=========================================="
+echo ""
+echo "🔒 Application running at: https://$DOMAIN"
+echo ""
+echo "Next steps:"
+echo "1. Create admin user:"
+echo "   docker compose exec web php bin/console app:create-admin"
+echo ""
+echo "2. Test application access"
+echo ""
+echo "3. View logs:"
+echo "   docker compose logs -f web"
+echo ""
+echo "4. Create manual backup:"
+echo "   /usr/local/bin/homeadmin24-backup.sh"
+echo ""
+echo "🔄 Automated backups: Daily at 3 AM → $APP_DIR/backups/"
+echo "📜 SSL auto-renewal: Configured via certbot systemd timer"
+echo ""

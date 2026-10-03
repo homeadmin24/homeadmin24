@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Betriebskostenabrechnung {{ data.year }} - {{ data.einheit.nummer }}</title>
+    <style>
+        @page {
+            margin: 80px 25px 40px 25px;
+        }
+
+        .page-header {
+            font-size: 8pt;
+            text-align: center;
+            border-bottom: 1px solid #333;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: -30px;
+            left: 0px;
+            right: 0px;
+            height: 30px;
+            font-size: 7pt;
+            text-align: center;
+            border-top: 1px solid #333;
+            padding-top: 5px;
+        }
+
+        .footer:before {
+            content: "Betriebskostenabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }} - Seite " counter(page);
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9pt;
+            line-height: 1.3;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .page-content {
+            max-width: calc(100% - 50px);
+            margin: 0 auto;
+            padding: 0 25px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 16pt;
+            font-weight: bold;
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
+        }
+
+        .meta-info {
+            font-size: 8pt;
+            color: #333;
+            margin-top: 8px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+
+        .section.allow-break {
+            page-break-inside: auto;
+        }
+
+        .section-title {
+            font-size: 10pt;
+            font-weight: bold;
+            background-color: #f8f8f8;
+            padding: 5px 8px;
+            border-bottom: 1px solid #333;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .info-grid {
+            display: table;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .info-row {
+            display: table-row;
+        }
+
+        .info-label {
+            display: table-cell;
+            font-weight: bold;
+            width: 30%;
+            padding: 2px 10px 2px 0;
+        }
+
+        .info-value {
+            display: table-cell;
+            padding: 2px 0;
+        }
+
+        .result-box {
+            background-color: #f5f5f5;
+            border: 1px solid #333;
+            padding: 6px 8px;
+            text-align: center;
+            margin: 10px 0;
+            border-radius: 0;
+        }
+
+        .result-box .result-text {
+            font-size: 9pt;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .cost-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            font-size: 8pt;
+        }
+
+        .cost-table th {
+            background-color: #f8f8f8;
+            padding: 5px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+        }
+
+        .cost-table td {
+            padding: 3px 5px;
+            border-bottom: 1px solid #eee;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .cost-table td.amount {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        .cost-table .subtotal {
+            font-weight: bold;
+            background-color: #f5f5f5;
+            border-top: 1px solid #999;
+        }
+
+        .cost-table .total {
+            font-weight: bold;
+            background-color: #e8e8e8;
+            border-top: 2px solid #333;
+            font-size: 9pt;
+        }
+
+        .tax-section {
+            background-color: #f8f8f8;
+            border: 1px solid #333;
+            padding: 8px;
+            margin: 10px 0;
+        }
+
+        .tax-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7pt;
+            margin: 5px 0;
+        }
+
+        .tax-table th {
+            background-color: #f8f8f8;
+            padding: 5px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+        }
+
+        .tax-table td {
+            padding: 3px 5px;
+            border-bottom: 1px solid #eee;
+            text-align: right;
+        }
+
+        .tax-table td.label {
+            text-align: left;
+        }
+
+        .amount {
+            font-family: 'Courier New', monospace;
+        }
+
+        .umlageschluessel-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7pt;
+            margin: 5px 0;
+        }
+
+        .umlageschluessel-table th {
+            background-color: #f8f8f8;
+            padding: 4px 5px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+        }
+
+        .umlageschluessel-table td {
+            padding: 3px 5px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+
+        .umlageschluessel-table td.label {
+            text-align: left;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .info-box {
+            background-color: #f0f7ff;
+            border: 1px solid #0066cc;
+            border-left: 4px solid #0066cc;
+            padding: 10px 12px;
+            margin: 15px 0;
+            font-size: 8pt;
+        }
+
+        .info-box strong {
+            color: #0066cc;
+        }
+
+        h3 {
+            margin-top: 5px;
+            margin-bottom: 8px;
+        }
+
+        .preview {
+            background: #f2f2f2;
+        }
+
+        .preview .page-content {
+            width: 210mm;
+            max-width: none;
+            margin: 20px auto;
+            padding: 0 20mm 40px;
+            background: #fff;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .preview .page-header {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: #fff;
+        }
+
+        .preview .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 24px;
+            margin: 0;
+            padding-top: 4px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+        }
+
+        .preview .section.page-break {
+            border-top: 2px dashed #c0c0c0;
+            margin-top: 60px;
+            padding-top: 20px;
+            position: relative;
+        }
+
+        .preview .section.page-break::after {
+            content: "Seitenumbruch";
+            position: absolute;
+            top: -12px;
+            right: 0;
+            background: #fff;
+            padding: 0 6px;
+            font-size: 7pt;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+    </style>
+</head>
+<body class="{{ previewMode|default(false) ? 'preview' : '' }}">
+    {% if previewMode|default(false) %}
+    <div class="footer"></div>
+    {% endif %}
+
+    <div class="page-content">
+    {# ==================== PAGE 1: UMLAGEERGEBNIS MIETER ==================== #}
+    <div class="header">
+        <h1>Betriebskostenabrechnung {{ data.year }}</h1>
+        <div class="meta-info">
+            Erstellung: {{ generatedAt|date('d.m.Y') }}<br>
+            Objekt: {{ data.weg.name }}, {{ data.weg.adresse }}<br>
+            Abrechnungszeitraum: {{ data.calculationMethod.periodLabel }}
+        </div>
+    </div>
+
+    <div class="section allow-break">
+        <div class="section-title">Mieter Information</div>
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-label">Wohnung:</div>
+                <div class="info-value">{{ data.einheit.nummer }} {{ data.einheit.beschreibung }}</div>
+            </div>
+            {% if data.einheit.mieter %}
+            <div class="info-row">
+                <div class="info-label">Mieter:</div>
+                <div class="info-value">{{ data.einheit.mieter }}</div>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <div class="info-label">Adresse:</div>
+                <div class="info-value">{{ data.weg.adresse }}</div>
+            </div>
+        </div>
+    </div>
+
+    {% include 'hga/_mieter_umlageergebnis.html.twig' with {
+        section_class: 'section allow-break',
+        title: 'Umlageergebnis Mieter-Abrechnung ' ~ data.calculationMethod.periodLabel,
+        subtitle: 'Periodengerecht · ' ~ data.calculationMethod.legalBasis,
+        year: data.year,
+        cost_items: data.costs.umlagefaehig.items|default([]),
+        external_costs: data.external_costs,
+        show_heading: true,
+        show_result: true
+    } only %}
+
+    {# Umlageschlüssel table - only keys actually used in umlagefähig costs #}
+    {% if data.umlageschluessel|default([]) %}
+    {% set usedKeys = [] %}
+    {% if data.external_costs and ((data.external_costs.heating.unit_share|default(0)) + (data.external_costs.water.unit_share|default(0))) > 0 %}
+        {% set usedKeys = usedKeys|merge(['01*']) %}
+    {% endif %}
+    {% for item in data.costs.umlagefaehig.items|default([]) %}
+        {% if item.total|default(0) > 0 and item.verteilungsschluessel not in usedKeys %}
+            {% set usedKeys = usedKeys|merge([item.verteilungsschluessel]) %}
+        {% endif %}
+    {% endfor %}
+    {% if usedKeys|length > 0 %}
+    <div class="section allow-break">
+        <div class="section-title">Erläuterung Umlageschlüssel</div>
+        <table class="umlageschluessel-table">
+            <thead>
+                <tr>
+                    <th>Nr.</th>
+                    <th class="label">Umlageschlüssel</th>
+                    <th>Umlage</th>
+                    <th>Zeitraum</th>
+                    <th>Tage</th>
+                    <th>Gesamtumlage</th>
+                    <th>Ihr Anteil</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for schluessel in data.umlageschluessel %}
+                {% if schluessel.nummer in usedKeys %}
+                <tr>
+                    <td><strong>{{ schluessel.nummer }}</strong></td>
+                    <td class="label">{{ schluessel.bezeichnung }}</td>
+                    <td>{{ schluessel.umlage_typ }}</td>
+                    <td>{{ schluessel.zeitraum }}</td>
+                    <td>{{ schluessel.tage }}</td>
+                    <td>{{ schluessel.gesamtumlage }}</td>
+                    <td>{% if schluessel.anteil is null %}-{% elseif schluessel.nummer == '05*' %}{{ schluessel.anteil|number_format(4, ',', '.') }}{% else %}{{ schluessel.anteil|number_format(2, ',', '.') }}{% endif %}</td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {# ==================== PAGE 2: §35a EStG ==================== #}
+    {% if data.tax_deductible_mieter.items|default([]) %}
+    <div class="section page-break">
+        <div class="page-header">
+            Betriebskostenabrechnung {{ data.year }} - {{ data.einheit.nummer }} {{ data.einheit.beschreibung }}
+        </div>
+        <div class="section-title">Abrechnung für Ausgaben i.S.d. §35a Einkommensteuergesetz</div>
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-label">Wohnung:</div>
+                <div class="info-value">{{ data.einheit.nummer }} {{ data.einheit.beschreibung }}</div>
+            </div>
+            {% if data.einheit.mieter %}
+            <div class="info-row">
+                <div class="info-label">Mieter:</div>
+                <div class="info-value">{{ data.einheit.mieter }}</div>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <div class="info-label">Adresse:</div>
+                <div class="info-value">{{ data.weg.adresse }}</div>
+            </div>
+        </div>
+        {% include 'hga/_tax_35a_content.html.twig' with { tax_deductible: data.tax_deductible_mieter, show_hint: true } only %}
+    </div>
+    {% endif %}
+
+    </div> <!-- Close page-content -->
+</body>
+</html>

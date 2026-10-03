@@ -1,0 +1,30 @@
+    {% if data.umlageschluessel|default([]) %}
+    <div class="section allow-break">
+        <table class="umlageschluessel-table" style="font-size: 7pt;">
+            <thead>
+                <tr>
+                    <th>Nr.</th>
+                    <th>Umlageschlüssel</th>
+                    <th>Umlage</th>
+                    <th>Zeitraum</th>
+                    <th>Tage</th>
+                    <th>Gesamtumlage</th>
+                    <th>Ihr Anteil</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for schluessel in data.umlageschluessel %}
+                <tr>
+                    <td><strong>{{ schluessel.nummer }}</strong></td>
+                    <td class="label">{{ schluessel.bezeichnung }}</td>
+                    <td>{{ schluessel.umlage_typ }}</td>
+                    <td>{{ schluessel.zeitraum }}</td>
+                    <td>{{ schluessel.tage }}</td>
+                    <td>{{ schluessel.gesamtumlage }}</td>
+                    <td>{% if schluessel.anteil is null %}-{% elseif schluessel.nummer == '05*' %}{{ schluessel.anteil|number_format(4, ',', '.') }}{% else %}{{ schluessel.anteil|number_format(2, ',', '.') }}{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}

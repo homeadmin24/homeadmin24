@@ -1,0 +1,68 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Production environment'
+        required: true
+        default: 'production'
+      push_local_db:
+        description: 'Push local DB to prod BEFORE deploying? Run bin/push_db_to_prod.sh <ip> --import locally first, then trigger this workflow.'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      quick_mode:
+        description: 'Quick deploy (skip Docker rebuild)? Use false for first deploy or after Dockerfile/package.json changes (~30 min).'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DROPLET_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.PRODUCTION_DROPLET_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Deploy to production
+        env:
+          DOMAIN: ${{ secrets.PRODUCTION_DOMAIN }}
+          EMAIL: ${{ secrets.PRODUCTION_EMAIL }}
+        run: |
+          ssh root@${{ secrets.PRODUCTION_DROPLET_HOST }} "cd /opt/homeadmin24-prod && \
+            bash .droplet/deploy-production.sh ${{ secrets.PRODUCTION_DOMAIN }} ${{ secrets.PRODUCTION_EMAIL }} ${{ github.event.inputs.quick_mode == 'true' && '--quick' || '' }}"
+
+      - name: Run composer install on production
+        run: |
+          ssh root@${{ secrets.PRODUCTION_DROPLET_HOST }} "cd /opt/homeadmin24-prod && \
+            docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web \
+              composer install --optimize-autoloader --no-scripts --no-interaction && \
+            docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web \
+              php bin/console cache:clear"
+
+      - name: Build frontend assets on production
+        run: |
+          ssh root@${{ secrets.PRODUCTION_DROPLET_HOST }} "cd /opt/homeadmin24-prod && \
+            docker compose -f docker-compose.yaml -f docker-compose.prod.yml exec -T web \
+              bash -c 'npm install && npm run build'"
+      
+      - name: Health check
+        run: |
+          sleep 10
+          curl -f https://${{ secrets.PRODUCTION_DOMAIN }}/login || exit 1

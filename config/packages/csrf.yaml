@@ -1,0 +1,3 @@
+# Enable CSRF protection (session-based for proper security through proxies)
+framework:
+    csrf_protection: ~

@@ -1,0 +1,46 @@
+name: homeadmin24
+
+services:
+  web:
+    build: .
+    ports:
+      - "127.0.0.1:8000:80"
+    env_file:
+      - .env
+      - .env.local
+    environment:
+      - APP_ENV=dev
+    depends_on:
+      - mysql
+    volumes:
+      - ./src:/var/www/html/src
+      - ./config:/var/www/html/config
+      - ./templates:/var/www/html/templates
+      - ./var:/var/www/html/var
+      - ./data:/var/www/html/data
+      - ./vendor:/var/www/html/vendor
+      - ./composer.json:/var/www/html/composer.json
+      - ./composer.lock:/var/www/html/composer.lock
+      - ./assets:/var/www/html/assets
+      - ./public/build:/var/www/html/public/build
+
+  mysql:
+    image: mysql:9
+    env_file:
+      - .env
+      - .env.local
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-homeadmin24}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  doc-intel:
+    build: ../doc-intel
+    container_name: doc-intel
+    ports:
+      - "127.0.0.1:8001:8000"
+    restart: unless-stopped
+
+volumes:
+  mysql_data:

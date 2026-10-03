@@ -1,0 +1,124 @@
+name: Deploy to Demo
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      full_rebuild:
+        description: 'Full rebuild (Docker + dependencies)'
+        required: false
+        default: 'false'
+        type: boolean
+      reset_data:
+        description: 'Reset demo data (loads fresh fixtures)'
+        required: false
+        default: 'true'
+        type: boolean
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: demo
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH with keepalive
+        run: |
+          set -e
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          echo "${{ secrets.DROPLET_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          # Scan SSH host keys
+          ssh-keyscan -H ${{ secrets.DEMO_DROPLET_HOST }} >> ~/.ssh/known_hosts 2>&1 || echo "Warning: ssh-keyscan failed, continuing anyway"
+
+          # Configure SSH to keep connection alive during long builds
+          cat > ~/.ssh/config << 'SSH_CONFIG'
+          Host *
+            ServerAliveInterval 30
+            ServerAliveCountMax 120
+            TCPKeepAlive yes
+            StrictHostKeyChecking accept-new
+          SSH_CONFIG
+
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy to server
+        run: |
+          # Debug: Show input values
+          echo "DEBUG: full_rebuild input = '${{ github.event.inputs.full_rebuild }}'"
+          echo "DEBUG: Event name = '${{ github.event_name }}'"
+
+          # When full_rebuild is true, omit --quick flag (empty = full deployment)
+          # When full_rebuild is false/unset, use --quick flag (for push events or when explicitly set to false)
+          if [ "${{ github.event.inputs.full_rebuild }}" = "true" ]; then
+            DEPLOY_MODE=""
+          else
+            DEPLOY_MODE="--quick"
+          fi
+
+          echo "=========================================="
+          if [ -z "$DEPLOY_MODE" ]; then
+            echo "Full Deployment (Docker + dependencies + swap)"
+          else
+            echo "Quick Deployment (code + cache only)"
+          fi
+          echo "=========================================="
+
+          ssh -o ConnectTimeout=30 root@${{ secrets.DEMO_DROPLET_HOST }} \
+            "cd /opt/homeadmin24-demo && \
+             git fetch origin main && \
+             git reset --hard origin/main && \
+             bash .droplet/deploy-demo.sh ${{ secrets.DEMO_DOMAIN }} ${{ secrets.DEMO_EMAIL }} $DEPLOY_MODE"
+
+          echo "✅ Deployment completed"
+
+      - name: Wait for deployment
+        if: github.event.inputs.full_rebuild == 'true'
+        run: |
+          echo "Waiting for full rebuild to complete..."
+          sleep 300  # 5 minutes (reduced from 10 since deploy script is synchronous now)
+
+      - name: Health check
+        run: |
+          echo "Checking if demo site is accessible..."
+
+          # Try up to 5 times with 30 second delays
+          for attempt in {1..5}; do
+            echo "Health check attempt $attempt/5..."
+
+            if curl -f -s -o /dev/null -w "%{http_code}" https://demo.homeadmin24.de/login | grep -q "200"; then
+              echo "✅ Demo site is healthy and responding!"
+              exit 0
+            fi
+
+            if [ $attempt -lt 5 ]; then
+              echo "❌ Site not ready, waiting 30 seconds..."
+              sleep 30
+            fi
+          done
+
+          echo "⚠️ Site not responding after 5 attempts, but deployment may still be completing"
+          echo "Check manually: https://demo.homeadmin24.de/login"
+          exit 1
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "=========================================="
+          echo "✅ Demo Deployment Complete"
+          echo "=========================================="
+          echo ""
+          echo "🎮 Demo: https://demo.homeadmin24.de"
+          echo "⚡ Mode: ${{ github.event.inputs.full_rebuild == 'true' && 'Full rebuild' || 'Quick deploy' }}"
+          echo "📊 Data reset: ${{ github.event.inputs.reset_data || 'true' }}"
+          echo "🔄 Auto-deploys on push to main (quick mode)"
+          echo ""
+          echo "💡 Tip: Use 'workflow_dispatch' with 'full_rebuild=true' for dependency updates"
+          echo ""

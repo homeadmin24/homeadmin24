@@ -1,0 +1,1284 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}WEG Verwaltung{% endblock %}
+
+{% block body %}
+<div class="antialiased bg-gray-50 dark:bg-gray-900">
+    {% include 'components/sidebar.html.twig' %}
+
+    <main class="p-4 md:ml-64 h-auto pt-6">
+        <div class="mx-auto max-w-7xl">
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                    <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                    </svg>
+                    Weg
+                </h1>
+                <p class="mt-2 text-gray-600 dark:text-gray-400">Verwalten Sie WEG-Daten, Einheiten und Umlageschlüssel</p>
+            </div>
+
+    <!-- Flowbite Tabs -->
+    <div class="mb-4 border-b border-gray-200">
+        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="default-styled-tab" data-tabs-toggle="#default-styled-tab-content" data-tabs-active-classes="text-purple-600 hover:text-purple-600 border-purple-600" data-tabs-inactive-classes="text-gray-500 hover:text-gray-600 hover:border-gray-300 border-transparent" role="tablist">
+            <li class="me-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="weg-styled-tab" data-tabs-target="#styled-weg" type="button" role="tab" aria-controls="weg" aria-selected="{{ app.request.query.get('tab') == 'weg' or app.request.query.get('tab') is empty ? 'true' : 'false' }}">
+                    <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 0L0 6h2v14h16V6h2L10 0zM8 18H4V8h4v10zm8 0h-4V8h4v10z"/>
+                    </svg>
+                    WEG
+                </button>
+            </li>
+            <li class="me-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="einheiten-styled-tab" data-tabs-target="#styled-einheiten" type="button" role="tab" aria-controls="einheiten" aria-selected="{{ app.request.query.get('tab') == 'einheiten' ? 'true' : 'false' }}">
+                    <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M5 5V.13a2.96 2.96 0 0 0-1.293.749L.879 3.707A2.96 2.96 0 0 0 .13 5H5Z"/>
+                        <path d="M6.737 11.061a2.961 2.961 0 0 1 .81-1.515l6.117-6.116A4.839 4.839 0 0 1 16 2.141V2a1.97 1.97 0 0 0-1.933-2H7v5a2 2 0 0 1-2 2H0v11a1.969 1.969 0 0 0 1.933 2h12.134A1.97 1.97 0 0 0 16 18v-3.093l-1.546 1.546c-.413.413-.94.695-1.513.81l-3.4.679a2.947 2.947 0 0 1-1.85-.227 2.96 2.96 0 0 1-1.635-3.257l.681-3.397Z"/>
+                        <path d="M8.961 16a.93.93 0 0 0 .189-.019l3.4-.679a.961.961 0 0 0 .49-.263l6.118-6.117a2.884 2.884 0 0 0-4.079-4.078l-6.117 6.117a.96.96 0 0 0-.263.491l-.679 3.4A.961.961 0 0 0 8.961 16Zm7.477-9.8a.958.958 0 0 1 .68-.281.961.961 0 0 1 .682 1.644l-.315.315-1.36-1.36.313-.318Zm-5.911 5.911 4.236-4.236 1.359 1.359-4.236 4.237-1.7.339.341-1.699Z"/>
+                    </svg>
+                    WEG-Einheiten
+                </button>
+            </li>
+            <li class="me-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="umlageschluessel-styled-tab" data-tabs-target="#styled-umlageschluessel" type="button" role="tab" aria-controls="umlageschluessel" aria-selected="{{ app.request.query.get('tab') == 'umlageschluessel' ? 'true' : 'false' }}">
+                    <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M18 7.5h-.423l-.452-1.09.3-.3a1.5 1.5 0 0 0 0-2.121L16.01 2.575a1.5 1.5 0 0 0-2.121 0l-.3.3-1.089-.452V2A1.5 1.5 0 0 0 11 .5H9A1.5 1.5 0 0 0 7.5 2v.423l-1.09.452-.3-.3a1.5 1.5 0 0 0-2.121 0L2.575 3.99a1.5 1.5 0 0 0 0 2.121l.3.3L2.423 7.5H2A1.5 1.5 0 0 0 .5 9v2A1.5 1.5 0 0 0 2 12.5h.423l.452 1.09-.3.3a1.5 1.5 0 0 0 0 2.121l1.415 1.413a1.5 1.5 0 0 0 2.121 0l.3-.3 1.09.452V18A1.5 1.5 0 0 0 9 19.5h2a1.5 1.5 0 0 0 1.5-1.5v-.423l1.09-.452.3.3a1.5 1.5 0 0 0 2.121 0L17.425 16.01a1.5 1.5 0 0 0 0-2.121l-.3-.3.452-1.09H18a1.5 1.5 0 0 0 1.5-1.5V9A1.5 1.5 0 0 0 18 7.5ZM10 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"/>
+                    </svg>
+                    Umlageschlüssel
+                </button>
+            </li>
+            <li class="me-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="kategorien-styled-tab" data-tabs-target="#styled-kategorien" type="button" role="tab" aria-controls="kategorien" aria-selected="{{ app.request.query.get('tab') == 'kategorien' ? 'true' : 'false' }}">
+                    <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                    </svg>
+                    Zahlungskategorien
+                </button>
+            </li>
+            <li class="me-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="kostenkonto-styled-tab" data-tabs-target="#styled-kostenkonto" type="button" role="tab" aria-controls="kostenkonto" aria-selected="{{ app.request.query.get('tab') == 'kostenkonto' ? 'true' : 'false' }}">
+                    <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"></path>
+                    </svg>
+                    Kostenkonto
+                </button>
+            </li>
+            <li class="me-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="ai-query-styled-tab" data-tabs-target="#styled-ai-query" type="button" role="tab" aria-controls="ai-query" aria-selected="{{ app.request.query.get('tab') == 'ai-query' ? 'true' : 'false' }}">
+                    <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"/>
+                    </svg>
+                    AI-Anfragen
+                </button>
+            </li>
+            {% if is_granted('ROLE_SUPER_ADMIN') %}
+            <li class="me-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="benutzer-styled-tab" data-tabs-target="#styled-benutzer" type="button" role="tab" aria-controls="benutzer" aria-selected="{{ app.request.query.get('tab') == 'benutzer' ? 'true' : 'false' }}">
+                    <svg class="w-4 h-4 me-2 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+                    </svg>
+                    Benutzer
+                </button>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <div id="default-styled-tab-content">
+        <!-- WEG Tab -->
+        <div class="{{ app.request.query.get('tab') == 'weg' or app.request.query.get('tab') is empty ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-weg" role="tabpanel" aria-labelledby="weg-tab">
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">WEG Verwaltung</h3>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">ID</th>
+                            <th scope="col" class="px-6 py-3">Bezeichnung</th>
+                            <th scope="col" class="px-6 py-3">Adresse</th>
+                            <th scope="col" class="px-6 py-3">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for weg in wegs %}
+                        <tr class="bg-white border-b hover:bg-gray-50" id="weg-row-{{ weg.id }}">
+                            <td class="px-6 py-4 font-medium text-gray-900">{{ weg.id }}</td>
+                            <td class="px-6 py-4">
+                                <span id="weg-bezeichnung-{{ weg.id }}">{{ weg.bezeichnung }}</span>
+                                <input type="text" id="weg-bezeichnung-input-{{ weg.id }}" value="{{ weg.bezeichnung }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                            </td>
+                            <td class="px-6 py-4">
+                                <span id="weg-adresse-{{ weg.id }}">{{ weg.adresse }}</span>
+                                <textarea id="weg-adresse-input-{{ weg.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">{{ weg.adresse }}</textarea>
+                            </td>
+                            <td class="px-6 py-4">
+                                <button type="button" onclick="editWeg({{ weg.id }})" id="weg-edit-btn-{{ weg.id }}" class="text-blue-600 hover:underline mr-2">Bearbeiten</button>
+                                <button type="button" onclick="saveWeg({{ weg.id }})" id="weg-save-btn-{{ weg.id }}" class="hidden text-green-600 hover:underline mr-2">Speichern</button>
+                                <button type="button" onclick="cancelWeg({{ weg.id }})" id="weg-cancel-btn-{{ weg.id }}" class="hidden text-gray-600 hover:underline">Abbrechen</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- WEG-Einheiten Tab -->
+        <div class="{{ app.request.query.get('tab') == 'einheiten' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-einheiten" role="tabpanel" aria-labelledby="einheiten-tab">
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">WEG-Einheiten Verwaltung</h3>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">Nummer</th>
+                            <th scope="col" class="px-4 py-3">Bezeichnung</th>
+                            <th scope="col" class="px-4 py-3">Miteigentümer</th>
+                            <th scope="col" class="px-4 py-3">Mieter</th>
+                            <th scope="col" class="px-4 py-3">MEA</th>
+                            <th scope="col" class="px-4 py-3">Stimme</th>
+                            <th scope="col" class="px-4 py-3">Adresse</th>
+                            <th scope="col" class="px-4 py-3">Telefon</th>
+                            <th scope="col" class="px-4 py-3">HW</th>
+                            <th scope="col" class="px-4 py-3">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for einheit in wegEinheiten %}
+                        <tr class="bg-white border-b hover:bg-gray-50" id="einheit-row-{{ einheit.id }}">
+                            <td class="px-4 py-4 font-medium text-gray-900">
+                                <span id="einheit-nummer-{{ einheit.id }}">{{ einheit.nummer }}</span>
+                                <input type="text" id="einheit-nummer-input-{{ einheit.id }}" value="{{ einheit.nummer }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="einheit-bezeichnung-{{ einheit.id }}">{{ einheit.bezeichnung }}</span>
+                                <input type="text" id="einheit-bezeichnung-input-{{ einheit.id }}" value="{{ einheit.bezeichnung }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="einheit-miteigentuemer-{{ einheit.id }}">{{ einheit.miteigentuemer }}</span>
+                                <input type="text" id="einheit-miteigentuemer-input-{{ einheit.id }}" value="{{ einheit.miteigentuemer }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="einheit-mieter-{{ einheit.id }}">{{ einheit.mieter }}</span>
+                                <input type="text" id="einheit-mieter-input-{{ einheit.id }}" value="{{ einheit.mieter }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="einheit-miteigentumsanteile-{{ einheit.id }}">{{ einheit.miteigentumsanteile }}</span>
+                                <input type="text" id="einheit-miteigentumsanteile-input-{{ einheit.id }}" value="{{ einheit.miteigentumsanteile }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="einheit-stimme-{{ einheit.id }}">{{ einheit.stimme }}</span>
+                                <input type="text" id="einheit-stimme-input-{{ einheit.id }}" value="{{ einheit.stimme }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4 max-w-xs">
+                                <span id="einheit-adresse-{{ einheit.id }}" class="break-words">{{ einheit.adresse|nl2br }}</span>
+                                <textarea id="einheit-adresse-input-{{ einheit.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">{{ einheit.adresse }}</textarea>
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="einheit-telefon-{{ einheit.id }}">{{ einheit.telefon }}</span>
+                                <input type="text" id="einheit-telefon-input-{{ einheit.id }}" value="{{ einheit.telefon }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="einheit-hauptwohneinheit-{{ einheit.id }}">{{ einheit.hauptwohneinheit ? '✓' : '✗' }}</span>
+                                <select id="einheit-hauptwohneinheit-input-{{ einheit.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                    <option value="1" {{ einheit.hauptwohneinheit ? 'selected' : '' }}>Ja</option>
+                                    <option value="0" {{ not einheit.hauptwohneinheit ? 'selected' : '' }}>Nein</option>
+                                </select>
+                            </td>
+                            <td class="px-4 py-4">
+                                <button type="button" onclick="editEinheit({{ einheit.id }})" id="einheit-edit-btn-{{ einheit.id }}" class="text-blue-600 hover:underline mr-2">Bearbeiten</button>
+                                <button type="button" onclick="saveEinheit({{ einheit.id }})" id="einheit-save-btn-{{ einheit.id }}" class="hidden text-green-600 hover:underline mr-2">Speichern</button>
+                                <button type="button" onclick="cancelEinheit({{ einheit.id }})" id="einheit-cancel-btn-{{ einheit.id }}" class="hidden text-gray-600 hover:underline">Abbrechen</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Umlageschlüssel Tab -->
+        <div class="{{ app.request.query.get('tab') == 'umlageschluessel' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-umlageschluessel" role="tabpanel" aria-labelledby="umlageschluessel-tab">
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Umlageschlüssel Verwaltung</h3>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Schlüssel</th>
+                            <th scope="col" class="px-6 py-3">Bezeichnung</th>
+                            <th scope="col" class="px-6 py-3">Beschreibung</th>
+                            <th scope="col" class="px-6 py-3">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for schluessel in umlageschluessel %}
+                        <tr class="bg-white border-b hover:bg-gray-50" id="schluessel-row-{{ schluessel.id }}">
+                            <td class="px-6 py-4 font-medium text-gray-900">{{ schluessel.schluessel }}</td>
+                            <td class="px-6 py-4">
+                                <span id="schluessel-bezeichnung-{{ schluessel.id }}">{{ schluessel.bezeichnung }}</span>
+                                <input type="text" id="schluessel-bezeichnung-input-{{ schluessel.id }}" value="{{ schluessel.bezeichnung }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                            </td>
+                            <td class="px-6 py-4">
+                                <span id="schluessel-beschreibung-{{ schluessel.id }}">{{ schluessel.beschreibung }}</span>
+                                <textarea id="schluessel-beschreibung-input-{{ schluessel.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">{{ schluessel.beschreibung }}</textarea>
+                            </td>
+                            <td class="px-6 py-4">
+                                <button type="button" onclick="editSchluessel({{ schluessel.id }})" id="schluessel-edit-btn-{{ schluessel.id }}" class="text-blue-600 hover:underline mr-2">Bearbeiten</button>
+                                <button type="button" onclick="saveSchluessel({{ schluessel.id }})" id="schluessel-save-btn-{{ schluessel.id }}" class="hidden text-green-600 hover:underline mr-2">Speichern</button>
+                                <button type="button" onclick="cancelSchluessel({{ schluessel.id }})" id="schluessel-cancel-btn-{{ schluessel.id }}" class="hidden text-gray-600 hover:underline">Abbrechen</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Kostenkonto Tab -->
+        <div class="{{ app.request.query.get('tab') == 'kostenkonto' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-kostenkonto" role="tabpanel" aria-labelledby="kostenkonto-tab">
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Kostenkonto Verwaltung</h3>
+                
+                <!-- HGA Impact Info Box -->
+                <div class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div class="text-sm text-blue-800 dark:text-blue-200">
+                            <p class="font-medium mb-2">Auswirkungen auf Hausgeldabrechnung (HGA):</p>
+                            <p><strong>Umlageschlüssel:</strong> Bestimmt Verteilung (05* = MEA-Anteil, 03* = gleichmäßig, 06* = Hebeanlage-spezial)</p>
+                            <p><strong>Kategorisierung Kostenart:</strong> "Umlagefähig" = auf Mieter umlegbar, "Nicht umlagefähig" = nur Eigentümer, "Rücklagenzuführung" = Reservenbildung</p>
+                            <p><strong>§35a EStG:</strong> Markierte Konten sind als haushaltsnahe Dienstleistungen/Handwerkerleistungen steuerlich absetzbar (20% der Arbeitskosten, max. 1.200€/Jahr)</p>
+                            <p><strong>Status:</strong> Nur aktive Konten werden in HGA-Berechnungen berücksichtigt</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">Nummer</th>
+                            <th scope="col" class="px-4 py-3">Bezeichnung</th>
+                            <th scope="col" class="px-4 py-3">Umlageschlüssel</th>
+                            <th scope="col" class="px-4 py-3">Kategorisierung Kostenart</th>
+                            <th scope="col" class="px-4 py-3">§35a</th>
+                            <th scope="col" class="px-4 py-3">Status</th>
+                            <th scope="col" class="px-4 py-3">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for konto in kostenkontos %}
+                        <tr class="bg-white border-b hover:bg-gray-50" id="konto-row-{{ konto.id }}">
+                            <td class="px-4 py-4 font-medium text-gray-900">
+                                <span id="konto-nummer-{{ konto.id }}">{{ konto.nummer }}</span>
+                                <input type="text" id="konto-nummer-input-{{ konto.id }}" value="{{ konto.nummer }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="konto-bezeichnung-{{ konto.id }}">{{ konto.bezeichnung }}</span>
+                                <textarea id="konto-bezeichnung-input-{{ konto.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">{{ konto.bezeichnung }}</textarea>
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="konto-umlageschluessel-{{ konto.id }}">{{ konto.umlageschluessel ? konto.umlageschluessel.bezeichnung : '-' }}</span>
+                                <select id="konto-umlageschluessel-input-{{ konto.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                    <option value="">-- Kein Umlageschlüssel --</option>
+                                    {% for schluessel in umlageschluessel %}
+                                        <option value="{{ schluessel.id }}" {{ konto.umlageschluessel and konto.umlageschluessel.id == schluessel.id ? 'selected' : '' }}>{{ schluessel.bezeichnung }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="konto-kategorisierungsTyp-{{ konto.id }}">
+                                    {% if konto.kategorisierungsTyp.value == 'umlagefaehig_sonstige' %}
+                                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Umlagefähig - Sonstige</span>
+                                    {% elseif konto.kategorisierungsTyp.value == 'umlagefaehig_heizung' %}
+                                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Umlagefähig - Heizung</span>
+                                    {% elseif konto.kategorisierungsTyp.value == 'umlagefaehig_wasser' %}
+                                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Umlagefähig - Wasser</span>
+                                    {% elseif konto.kategorisierungsTyp.value == 'nicht_umlagefaehig' %}
+                                        <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">Nicht umlagefähig</span>
+                                    {% elseif konto.kategorisierungsTyp.value == 'ruecklagenzufuehrung' %}
+                                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Rücklagenzuführung</span>
+                                    {% else %}
+                                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">{{ konto.kategorisierungsTyp.getDisplayName() }}</span>
+                                    {% endif %}
+                                </span>
+                                <select id="konto-kategorisierungsTyp-input-{{ konto.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                    {% for typ in kategorisierungsTypen %}
+                                        <option value="{{ typ.value }}" {{ konto.kategorisierungsTyp.value == typ.value ? 'selected' : '' }}>{{ typ.getDisplayName() }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="konto-taxDeductible-{{ konto.id }}">
+                                    {% if konto.taxDeductible %}
+                                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded inline-flex items-center">
+                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            §35a
+                                        </span>
+                                    {% else %}
+                                        <span class="bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-0.5 rounded">-</span>
+                                    {% endif %}
+                                </span>
+                                <select id="konto-taxDeductible-input-{{ konto.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                    <option value="1" {{ konto.taxDeductible ? 'selected' : '' }}>§35a Steuerlich absetzbar</option>
+                                    <option value="0" {{ not konto.taxDeductible ? 'selected' : '' }}>Nicht absetzbar</option>
+                                </select>
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="konto-isActive-{{ konto.id }}">
+                                    {% if konto.isActive %}
+                                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Aktiv</span>
+                                    {% else %}
+                                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">Inaktiv</span>
+                                    {% endif %}
+                                </span>
+                                <select id="konto-isActive-input-{{ konto.id }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                    <option value="1" {{ konto.isActive ? 'selected' : '' }}>Aktiv</option>
+                                    <option value="0" {{ not konto.isActive ? 'selected' : '' }}>Inaktiv</option>
+                                </select>
+                            </td>
+                            <td class="px-4 py-4">
+                                <button type="button" onclick="editKonto({{ konto.id }})" id="konto-edit-btn-{{ konto.id }}" class="text-blue-600 hover:underline mr-2">Bearbeiten</button>
+                                <button type="button" onclick="saveKonto({{ konto.id }})" id="konto-save-btn-{{ konto.id }}" class="hidden text-green-600 hover:underline mr-2">Speichern</button>
+                                <button type="button" onclick="cancelKonto({{ konto.id }})" id="konto-cancel-btn-{{ konto.id }}" class="hidden text-gray-600 hover:underline">Abbrechen</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Zahlungskategorien Tab -->
+        <div class="{{ app.request.query.get('tab') == 'kategorien' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-kategorien" role="tabpanel" aria-labelledby="kategorien-tab">
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Zahlungskategorien → Kostenkonto Mapping</h3>
+
+                <!-- Purpose & Explanation -->
+                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h4 class="text-sm font-semibold text-blue-800 mb-2">Zweck: Verhindern falscher Kontobuchungen</h4>
+                            <p class="text-sm text-blue-700 mb-2">
+                                Diese Konfiguration schränkt ein, auf welche Kostenkontos eine Zahlung gebucht werden darf.
+                                Beim Erfassen einer Zahlung im Formular werden nur die hier konfigurierten Kostenkontos zur Auswahl angeboten.
+                            </p>
+
+                            <div class="mt-3">
+                                <p class="text-sm text-blue-700">
+                                    <strong>Beispiel:</strong> Hausgeld-Zahlung → nur Wohngeld-Konto (099900) erlaubt
+                                </p>
+                            </div>
+
+                            <div class="mt-3 pt-3 border-t border-blue-200">
+                                <p class="text-xs text-blue-600">
+                                    <strong>Hinweis:</strong> Wenn keine Einschränkung konfiguriert ist (graue Schrift "Alle Kostenkontos erlaubt"),
+                                    können alle aktiven Kostenkontos für diese Kategorie ausgewählt werden. Dies ist sinnvoll für flexible Kategorien
+                                    wie "Rechnung von Dienstleister", wo verschiedene Kostenarten möglich sind.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">Kategorie</th>
+                            <th scope="col" class="px-4 py-3 text-center">Status</th>
+                            <th scope="col" class="px-4 py-3">Erlaubte Kostenkontos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for kategorie in zahlungskategorien %}
+                        <tr class="bg-white border-b hover:bg-gray-50 {{ not kategorie.isActive ? 'opacity-60' : '' }}">
+                            <td class="px-4 py-4 font-medium text-gray-900">
+                                {{ kategorie.name }}
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                {% if kategorie.isActive %}
+                                    <span class="inline-flex items-center px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded" title="Aktiv">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        <span class="ml-1">Aktiv</span>
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-800 bg-gray-200 rounded" title="Inaktiv">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        <span class="ml-1">Inaktiv</span>
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-4">
+                                {% set kostenkontoFilter = kategorie.fieldConfig['kostenkonto_filter'] ?? [] %}
+                                {% if kostenkontoFilter is empty %}
+                                    <span class="text-gray-400 italic">Alle Kostenkontos erlaubt</span>
+                                {% else %}
+                                    <div class="flex flex-wrap gap-2">
+                                        {% for konto in kostenkontos %}
+                                            {% if konto.nummer in kostenkontoFilter %}
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ konto.isActive ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-600 line-through' }}" title="{{ konto.isActive ? 'Aktiv' : 'Inaktiv' }}">
+                                                    {{ konto.nummer }} - {{ konto.bezeichnung }}
+                                                    {% if not konto.isActive %}
+                                                        <svg class="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                                        </svg>
+                                                    {% endif %}
+                                                </span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- AI Query Tab -->
+        <div class="{{ app.request.query.get('tab') == 'ai-query' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-ai-query" role="tabpanel" aria-labelledby="ai-query-tab">
+            <div class="mb-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">AI-Finanzabfragen</h3>
+                <p class="text-sm text-gray-600">Stellen Sie Fragen zu Finanzdaten in natürlicher deutscher Sprache und erhalten Sie intelligente Antworten.</p>
+            </div>
+
+            <!-- Info Box -->
+            <div class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div class="text-sm text-blue-800 dark:text-blue-200">
+                        <p class="font-medium mb-1">Hinweis:</p>
+                        <p>Diese Funktion ist nur in der lokalen Entwicklungsumgebung verfügbar und nutzt lokale KI (Ollama) für 100% Datenschutz.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Query Input -->
+            <div class="mb-6">
+                <label for="ai-query-input" class="block mb-2 text-sm font-medium text-gray-900">Ihre Frage</label>
+                <input type="text" id="ai-query-input"
+                       class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 mb-3"
+                       placeholder="z.B. Wie viel haben wir 2024 für Heizung ausgegeben?"
+                       onkeypress="if(event.key === 'Enter') submitAiQuery('ollama')">
+
+                <!-- Three Query Buttons -->
+                <div class="flex gap-2">
+                    <button type="button" onclick="submitAiQuery('ollama')" id="ai-query-ollama-btn"
+                            class="flex-1 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none">
+                        🤖 Frage Ollama (DSGVO)
+                    </button>
+
+                    {% if app.environment == 'dev' %}
+                    <button type="button" onclick="submitAiQuery('claude')" id="ai-query-claude-btn"
+                            class="flex-1 text-white bg-purple-700 hover:bg-purple-800 focus:ring-4 focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none">
+                        ✨ Frage Claude
+                    </button>
+
+                    <button type="button" onclick="submitAiQuery('compare')" id="ai-query-compare-btn"
+                            class="flex-1 text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none">
+                        ⚖️ Vergleichen
+                    </button>
+                    {% endif %}
+                </div>
+
+                {% if app.environment == 'dev' %}
+                <p class="mt-2 text-xs text-gray-500">
+                    💡 Tipp: Verwenden Sie "Vergleichen" um beide Antworten zu sehen und die bessere mit 👍 zu bewerten. So lernt Ollama!
+                </p>
+                {% endif %}
+            </div>
+
+            <!-- Loading State -->
+            <div id="ai-query-loading" class="hidden mb-6">
+                <div class="flex items-center justify-center p-6 bg-white rounded-lg border border-gray-200">
+                    <svg class="animate-spin h-8 w-8 text-blue-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-gray-700">KI analysiert Ihre Anfrage...</span>
+                </div>
+            </div>
+
+            <!-- Answer Display -->
+            <div id="ai-query-answer" class="hidden mb-6">
+                <h4 class="text-sm font-semibold text-gray-900 mb-2">Antwort:</h4>
+                <div class="bg-white rounded-lg border border-gray-200 p-4">
+                    <div id="ai-query-answer-text" class="text-gray-700 whitespace-pre-wrap"></div>
+                </div>
+            </div>
+
+            <!-- Error Display -->
+            <div id="ai-query-error" class="hidden mb-6">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div class="text-sm text-red-800">
+                            <p class="font-medium mb-1">Fehler</p>
+                            <p id="ai-query-error-text"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Example Queries -->
+            <div class="mb-6">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3">Beispiel-Anfragen:</h4>
+                <div id="ai-query-examples" class="space-y-4">
+                    <!-- Examples will be loaded here -->
+                    <div class="text-center text-gray-500 py-4">
+                        <svg class="animate-spin h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Beispiele werden geladen...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if is_granted('ROLE_SUPER_ADMIN') %}
+        <!-- Benutzer Tab -->
+        <div class="{{ app.request.query.get('tab') == 'benutzer' ? '' : 'hidden' }} p-4 rounded-lg bg-gray-50" id="styled-benutzer" role="tabpanel" aria-labelledby="benutzer-tab">
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Benutzerverwaltung</h3>
+            </div>
+
+            {% for message in app.flashes('success') %}
+                <div class="p-4 mb-4 text-sm text-green-800 rounded-lg bg-green-50" role="alert">{{ message }}</div>
+            {% endfor %}
+            {% for message in app.flashes('error') %}
+                <div class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50" role="alert">{{ message }}</div>
+            {% endfor %}
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">Vorname</th>
+                            <th scope="col" class="px-4 py-3">Nachname</th>
+                            <th scope="col" class="px-4 py-3">E-Mail</th>
+                            <th scope="col" class="px-4 py-3">Passwort</th>
+                            <th scope="col" class="px-4 py-3">Rollen</th>
+                            <th scope="col" class="px-4 py-3">Aktiv</th>
+                            <th scope="col" class="px-4 py-3">Erstellt</th>
+                            <th scope="col" class="px-4 py-3">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- New user row -->
+                        <tr class="bg-green-50 border-b" id="new-user-row">
+                            <td class="px-4 py-4" colspan="8">
+                                <button type="button" onclick="showNewUserForm()" id="new-user-btn" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5">
+                                    + Neuer Benutzer
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="bg-green-50 border-b hidden" id="new-user-form-row">
+                            <td class="px-4 py-4">
+                                <input type="text" id="new-user-firstName" placeholder="Vorname" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2" required>
+                            </td>
+                            <td class="px-4 py-4">
+                                <input type="text" id="new-user-lastName" placeholder="Nachname" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2" required>
+                            </td>
+                            <td class="px-4 py-4">
+                                <input type="email" id="new-user-email" placeholder="E-Mail" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2" required>
+                            </td>
+                            <td class="px-4 py-4">
+                                <input type="password" id="new-user-password" placeholder="Passwort" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2" required>
+                            </td>
+                            <td class="px-4 py-4">
+                                <div class="space-y-1">
+                                    {% for roleKey, roleLabel in availableRoles %}
+                                        <label class="flex items-center text-xs">
+                                            <input type="checkbox" id="new-user-role-{{ roleKey }}" value="{{ roleKey }}" class="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mr-1">
+                                            {{ roleLabel }}
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="px-4 py-4">-</td>
+                            <td class="px-4 py-4">-</td>
+                            <td class="px-4 py-4">
+                                <button type="button" onclick="addNewUser()" class="text-green-600 hover:underline mr-2">Hinzufügen</button>
+                                <button type="button" onclick="cancelNewUser()" class="text-gray-600 hover:underline">Abbrechen</button>
+                            </td>
+                        </tr>
+
+                        {% for user in users %}
+                        <tr class="bg-white border-b hover:bg-gray-50 {{ not user.active ? 'opacity-60' : '' }}" id="user-row-{{ user.id }}">
+                            <td class="px-4 py-4">
+                                <span id="user-firstName-{{ user.id }}">{{ user.firstName }}</span>
+                                <input type="text" id="user-firstName-input-{{ user.id }}" value="{{ user.firstName }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="user-lastName-{{ user.id }}">{{ user.lastName }}</span>
+                                <input type="text" id="user-lastName-input-{{ user.id }}" value="{{ user.lastName }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="user-email-{{ user.id }}">{{ user.email }}</span>
+                                <input type="email" id="user-email-input-{{ user.id }}" value="{{ user.email }}" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="user-password-{{ user.id }}">********</span>
+                                <input type="password" id="user-password-input-{{ user.id }}" placeholder="Leer = nicht ändern" class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                            </td>
+                            <td class="px-4 py-4">
+                                <span id="user-roles-{{ user.id }}">
+                                    {% for role in user.roles %}
+                                        {% if role != 'ROLE_USER' %}
+                                            {% if role == 'ROLE_SUPER_ADMIN' %}
+                                                <span class="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded mb-1 inline-block">Super Admin</span>
+                                            {% elseif role == 'ROLE_WEG_ADMIN' %}
+                                                <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-0.5 rounded mb-1 inline-block">WEG Admin</span>
+                                            {% elseif role == 'ROLE_ACCOUNTANT' %}
+                                                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded mb-1 inline-block">Buchhalter</span>
+                                            {% elseif role == 'ROLE_PROPERTY_MANAGER' %}
+                                                <span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded mb-1 inline-block">Hausverwaltung</span>
+                                            {% elseif role == 'ROLE_VIEWER' %}
+                                                <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2 py-0.5 rounded mb-1 inline-block">Betrachter</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </span>
+                                <div id="user-roles-input-{{ user.id }}" class="hidden space-y-1">
+                                    {% for roleKey, roleLabel in availableRoles %}
+                                        <label class="flex items-center text-xs">
+                                            <input type="checkbox" data-role="{{ roleKey }}" {{ roleKey in user.roles ? 'checked' : '' }} class="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mr-1">
+                                            {{ roleLabel }}
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="px-4 py-4">
+                                {% if user.active %}
+                                    <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Aktiv</span>
+                                {% else %}
+                                    <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">Inaktiv</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-4 text-xs text-gray-400">{{ user.createdAt|date('d.m.Y') }}</td>
+                            <td class="px-4 py-4">
+                                <button type="button" onclick="editUser({{ user.id }})" id="user-edit-btn-{{ user.id }}" class="text-blue-600 hover:underline mr-2">Bearbeiten</button>
+                                <button type="button" onclick="saveUser({{ user.id }})" id="user-save-btn-{{ user.id }}" class="hidden text-green-600 hover:underline mr-2">Speichern</button>
+                                <button type="button" onclick="cancelUser({{ user.id }})" id="user-cancel-btn-{{ user.id }}" class="hidden text-gray-600 hover:underline mr-2">Abbrechen</button>
+                                <form method="POST" action="{{ path('app_weg_user_toggle', {id: user.id}) }}" class="inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('user_toggle') }}">
+                                    <button type="submit" class="text-{{ user.active ? 'red' : 'green' }}-600 hover:underline text-xs">{{ user.active ? 'Deaktivieren' : 'Aktivieren' }}</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        </div>
+    </main>
+</div>
+
+<script>
+const csrfTokens = {
+    weg_edit: '{{ csrf_token('weg_edit')|e('js') }}',
+    einheit_edit: '{{ csrf_token('einheit_edit')|e('js') }}',
+    umlageschluessel_edit: '{{ csrf_token('umlageschluessel_edit')|e('js') }}',
+    kostenkonto_edit: '{{ csrf_token('kostenkonto_edit')|e('js') }}',
+    user_new: '{{ csrf_token('user_new')|e('js') }}',
+    user_edit: '{{ csrf_token('user_edit')|e('js') }}'
+};
+
+function appendCsrfToken(form, tokenId) {
+    const token = document.createElement('input');
+    token.type = 'hidden';
+    token.name = '_token';
+    token.value = csrfTokens[tokenId];
+    form.appendChild(token);
+}
+
+// Initialize tabs function
+function initializeTabs() {
+    // Re-initialize Flowbite components
+    if (typeof window.initFlowbite === 'function') {
+        window.initFlowbite();
+    }
+    
+    // Handle initial tab selection based on URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab');
+    
+    if (activeTab) {
+        // Small delay to ensure Flowbite has initialized
+        setTimeout(() => {
+            const tabButton = document.getElementById(activeTab + '-styled-tab');
+            if (tabButton) {
+                tabButton.click();
+            }
+        }, 100);
+    }
+}
+
+// Handle both regular DOM load and Turbo navigation
+document.addEventListener('DOMContentLoaded', initializeTabs);
+document.addEventListener('turbo:load', initializeTabs);
+document.addEventListener('turbo:frame-load', initializeTabs);
+
+// WEG editing functions
+function editWeg(id) {
+    document.getElementById('weg-bezeichnung-' + id).classList.add('hidden');
+    document.getElementById('weg-adresse-' + id).classList.add('hidden');
+    document.getElementById('weg-bezeichnung-input-' + id).classList.remove('hidden');
+    document.getElementById('weg-adresse-input-' + id).classList.remove('hidden');
+    document.getElementById('weg-edit-btn-' + id).classList.add('hidden');
+    document.getElementById('weg-save-btn-' + id).classList.remove('hidden');
+    document.getElementById('weg-cancel-btn-' + id).classList.remove('hidden');
+}
+
+function saveWeg(id) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/weg/' + id + '/edit';
+    appendCsrfToken(form, 'weg_edit');
+    
+    const bezeichnung = document.getElementById('weg-bezeichnung-input-' + id).value;
+    const adresse = document.getElementById('weg-adresse-input-' + id).value;
+    
+    form.innerHTML = `
+        <input type="hidden" name="bezeichnung" value="${bezeichnung}">
+        <input type="hidden" name="adresse" value="${adresse}">
+    `;
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function cancelWeg(id) {
+    document.getElementById('weg-bezeichnung-' + id).classList.remove('hidden');
+    document.getElementById('weg-adresse-' + id).classList.remove('hidden');
+    document.getElementById('weg-bezeichnung-input-' + id).classList.add('hidden');
+    document.getElementById('weg-adresse-input-' + id).classList.add('hidden');
+    document.getElementById('weg-edit-btn-' + id).classList.remove('hidden');
+    document.getElementById('weg-save-btn-' + id).classList.add('hidden');
+    document.getElementById('weg-cancel-btn-' + id).classList.add('hidden');
+}
+
+// WEG-Einheit editing functions
+function editEinheit(id) {
+    const fields = ['nummer', 'bezeichnung', 'miteigentuemer', 'mieter', 'miteigentumsanteile', 'stimme', 'adresse', 'telefon', 'hauptwohneinheit'];
+    fields.forEach(field => {
+        document.getElementById('einheit-' + field + '-' + id).classList.add('hidden');
+        document.getElementById('einheit-' + field + '-input-' + id).classList.remove('hidden');
+    });
+    document.getElementById('einheit-edit-btn-' + id).classList.add('hidden');
+    document.getElementById('einheit-save-btn-' + id).classList.remove('hidden');
+    document.getElementById('einheit-cancel-btn-' + id).classList.remove('hidden');
+}
+
+function saveEinheit(id) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/weg/einheit/' + id + '/edit';
+    appendCsrfToken(form, 'einheit_edit');
+    
+    const fields = ['nummer', 'bezeichnung', 'miteigentuemer', 'mieter', 'miteigentumsanteile', 'stimme', 'adresse', 'telefon', 'hauptwohneinheit'];
+    fields.forEach(field => {
+        const value = document.getElementById('einheit-' + field + '-input-' + id).value;
+        form.innerHTML += `<input type="hidden" name="${field}" value="${value}">`;
+    });
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function cancelEinheit(id) {
+    const fields = ['nummer', 'bezeichnung', 'miteigentuemer', 'mieter', 'miteigentumsanteile', 'stimme', 'adresse', 'telefon', 'hauptwohneinheit'];
+    fields.forEach(field => {
+        document.getElementById('einheit-' + field + '-' + id).classList.remove('hidden');
+        document.getElementById('einheit-' + field + '-input-' + id).classList.add('hidden');
+    });
+    document.getElementById('einheit-edit-btn-' + id).classList.remove('hidden');
+    document.getElementById('einheit-save-btn-' + id).classList.add('hidden');
+    document.getElementById('einheit-cancel-btn-' + id).classList.add('hidden');
+}
+
+// Umlageschlüssel editing functions
+function editSchluessel(id) {
+    document.getElementById('schluessel-bezeichnung-' + id).classList.add('hidden');
+    document.getElementById('schluessel-beschreibung-' + id).classList.add('hidden');
+    document.getElementById('schluessel-bezeichnung-input-' + id).classList.remove('hidden');
+    document.getElementById('schluessel-beschreibung-input-' + id).classList.remove('hidden');
+    document.getElementById('schluessel-edit-btn-' + id).classList.add('hidden');
+    document.getElementById('schluessel-save-btn-' + id).classList.remove('hidden');
+    document.getElementById('schluessel-cancel-btn-' + id).classList.remove('hidden');
+}
+
+function saveSchluessel(id) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/weg/umlageschluessel/' + id + '/edit';
+    appendCsrfToken(form, 'umlageschluessel_edit');
+    
+    const bezeichnung = document.getElementById('schluessel-bezeichnung-input-' + id).value;
+    const beschreibung = document.getElementById('schluessel-beschreibung-input-' + id).value;
+    
+    form.innerHTML = `
+        <input type="hidden" name="bezeichnung" value="${bezeichnung}">
+        <input type="hidden" name="beschreibung" value="${beschreibung}">
+    `;
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function cancelSchluessel(id) {
+    document.getElementById('schluessel-bezeichnung-' + id).classList.remove('hidden');
+    document.getElementById('schluessel-beschreibung-' + id).classList.remove('hidden');
+    document.getElementById('schluessel-bezeichnung-input-' + id).classList.add('hidden');
+    document.getElementById('schluessel-beschreibung-input-' + id).classList.add('hidden');
+    document.getElementById('schluessel-edit-btn-' + id).classList.remove('hidden');
+    document.getElementById('schluessel-save-btn-' + id).classList.add('hidden');
+    document.getElementById('schluessel-cancel-btn-' + id).classList.add('hidden');
+}
+
+// Kostenkonto editing functions
+function editKonto(id) {
+    const fields = ['nummer', 'bezeichnung', 'kategorisierungsTyp', 'umlageschluessel', 'taxDeductible', 'isActive'];
+    fields.forEach(field => {
+        document.getElementById('konto-' + field + '-' + id).classList.add('hidden');
+        document.getElementById('konto-' + field + '-input-' + id).classList.remove('hidden');
+    });
+    document.getElementById('konto-edit-btn-' + id).classList.add('hidden');
+    document.getElementById('konto-save-btn-' + id).classList.remove('hidden');
+    document.getElementById('konto-cancel-btn-' + id).classList.remove('hidden');
+}
+
+function saveKonto(id) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/weg/kostenkonto/' + id + '/edit';
+    appendCsrfToken(form, 'kostenkonto_edit');
+    
+    const fields = ['nummer', 'bezeichnung', 'kategorisierungsTyp', 'umlageschluessel', 'taxDeductible', 'isActive'];
+    fields.forEach(field => {
+        const value = document.getElementById('konto-' + field + '-input-' + id).value;
+        form.innerHTML += `<input type="hidden" name="${field}" value="${value}">`;
+    });
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function cancelKonto(id) {
+    const fields = ['nummer', 'bezeichnung', 'kategorisierungsTyp', 'umlageschluessel', 'taxDeductible', 'isActive'];
+    fields.forEach(field => {
+        document.getElementById('konto-' + field + '-' + id).classList.remove('hidden');
+        document.getElementById('konto-' + field + '-input-' + id).classList.add('hidden');
+    });
+    document.getElementById('konto-edit-btn-' + id).classList.remove('hidden');
+    document.getElementById('konto-save-btn-' + id).classList.add('hidden');
+    document.getElementById('konto-cancel-btn-' + id).classList.add('hidden');
+}
+
+// User editing functions
+function showNewUserForm() {
+    document.getElementById('new-user-row').classList.add('hidden');
+    document.getElementById('new-user-form-row').classList.remove('hidden');
+}
+
+function cancelNewUser() {
+    document.getElementById('new-user-row').classList.remove('hidden');
+    document.getElementById('new-user-form-row').classList.add('hidden');
+    // Clear inputs
+    ['firstName', 'lastName', 'email', 'password'].forEach(field => {
+        document.getElementById('new-user-' + field).value = '';
+    });
+    document.querySelectorAll('#new-user-form-row input[type="checkbox"]').forEach(cb => cb.checked = false);
+}
+
+function addNewUser() {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/weg/user/new';
+    appendCsrfToken(form, 'user_new');
+
+    ['firstName', 'lastName', 'email', 'password'].forEach(field => {
+        const value = document.getElementById('new-user-' + field).value;
+        form.innerHTML += '<input type="hidden" name="' + field + '" value="' + escapeHtml(value) + '">';
+    });
+
+    document.querySelectorAll('#new-user-form-row input[type="checkbox"]:checked').forEach(cb => {
+        form.innerHTML += '<input type="hidden" name="roles[]" value="' + cb.value + '">';
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function editUser(id) {
+    const fields = ['firstName', 'lastName', 'email', 'password'];
+    fields.forEach(field => {
+        document.getElementById('user-' + field + '-' + id).classList.add('hidden');
+        document.getElementById('user-' + field + '-input-' + id).classList.remove('hidden');
+    });
+    document.getElementById('user-roles-' + id).classList.add('hidden');
+    document.getElementById('user-roles-input-' + id).classList.remove('hidden');
+    document.getElementById('user-edit-btn-' + id).classList.add('hidden');
+    document.getElementById('user-save-btn-' + id).classList.remove('hidden');
+    document.getElementById('user-cancel-btn-' + id).classList.remove('hidden');
+}
+
+function saveUser(id) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/weg/user/' + id + '/edit';
+    appendCsrfToken(form, 'user_edit');
+
+    ['firstName', 'lastName', 'email', 'password'].forEach(field => {
+        const value = document.getElementById('user-' + field + '-input-' + id).value;
+        form.innerHTML += '<input type="hidden" name="' + field + '" value="' + escapeHtml(value) + '">';
+    });
+
+    document.querySelectorAll('#user-roles-input-' + id + ' input[type="checkbox"]:checked').forEach(cb => {
+        form.innerHTML += '<input type="hidden" name="roles[]" value="' + cb.dataset.role + '">';
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function cancelUser(id) {
+    const fields = ['firstName', 'lastName', 'email', 'password'];
+    fields.forEach(field => {
+        document.getElementById('user-' + field + '-' + id).classList.remove('hidden');
+        document.getElementById('user-' + field + '-input-' + id).classList.add('hidden');
+    });
+    document.getElementById('user-roles-' + id).classList.remove('hidden');
+    document.getElementById('user-roles-input-' + id).classList.add('hidden');
+    document.getElementById('user-edit-btn-' + id).classList.remove('hidden');
+    document.getElementById('user-save-btn-' + id).classList.add('hidden');
+    document.getElementById('user-cancel-btn-' + id).classList.add('hidden');
+}
+
+// AI Query Functions
+async function loadAiQueryExamples() {
+    try {
+        const response = await fetch('/api/ai/query/examples');
+        const data = await response.json();
+
+        if (data.success && data.examples) {
+            const examplesContainer = document.getElementById('ai-query-examples');
+            examplesContainer.innerHTML = '';
+
+            data.examples.forEach(category => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.innerHTML = `
+                    <h5 class="text-sm font-medium text-gray-700 mb-2">${category.category}</h5>
+                    <div class="space-y-2">
+                        ${category.queries.map(query => `
+                            <button type="button" onclick="useExampleQuery('${query.replace(/'/g, "\\'")}')"
+                                    class="w-full text-left px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 text-sm text-gray-700 transition-colors">
+                                ${query}
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+                examplesContainer.appendChild(categoryDiv);
+            });
+        }
+    } catch (error) {
+        console.error('Failed to load examples:', error);
+        const examplesContainer = document.getElementById('ai-query-examples');
+        examplesContainer.innerHTML = '<p class="text-red-600 text-sm">Beispiele konnten nicht geladen werden.</p>';
+    }
+}
+
+function useExampleQuery(query) {
+    document.getElementById('ai-query-input').value = query;
+    submitAiQuery('ollama');
+}
+
+async function submitAiQuery(provider = 'ollama') {
+    const input = document.getElementById('ai-query-input');
+    const query = input.value.trim();
+
+    if (!query) {
+        showAiQueryError('Bitte geben Sie eine Frage ein.');
+        return;
+    }
+
+    // Hide previous results
+    hideAiQueryAnswer();
+    hideAiQueryError();
+
+    // Show loading
+    showAiQueryLoading();
+
+    // Disable all buttons
+    const buttons = ['ai-query-ollama-btn', 'ai-query-claude-btn', 'ai-query-compare-btn'];
+    buttons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    });
+
+    const endpoints = {
+        'ollama': '/api/ai/query/ollama',
+        'claude': '/api/ai/query/claude',
+        'compare': '/api/ai/query/compare'
+    };
+
+    try {
+        const response = await fetch(endpoints[provider], {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query }),
+        });
+
+        const data = await response.json();
+
+        hideAiQueryLoading();
+
+        if (provider === 'compare') {
+            showComparisonResults(data);
+        } else if (data.success) {
+            showAiQueryAnswer(data.answer, data.provider, data.response_time, data.response_id, data.cost);
+        } else {
+            showAiQueryError(data.error || 'Ein Fehler ist aufgetreten.');
+        }
+    } catch (error) {
+        hideAiQueryLoading();
+        showAiQueryError('Netzwerkfehler: ' + error.message);
+    } finally {
+        // Re-enable all buttons
+        buttons.forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        });
+    }
+}
+
+function showAiQueryLoading() {
+    document.getElementById('ai-query-loading').classList.remove('hidden');
+}
+
+function hideAiQueryLoading() {
+    document.getElementById('ai-query-loading').classList.add('hidden');
+}
+
+function showAiQueryAnswer(answer, provider, responseTime, responseId, cost) {
+    const providerLabels = {
+        'ollama': '🤖 Ollama',
+        'claude': '✨ Claude'
+    };
+    const providerLabel = providerLabels[provider] || provider;
+
+    const costStr = cost > 0 ? `, ~${cost.toFixed(3)}€` : '';
+    const textDiv = document.getElementById('ai-query-answer-text');
+
+    textDiv.innerHTML = `
+        <div class="mb-3 pb-3 border-b flex items-center justify-between">
+            <span class="text-sm text-gray-600">${providerLabel} (${responseTime?.toFixed(2)}s${costStr})</span>
+        </div>
+        <div class="whitespace-pre-wrap">${escapeHtml(answer)}</div>
+        ${responseId ? `
+            <div class="mt-4 pt-4 border-t flex items-center gap-2">
+                <span class="text-sm text-gray-600">War diese Antwort hilfreich?</span>
+                <button onclick="rateResponse(${responseId}, 'good')"
+                        class="inline-flex items-center px-3 py-1 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-colors">
+                    👍 Gut
+                </button>
+                <button onclick="rateResponse(${responseId}, 'bad')"
+                        class="inline-flex items-center px-3 py-1 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors">
+                    👎 Schlecht
+                </button>
+            </div>
+        ` : ''}
+    `;
+
+    document.getElementById('ai-query-answer').classList.remove('hidden');
+}
+
+function showComparisonResults(data) {
+    const textDiv = document.getElementById('ai-query-answer-text');
+    let html = '<div class="space-y-4">';
+
+    // Ollama result
+    if (data.providers && data.providers.ollama) {
+        const ollama = data.providers.ollama;
+        html += `
+            <div class="border-l-4 border-blue-500 pl-4 bg-blue-50 rounded-r-lg p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h5 class="font-semibold text-blue-800">🤖 Ollama</h5>
+                    <span class="text-xs text-blue-600">${ollama.response_time?.toFixed(2)}s</span>
+                </div>
+                ${ollama.available === false ?
+                    `<p class="text-red-600">${ollama.error}</p>` :
+                    ollama.error ?
+                        `<p class="text-red-600">${ollama.error}</p>` :
+                        `<div class="text-gray-800 whitespace-pre-wrap">${escapeHtml(ollama.answer)}</div>
+                        ${ollama.response_id ? `
+                            <div class="mt-3 pt-3 border-t border-blue-200 flex items-center gap-2">
+                                <span class="text-xs text-gray-600">Bewerten:</span>
+                                <button onclick="rateResponse(${ollama.response_id}, 'good')"
+                                        class="text-xs px-2 py-1 text-green-700 bg-green-100 hover:bg-green-200 rounded border border-green-300">
+                                    👍 Gut
+                                </button>
+                                <button onclick="rateResponse(${ollama.response_id}, 'bad')"
+                                        class="text-xs px-2 py-1 text-red-700 bg-red-100 hover:bg-red-200 rounded border border-red-300">
+                                    👎 Schlecht
+                                </button>
+                            </div>
+                        ` : ''}`
+                }
+            </div>
+        `;
+    }
+
+    // Claude result
+    if (data.providers && data.providers.claude) {
+        const claude = data.providers.claude;
+        html += `
+            <div class="border-l-4 border-purple-500 pl-4 bg-purple-50 rounded-r-lg p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h5 class="font-semibold text-purple-800">✨ Claude</h5>
+                    <span class="text-xs text-purple-600">${claude.response_time?.toFixed(2)}s, ~${claude.cost?.toFixed(3)}€</span>
+                </div>
+                ${claude.available === false ?
+                    `<p class="text-red-600">${claude.error}</p>` :
+                    claude.error ?
+                        `<p class="text-red-600">${claude.error}</p>` :
+                        `<div class="text-gray-800 whitespace-pre-wrap">${escapeHtml(claude.answer)}</div>
+                        ${claude.response_id ? `
+                            <div class="mt-3 pt-3 border-t border-purple-200 flex items-center gap-2">
+                                <span class="text-xs text-gray-600">Bewerten:</span>
+                                <button onclick="rateResponse(${claude.response_id}, 'good')"
+                                        class="text-xs px-2 py-1 text-green-700 bg-green-100 hover:bg-green-200 rounded border border-green-300">
+                                    👍 Gut
+                                </button>
+                                <button onclick="rateResponse(${claude.response_id}, 'bad')"
+                                        class="text-xs px-2 py-1 text-red-700 bg-red-100 hover:bg-red-200 rounded border border-red-300">
+                                    👎 Schlecht
+                                </button>
+                            </div>
+                        ` : ''}`
+                }
+            </div>
+        `;
+    }
+
+    html += '</div>';
+    textDiv.innerHTML = html;
+    document.getElementById('ai-query-answer').classList.remove('hidden');
+}
+
+async function rateResponse(responseId, rating) {
+    try {
+        const response = await fetch(`/api/ai/response/${responseId}/rate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ rating }),
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            // Show success feedback
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = rating === 'good' ? '✓ Danke!' : '✓ Notiert';
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+            }, 2000);
+        }
+    } catch (error) {
+        console.error('Rating failed:', error);
+        alert('Bewertung fehlgeschlagen: ' + error.message);
+    }
+}
+
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+function hideAiQueryAnswer() {
+    document.getElementById('ai-query-answer').classList.add('hidden');
+}
+
+function showAiQueryError(error) {
+    document.getElementById('ai-query-error-text').textContent = error;
+    document.getElementById('ai-query-error').classList.remove('hidden');
+}
+
+function hideAiQueryError() {
+    document.getElementById('ai-query-error').classList.add('hidden');
+}
+
+// Load examples when AI Query tab is shown
+document.addEventListener('DOMContentLoaded', function() {
+    loadAiQueryExamples();
+
+    // Also reload examples when tab is clicked
+    const aiQueryTab = document.getElementById('ai-query-styled-tab');
+    if (aiQueryTab) {
+        aiQueryTab.addEventListener('click', function() {
+            const examplesContainer = document.getElementById('ai-query-examples');
+            if (examplesContainer && examplesContainer.children.length === 1) {
+                loadAiQueryExamples();
+            }
+        });
+    }
+});
+
+document.addEventListener('turbo:load', function() {
+    loadAiQueryExamples();
+});
+</script>
+{% endblock %}

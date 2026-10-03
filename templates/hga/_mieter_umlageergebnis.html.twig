@@ -1,0 +1,109 @@
+<div class="{{ section_class|default('section allow-break') }}">
+    <div class="section-title" style="display: flex; justify-content: space-between; align-items: baseline; padding: 4px 5px; margin-bottom: 6px;">
+        <span>{{ title }}</span>
+        {% if subtitle|default('') %}
+        <span style="font-size: 7.5pt; color: #666; font-weight: normal; white-space: nowrap; margin-left: 10px;">{{ subtitle }}</span>
+        {% endif %}
+    </div>
+
+    {% if show_heading|default(false) %}
+    <div style="margin-bottom: 20px;">
+        <h3>Umlagefähige Betriebskosten</h3>
+    {% endif %}
+        <table class="cost-table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th style="text-align: left;">Kostenart</th>
+                    <th style="text-align: center; width: 20%;">Umlageschlüssel</th>
+                    <th style="text-align: right; width: 20%;">Gesamtkosten</th>
+                    <th style="text-align: right; width: 20%;">Ihr Anteil</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set totalUmlagefaehigWeg = 0 %}
+                {% set totalUmlagefaehigUnit = 0 %}
+
+                {% if external_costs %}
+                <tr class="subtotal">
+                    <td colspan="4"><strong>HEIZUNG/WASSER/ABRECHNUNG:</strong></td>
+                </tr>
+                <tr>
+                    <td>ext. berechn. Heizkosten</td>
+                    <td style="text-align: center;">01*</td>
+                    <td class="amount">{{ external_costs.heating.total|default(0)|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ external_costs.heating.unit_share|default(0)|number_format(2, ',', '.') }} €</td>
+                </tr>
+                <tr>
+                    <td>ext. berechn. Wasser-/sonst. Kosten</td>
+                    <td style="text-align: center;">01*</td>
+                    <td class="amount">{{ external_costs.water.total|default(0)|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ external_costs.water.unit_share|default(0)|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set extTotal = (external_costs.heating.total|default(0)) + (external_costs.water.total|default(0)) %}
+                {% set extUnit = (external_costs.heating.unit_share|default(0)) + (external_costs.water.unit_share|default(0)) %}
+                <tr class="subtotal">
+                    <td colspan="2">Zwischensumme: Heizung/Wasser</td>
+                    <td class="amount">{{ extTotal|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ extUnit|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set totalUmlagefaehigWeg = totalUmlagefaehigWeg + extTotal %}
+                {% set totalUmlagefaehigUnit = totalUmlagefaehigUnit + extUnit %}
+                {% endif %}
+
+                {% if cost_items|default([])|length > 0 %}
+                <tr class="subtotal">
+                    <td colspan="4"><strong>SONSTIGE UMLAGEFÄHIGE KOSTEN:</strong></td>
+                </tr>
+                {% set sonstigeTotal = 0 %}
+                {% set sonstigeAnteil = 0 %}
+                {% for item in cost_items|default([]) %}
+                    {% if item.total|default(0) > 0 %}
+                    <tr>
+                        <td>{{ item.kostenkonto }} - {{ item.beschreibung }}</td>
+                        <td style="text-align: center;">{{ item.verteilungsschluessel|default('05*') }}</td>
+                        <td class="amount">{{ item.total|number_format(2, ',', '.') }} €</td>
+                        <td class="amount">{{ item.anteil|number_format(2, ',', '.') }} €</td>
+                    </tr>
+                    {% set sonstigeTotal = sonstigeTotal + item.total %}
+                    {% set sonstigeAnteil = sonstigeAnteil + item.anteil %}
+                    {% endif %}
+                {% endfor %}
+                <tr class="subtotal">
+                    <td colspan="2">Zwischensumme: Sonstige</td>
+                    <td class="amount">{{ sonstigeTotal|number_format(2, ',', '.') }} €</td>
+                    <td class="amount">{{ sonstigeAnteil|number_format(2, ',', '.') }} €</td>
+                </tr>
+                {% set totalUmlagefaehigWeg = totalUmlagefaehigWeg + sonstigeTotal %}
+                {% set totalUmlagefaehigUnit = totalUmlagefaehigUnit + sonstigeAnteil %}
+                {% endif %}
+
+                <tr class="total">
+                    <td colspan="2"><strong>SUMME: Umlagefähige Betriebskosten</strong></td>
+                    <td class="amount"><strong>{{ totalUmlagefaehigWeg|number_format(2, ',', '.') }} €</strong></td>
+                    <td class="amount"><strong>{{ totalUmlagefaehigUnit|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    {% if show_heading|default(false) %}
+    </div>
+    {% endif %}
+
+    {% if show_result|default(false) %}
+    <div style="margin-top: 20px; border-top: 3px solid #333; padding-top: 10px;">
+        <table class="cost-table">
+            <tbody>
+                <tr>
+                    <td style="width: 60%;"><strong>Ihre Betriebskosten:</strong></td>
+                    <td class="amount"><strong>{{ totalUmlagefaehigUnit|number_format(2, ',', '.') }} €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="result-box" style="margin-top: 15px;">
+            <div class="result-text">
+                Ihre umlagefähigen Betriebskosten {{ year }}: {{ totalUmlagefaehigUnit|number_format(2, ',', '.') }} €
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>

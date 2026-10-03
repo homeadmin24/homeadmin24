@@ -1,0 +1,50 @@
+@import "tailwindcss";
+@import "tailwindcss/utilities";
+
+
+/* Custom styles*/
+.positive-amount {
+    color: #10b981;
+}
+
+.negative-amount {
+    color: #ef4444;
+}
+
+.modal {
+    z-index: 50;
+}
+
+.nav-active {
+    background-color: #f3f4f6;
+}
+.dark .nav-active {
+    background-color: #374151;
+}
+
+/* DataTable styling fixes */
+.dataTable-wrapper {
+    padding-bottom: 60px; /* Add space for pagination */
+}
+
+.dataTable-pagination {
+    margin-top: 20px;
+    padding: 10px 0;
+}
+
+/* Table cell text handling */
+.dataTable-table td {
+    word-wrap: break-word;
+    word-break: break-word;
+    max-width: 0;
+    overflow: hidden;
+}
+
+/* Specific column styling */
+.dataTable-table td:nth-child(2) { /* Bezeichnung */
+    max-width: 300px;
+}
+
+.dataTable-table td:nth-child(5) { /* Kostenkonto */
+    max-width: 200px;
+}

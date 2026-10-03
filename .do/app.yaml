@@ -1,0 +1,62 @@
+# DigitalOcean App Platform Configuration for homeadmin24 WEG Management System
+#
+# This is an alternative to deploy.template.yaml for direct deployment
+# Deploy using: doctl apps create --spec .do/app.yaml
+
+name: homeadmin24-weg-management
+region: fra
+
+services:
+  - name: web
+    github:
+      repo: homeadmin24/hausman
+      branch: main
+      deploy_on_push: true
+
+    environment_slug: php
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: basic-xxs
+
+    envs:
+      - key: APP_ENV
+        value: "prod"
+      - key: APP_SECRET
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: "CHANGE_ME_GENERATE_RANDOM_SECRET"
+      - key: DATABASE_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${homeadmin24db.DATABASE_URL}
+      - key: MAILER_DSN
+        scope: RUN_TIME
+        value: "null://null"
+
+    build_command: |
+      composer install --no-dev --optimize-autoloader
+      npm install
+      npm run build
+      php bin/console doctrine:migrations:migrate --no-interaction
+      php bin/console cache:clear
+      php bin/console cache:warmup
+
+    run_command: |
+      heroku-php-nginx -C .do/nginx.conf public/
+
+    routes:
+      - path: /
+
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 10
+      period_seconds: 10
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
+
+databases:
+  - name: homeadmin24db
+    engine: MYSQL
+    version: "8"
+    production: true
+    cluster_name: homeadmin24-db-cluster
