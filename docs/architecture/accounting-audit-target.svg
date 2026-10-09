@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1360" viewBox="0 0 1600 1360" role="img" aria-labelledby="title description">
+  <title id="title">HomeAdmin24 – Zielarchitektur für Accounting und Audit</title>
+  <desc id="description">Zwei Workflows: Dokumente und Bankdaten werden zu Accounting und einem Abrechnungsentwurf. Fremde Abrechnungen bleiben separate Kandidaten. Eine gemeinsame deterministische Audit Engine prüft beide anhand bestätigter Governance und versioniertem Rechtswissen. Eigene Abrechnungen werden erst nach erfolgreichem Self Audit als PDF freigegeben. Evidence und Versionierung verbinden alle Schritte.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L8 5 L1 9" fill="none" stroke="#62758c" stroke-width="1.7"/></marker>
+    <marker id="green-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L8 5 L1 9" fill="none" stroke="#168268" stroke-width="1.7"/></marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; }
+      .heading { font-size: 25px; font-weight: 700; fill: #142a43; }
+      .body { font-size: 19px; fill: #415772; }
+      .small { font-size: 16px; fill: #526680; }
+      .label { font-size: 14px; font-weight: 700; letter-spacing: 1.6px; fill: #526680; }
+      .edge { fill: none; stroke: #62758c; stroke-width: 2.3; stroke-linejoin: round; marker-end: url(#arrow); }
+      .card { fill: white; stroke: #cfdae7; stroke-width: 1.5; }
+    </style>
+  </defs>
+  <rect width="1600" height="1360" fill="#f5f8fc"/>
+  <rect x="80" y="45" width="8" height="48" rx="4" fill="#2377cf"/>
+  <text x="108" y="72" font-size="35" font-weight="700" fill="#142a43">HOMEADMIN24</text>
+  <text x="108" y="100" class="body">Zielarchitektur · Abrechnung erstellen und bestehende Abrechnung prüfen</text>
+  <text x="1520" y="76" text-anchor="end" class="label">KONZEPT / LANGFRISTIG</text>
+
+  <!-- Sources -->
+  <rect x="80" y="140" width="320" height="94" rx="16" class="card"/>
+  <text x="102" y="169" class="label">A · ABRECHNUNG ERSTELLEN</text>
+  <text x="102" y="200" font-size="22" font-weight="700" fill="#142a43">Rechnungen + Bankdaten</text>
+  <text x="102" y="222" class="small">Belege · Zahlungen · Verbrauchsdaten</text>
+  <rect x="440" y="140" width="320" height="94" rx="16" class="card"/>
+  <text x="462" y="169" class="label">INDIVIDUELLE WEG-QUELLEN</text>
+  <text x="462" y="200" class="heading">Teilungserklärung</text>
+  <text x="462" y="222" class="small">Gemeinschaftsordnung · Beschlüsse</text>
+  <rect x="800" y="140" width="320" height="94" rx="16" class="card"/>
+  <text x="822" y="169" class="label">B · ABRECHNUNG PRÜFEN</text>
+  <text x="822" y="200" class="heading">Fremde Abrechnung</text>
+  <text x="822" y="222" class="small">PDF und ergänzende Nachweise</text>
+  <path class="edge" d="M240 234 V280"/>
+  <path class="edge" d="M600 234 V280"/>
+  <path class="edge" d="M960 234 V280"/>
+
+  <!-- Interpretation boundary -->
+  <rect x="80" y="280" width="1040" height="104" rx="18" fill="#eaf3ff" stroke="#83b2e6" stroke-width="1.5"/>
+  <text x="108" y="318" class="heading">Document Intelligence</text>
+  <text x="108" y="348" class="body">Klassifizieren → strukturiert extrahieren → Schema und Quellenbezug validieren</text>
+  <text x="108" y="373" class="small">KI liest und interpretiert. Unsichere Ergebnisse bleiben Vorschläge und benötigen Review.</text>
+  <path class="edge" d="M240 384 V438"/>
+  <path class="edge" d="M600 384 V438"/>
+  <path class="edge" d="M960 384 V438"/>
+
+  <!-- Separate facts, governance and imported claims -->
+  <rect x="80" y="438" width="320" height="124" rx="16" class="card"/>
+  <text x="102" y="472" class="heading">Accounting Model</text>
+  <text x="102" y="500" class="body">Fakten, Belege und Zahlungen</text>
+  <text x="102" y="526" class="small">Abgleich + Review → bestätigte Fakten</text>
+  <text x="102" y="549" class="small">WEG · Periode · Einheiten · Beträge</text>
+  <rect x="440" y="438" width="320" height="124" rx="16" fill="#effaf6" stroke="#8fcbb7" stroke-width="1.5"/>
+  <text x="462" y="472" class="heading">Governance Model</text>
+  <text x="462" y="500" class="body">Individuelle Regeln dieser WEG</text>
+  <text x="462" y="526" class="small">Vorschlag → menschliche Bestätigung</text>
+  <text x="462" y="549" class="small">Nur bestätigte Regeln steuern Checks.</text>
+  <rect x="800" y="438" width="320" height="124" rx="16" class="card"/>
+  <text x="822" y="472" class="heading">Imported Statement</text>
+  <text x="822" y="500" class="body">Extrahierte Abrechnungswerte</text>
+  <text x="822" y="526" class="small">Separates Kandidatenmodell</text>
+  <text x="822" y="549" class="small">Confidence + Evidence je Feld</text>
+
+  <!-- External, public knowledge -->
+  <rect x="1180" y="140" width="340" height="422" rx="18" fill="#f1edfc" stroke="#b6a2dd" stroke-width="1.5"/>
+  <text x="1206" y="177" class="label">SEPARATES REPOSITORY</text>
+  <text x="1206" y="213" class="heading">Legal Knowledge</text>
+  <text x="1206" y="243" class="body">homeadmin24/weg-knowledge</text>
+  <path d="M1206 269 H1494" stroke="#d4c7eb"/>
+  <text x="1206" y="304" class="body">Allgemeine Regeln und Quellen</text>
+  <text x="1206" y="338" class="body">WEG · Heizkosten · Rücklagen</text>
+  <text x="1206" y="372" class="body">Verteilung · Steuerangaben</text>
+  <text x="1206" y="417" class="small">Geprüfte Anwendbarkeit und Ausnahmen</text>
+  <text x="1206" y="445" class="small">Versioniertes Release + Rule Tests</text>
+  <text x="1206" y="497" font-size="18" font-weight="700" fill="#70539d">Keine privaten WEG-Daten</text>
+  <text x="1206" y="531" class="small">Exakte Paketversion pro Audit</text>
+
+  <path class="edge" d="M240 562 V650"/>
+  <path class="edge" d="M520 562 V603 H330 V650"/>
+  <text x="344" y="594" font-size="14" fill="#168268">bestätigte Schlüssel</text>
+  <path class="edge" d="M600 562 V650"/>
+  <path class="edge" d="M960 562 V650"/>
+  <path class="edge" d="M1350 562 V716 H1120"/>
+  <text x="1196" y="701" class="small">Regeln + Quellen</text>
+
+  <!-- Deterministic construction and shared audit -->
+  <rect x="80" y="650" width="320" height="132" rx="16" class="card"/>
+  <text x="102" y="685" class="heading">Statement Builder</text>
+  <text x="102" y="714" class="body">Allocation Engine → Entwurf</text>
+  <text x="102" y="740" class="small">Deterministische Verteilung + Summen</text>
+  <text x="102" y="766" class="small">Unveränderlicher Abrechnungsstand</text>
+  <path class="edge" d="M400 716 H440"/>
+  <rect x="440" y="650" width="680" height="132" rx="18" fill="#173955"/>
+  <text x="467" y="688" font-size="29" font-weight="700" fill="white">Audit Engine</text>
+  <text x="467" y="719" font-size="20" fill="#d7e9f9">Software rechnet und prüft. Jede Feststellung bleibt belegbar.</text>
+  <text x="467" y="747" font-size="17" fill="#d7e9f9">A: Self Audit des Entwurfs + Accounting-Snapshot</text>
+  <text x="467" y="770" font-size="17" fill="#d7e9f9">B: Prüfung der importierten Abrechnung · dieselben Prüfverträge</text>
+
+  <path class="edge" d="M600 782 V870"/>
+  <text x="454" y="830" class="small">A · eigene Entwürfe</text>
+  <path class="edge" d="M960 782 V870"/>
+  <text x="979" y="830" class="small">A + B</text>
+  <rect x="440" y="870" width="320" height="110" rx="16" fill="#effaf6" stroke="#8fcbb7" stroke-width="1.5"/>
+  <text x="462" y="908" class="heading">Freigabeprüfung</text>
+  <text x="462" y="937" class="body">Pflichtchecks vollständig?</text>
+  <text x="462" y="963" class="small">Keine verletzte deterministische Regel?</text>
+  <rect x="800" y="870" width="320" height="110" rx="16" class="card"/>
+  <text x="822" y="908" class="heading">Audit Report</text>
+  <text x="822" y="937" class="body">Findings · Soll / Ist · Differenz</text>
+  <text x="822" y="963" class="small">Quelle · Regelversion · Rechenweg</text>
+
+  <path d="M520 980 V1020 H240 V1080" fill="none" stroke="#168268" stroke-width="2.5" marker-end="url(#green-arrow)"/>
+  <text x="268" y="1010" font-size="16" font-weight="700" fill="#168268">PASS</text>
+  <path class="edge" d="M640 980 V1080"/>
+  <text x="665" y="1030" class="small">Fehler oder Pflichtcheck offen</text>
+  <rect x="80" y="1080" width="320" height="108" rx="16" fill="#168268"/>
+  <text x="102" y="1120" font-size="25" font-weight="700" fill="white">Jahresabrechnung</text>
+  <text x="102" y="1150" font-size="19" fill="white">Freigegebenes PDF</text>
+  <text x="102" y="1174" font-size="16" fill="#d4f3e7">Aus genau dem geprüften Entwurf</text>
+  <rect x="440" y="1080" width="680" height="108" rx="16" fill="#fff5e7" stroke="#e5c18b" stroke-width="1.5"/>
+  <text x="462" y="1120" class="heading">Review und Korrektur</text>
+  <text x="462" y="1150" class="body">Daten, Zuordnungen oder Regeln nachvollziehbar korrigieren</text>
+  <text x="462" y="1174" class="small">Neue Version → erneut rechnen → erneut prüfen → Freigabeprüfung</text>
+
+  <rect x="1180" y="870" width="340" height="318" rx="16" class="card"/>
+  <text x="1206" y="908" class="heading">Nachvollziehbarkeit</text>
+  <text x="1206" y="949" class="body">Was wurde festgestellt?</text>
+  <text x="1206" y="981" class="body">Welche Daten und Quellen?</text>
+  <text x="1206" y="1013" class="body">Welche Regel und Version?</text>
+  <text x="1206" y="1045" class="body">Wie wurden Soll und Differenz</text>
+  <text x="1206" y="1071" class="body">deterministisch berechnet?</text>
+  <path d="M1206 1092 H1494" stroke="#d9e2ed"/>
+  <text x="1206" y="1120" class="small">KI darf Findings erklären.</text>
+  <text x="1206" y="1145" class="small">Das Prüfergebnis bleibt unverändert.</text>
+
+  <rect x="80" y="1240" width="1440" height="68" rx="16" fill="#e6edf5"/>
+  <text x="106" y="1268" font-size="18" font-weight="700" fill="#223c57">DURCHGÄNGIG: EVIDENCE · VERSIONIERUNG · WEG-MANDANTENTRENNUNG · HUMAN REVIEW</text>
+  <text x="106" y="1294" class="small">Quelle und Fundstelle → bestätigte Fakten / Regeln → eingefrorener Input → reproduzierbarer AuditRun → belegbares Ergebnis</text>
+  <text x="80" y="1338" font-size="14" fill="#62758c">Architekturentwurf · 09.10.2026 · Symfony-Monolith + MySQL · Strangler-Migration · keine zusätzliche Vector-Infrastruktur vorgesehen</text>
+</svg>

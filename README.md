@@ -17,6 +17,17 @@ Umfassendes Immobilienverwaltungssystem für deutsche Wohnungseigentümergemeins
 
 ![Dashboard von homeadmin24](docs/images/dashboard.png)
 
+## 🧭 Zielarchitektur
+
+Die langfristige Architektur verbindet Dokument Intelligence, Accounting,
+WEG-Governance und versioniertes Rechtswissen mit einer gemeinsamen,
+deterministischen Audit Engine. KI unterstützt beim Lesen und Erklären;
+Berechnungen und Prüfentscheidungen bleiben nachvollziehbar und reproduzierbar.
+
+![HomeAdmin24 Zielarchitektur: Accounting, Governance, Knowledge und Audit](docs/architecture/accounting-audit-target.svg)
+
+[Ausführliches Architekturkonzept mit bearbeitbarer Mermaid-Version](docs/architecture/accounting-audit-target.md)
+
 ---
 
 ## 🛠️ Technischer Stack
